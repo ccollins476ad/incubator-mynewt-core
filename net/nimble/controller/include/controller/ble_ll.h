@@ -24,9 +24,9 @@
 #include "hal/hal_cputime.h"
 
 /* Configuration for supported features */
-//#define  BLE_LL_CFG_FEAT_LE_ENCRYPTION
+#define  BLE_LL_CFG_FEAT_LE_ENCRYPTION
 //#define  BLE_LL_CFG_FEAT_CONN_PARAM_REQ
-//#define  BLE_LL_CFG_FEAT_EXT_REJECT_IND
+#define  BLE_LL_CFG_FEAT_EXT_REJECT_IND
 #define BLE_LL_CFG_FEAT_SLAVE_INIT_FEAT_XCHG
 //#define  BLE_LL_CFG_FEAT_LE_PING
 #define  BLE_LL_CFG_FEAT_DATA_LEN_EXT

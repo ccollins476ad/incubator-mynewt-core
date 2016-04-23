@@ -262,7 +262,7 @@
  * size of the PDU's that will be sent and/or received in a connection.
  */
 #ifndef NIMBLE_OPT_LL_MAX_PKT_SIZE
-#define NIMBLE_OPT_LL_MAX_PKT_SIZE              (251)
+#define NIMBLE_OPT_LL_MAX_PKT_SIZE              (27)
 #endif
 
 #ifndef NIMBLE_OPT_LL_SUPP_MAX_RX_BYTES
