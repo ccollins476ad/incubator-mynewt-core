@@ -31,7 +31,7 @@
 #include "nimble/hci_transport.h"
 #include "controller/ble_ll.h"
 
-#define HCI_UART_SPEED 1000000
+#define HCI_UART_SPEED 115200
 #define HCI_UART CONSOLE_UART
 
 /* Nimble task priorities */
@@ -328,7 +328,7 @@ uart_init(void)
     }
 
     return hal_uart_config(HCI_UART, HCI_UART_SPEED, 8, 1, HAL_UART_PARITY_NONE,
-                           HAL_UART_FLOW_CTL_RTS_CTS);
+                           HAL_UART_FLOW_CTL_NONE);
 }
 
 int
