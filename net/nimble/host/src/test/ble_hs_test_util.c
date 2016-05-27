@@ -76,11 +76,9 @@ ble_hs_test_util_prev_tx_dequeue(void)
 
     os_mbuf_free_chain(ble_hs_test_util_prev_tx_cur);
 
-    omp = STAILQ_LAST(&ble_hs_test_util_prev_tx_queue, os_mbuf_pkthdr,
-                      omp_next);
+    omp = STAILQ_FIRST(&ble_hs_test_util_prev_tx_queue);
     if (omp != NULL) {
-        STAILQ_REMOVE(&ble_hs_test_util_prev_tx_queue, omp, os_mbuf_pkthdr,
-                      omp_next);
+        STAILQ_REMOVE_HEAD(&ble_hs_test_util_prev_tx_queue, omp_next);
         ble_hs_test_util_prev_tx_cur = OS_MBUF_PKTHDR_TO_MBUF(omp);
     } else {
         ble_hs_test_util_prev_tx_cur = NULL;
@@ -120,6 +118,7 @@ ble_hs_test_util_prev_tx_queue_sz(void)
 void
 ble_hs_test_util_prev_tx_queue_clear(void)
 {
+    ble_hs_test_util_tx_all();
     while (!STAILQ_EMPTY(&ble_hs_test_util_prev_tx_queue)) {
         ble_hs_test_util_prev_tx_dequeue();
     }
@@ -377,6 +376,22 @@ ble_hs_test_util_conn_terminate(uint16_t conn_handle, uint8_t hci_status)
 
     rc = ble_gap_terminate(conn_handle);
     return rc;
+}
+
+void
+ble_hs_test_util_conn_disconnect(uint16_t conn_handle)
+{
+    struct hci_disconn_complete evt;
+    int rc;
+
+    rc = ble_hs_test_util_conn_terminate(conn_handle, 0);
+    TEST_ASSERT_FATAL(rc == 0);
+
+    /* Receive disconnection complete event. */
+    evt.connection_handle = conn_handle;
+    evt.status = 0;
+    evt.reason = BLE_ERR_CONN_TERM_LOCAL;
+    ble_gap_rx_disconn_complete(&evt);
 }
 
 int
@@ -742,6 +757,7 @@ ble_hs_test_util_set_public_addr(uint8_t *addr)
 {
     memcpy(ble_hs_our_dev.public_addr, addr, 6);
 }
+
 
 void
 ble_hs_test_util_init(void)

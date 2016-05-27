@@ -79,6 +79,21 @@
 
 typedef uint16_t ble_l2cap_sm_proc_flags;
 
+struct ble_l2cap_sm_keys {
+    unsigned ltk_valid:1;
+    unsigned ediv_rand_valid:1;
+    unsigned irk_valid:1;
+    unsigned csrk_valid:1;
+    unsigned addr_valid:1;
+    uint16_t ediv;
+    uint64_t rand_val;
+    uint8_t addr_type;
+    uint8_t ltk[16];
+    uint8_t irk[16];
+    uint8_t csrk[16];
+    uint8_t addr[6];
+};
+
 struct ble_l2cap_sm_proc {
     STAILQ_ENTRY(ble_l2cap_sm_proc) next;
 
@@ -99,8 +114,8 @@ struct ble_l2cap_sm_proc {
     uint8_t ltk[16];
 
     /* this may be temporary, but we keep the keys here for now */
-    struct ble_gap_key_parms our_keys;
-    struct ble_gap_key_parms peer_keys;
+    struct ble_l2cap_sm_keys our_keys;
+    struct ble_l2cap_sm_keys peer_keys;
 };
 
 STAILQ_HEAD(ble_l2cap_sm_proc_list, ble_l2cap_sm_proc);
@@ -479,12 +494,65 @@ ble_l2cap_sm_sec_state(struct ble_l2cap_sm_proc *proc,
 }
 
 static void
-ble_l2cap_sm_key_exchange_events(struct ble_l2cap_sm_proc *proc) {
+ble_l2cap_sm_fill_store_value(uint8_t peer_addr_type, uint8_t *peer_addr,
+                              int authenticated,
+                              struct ble_l2cap_sm_keys *keys,
+                              struct ble_store_value_sec *value_sec)
+{
+    memset(value_sec, 0, sizeof *value_sec);
 
-    proc->our_keys.is_ours = 1;
-    proc->peer_keys.is_ours = 0;
-    ble_gap_key_exchange_event(proc->conn_handle, &proc->our_keys);
-    ble_gap_key_exchange_event(proc->conn_handle, &proc->peer_keys);
+    if (keys->ediv_rand_valid && keys->ltk_valid) {
+        value_sec->peer_addr_type = peer_addr_type;
+        memcpy(value_sec->peer_addr, peer_addr, sizeof value_sec->peer_addr);
+        value_sec->ediv = keys->ediv;
+        value_sec->rand_num = keys->rand_val;
+
+        memcpy(value_sec->ltk, keys->ltk, sizeof value_sec->ltk);
+        value_sec->ltk_present = 1;
+
+        value_sec->authenticated = authenticated;
+        value_sec->sc = 0;
+    }
+
+    if (keys->irk_valid) {
+        memcpy(value_sec->irk, keys->irk, sizeof value_sec->irk);
+        value_sec->irk_present = 1;
+    }
+
+    if (keys->csrk_valid) {
+        memcpy(value_sec->csrk, keys->csrk, sizeof value_sec->csrk);
+        value_sec->csrk_present = 1;
+    }
+}
+
+static void
+ble_l2cap_sm_key_exchange_events(struct ble_l2cap_sm_proc *proc)
+{
+    struct ble_store_value_sec value_sec;
+    struct ble_hs_conn *conn;
+    uint8_t peer_addr[8];
+    uint8_t peer_addr_type;
+    int authenticated;
+
+    ble_hs_lock();
+
+    conn = ble_hs_conn_find(proc->conn_handle);
+    BLE_HS_DBG_ASSERT(conn != NULL);
+
+    peer_addr_type = conn->bhc_addr_type;
+    memcpy(peer_addr, conn->bhc_addr, sizeof peer_addr);
+
+    ble_hs_unlock();
+
+    authenticated = !!(proc->flags & BLE_L2CAP_SM_PROC_F_AUTHENTICATED);
+
+    ble_l2cap_sm_fill_store_value(peer_addr_type, peer_addr, authenticated,
+                                  &proc->our_keys, &value_sec);
+    ble_store_write_slv_sec(&value_sec);
+
+    ble_l2cap_sm_fill_store_value(peer_addr_type, peer_addr, authenticated,
+                                  &proc->peer_keys, &value_sec);
+    ble_store_write_mst_sec(&value_sec);
 }
 
 static void
@@ -494,7 +562,7 @@ ble_l2cap_sm_gap_event(struct ble_l2cap_sm_proc *proc, int status,
     struct ble_gap_sec_state sec_state;
 
     ble_l2cap_sm_sec_state(proc, &sec_state, enc_enabled);
-    ble_gap_security_event(proc->conn_handle, status, &sec_state);
+    ble_gap_enc_changed(proc->conn_handle, status, &sec_state);
 }
 
 static int
@@ -1462,6 +1530,9 @@ ble_l2cap_sm_rx_key_exchange(uint16_t conn_handle, uint8_t op,
             break;
         }
 
+        BLE_HS_LOG(DEBUG, "op=%d rx_key_flags=0x%02x\n",
+                   op, proc->rx_key_flags);
+
         /* did we finish RX keys */
         rc = 0;
         if (!proc->rx_key_flags) {
@@ -1485,7 +1556,6 @@ ble_l2cap_sm_rx_key_exchange(uint16_t conn_handle, uint8_t op,
 
     ble_hs_unlock();
 
-    /* a successful ending of the link */
     if (rc == 0) {
         if (sm_end) {
             ble_l2cap_sm_gap_event(proc, 0, 1);
@@ -1741,20 +1811,25 @@ ble_l2cap_sm_rx_pair_fail(uint16_t conn_handle, uint8_t op,
 static int
 ble_l2cap_sm_lt_key_req_ltk_handle(struct hci_le_lt_key_req *evt)
 {
-    struct ble_gap_ltk_params ltk_params;
+    struct ble_store_value_sec value_sec;
+    struct ble_store_key_sec key_sec;
     struct ble_l2cap_sm_proc *proc;
     struct ble_l2cap_sm_proc *prev;
-    int app_rc;
+    int store_rc;
     int rc;
 
     /* Tell applicaiton to look up LTK by ediv/rand pair. */
-    ltk_params.ediv = evt->encrypted_diversifier;
-    ltk_params.rand_num = evt->random_number;
-    app_rc = ble_gap_ltk_event(evt->connection_handle, &ltk_params);
-    if (app_rc == 0) {
-        /* App provided a key; send it to the controller. */
+    /* XXX: Also filter by peer address? */
+    memset(&key_sec, 0, sizeof key_sec);
+    key_sec.peer_addr_type = BLE_STORE_ADDR_TYPE_NONE;
+    key_sec.ediv = evt->encrypted_diversifier;
+    key_sec.rand_num = evt->random_number;
+    key_sec.ediv_rand_present = 1;
+    store_rc = ble_store_read_slv_sec(&key_sec, &value_sec);
+    if (store_rc == 0) {
+        /* Store provided a key; send it to the controller. */
         rc = ble_l2cap_sm_lt_key_req_reply_tx(evt->connection_handle,
-                                              ltk_params.ltk);
+                                              value_sec.ltk);
     } else {
         /* Application does not have the requested key in its database.  Send a
          * negative reply to the controller.
@@ -1768,9 +1843,9 @@ ble_l2cap_sm_lt_key_req_ltk_handle(struct hci_le_lt_key_req *evt)
                                   &prev);
     if (proc == NULL) {
         rc = BLE_HS_EUNKNOWN;
-    } else if (app_rc == 0 && rc == 0) {
+    } else if (store_rc == 0 && rc == 0) {
         proc->state = BLE_L2CAP_SM_PROC_STATE_ENC_CHANGE;
-        if (ltk_params.authenticated) {
+        if (value_sec.authenticated) {
             proc->flags |= BLE_L2CAP_SM_PROC_F_AUTHENTICATED;
         }
     } else {
@@ -1779,14 +1854,14 @@ ble_l2cap_sm_lt_key_req_ltk_handle(struct hci_le_lt_key_req *evt)
     ble_hs_unlock();
 
     /* Notify the app if it provided a key and the procedure failed. */
-    if (app_rc == 0 && rc != 0) {
+    if (store_rc == 0 && rc != 0) {
         ble_l2cap_sm_gap_event(proc, rc, 0);
     }
 
     /* The procedure is aborted if the app didn't provide a key or if there was
      * a failure.
      */
-    if (app_rc != 0 || rc != 0) {
+    if (store_rc != 0 || rc != 0) {
         ble_l2cap_sm_proc_free(proc);
     }
 
@@ -1812,6 +1887,7 @@ ble_l2cap_sm_rx_lt_key_req(struct hci_le_lt_key_req *evt)
          * that security establishment is in progress and execute the procedure
          * after the mutex gets unlocked.
          */
+        /* XXX: Ensure we are the master. */
         bonding = 1;
         proc = ble_l2cap_sm_proc_alloc();
         if (proc != NULL) {
@@ -1908,8 +1984,10 @@ static int
 ble_l2cap_sm_rx_sec_req(uint16_t conn_handle, uint8_t op, struct os_mbuf **om)
 {
     struct ble_l2cap_sm_sec_req cmd;
-    struct ble_l2cap_sm_proc *proc;
+    struct ble_store_value_sec value_sec;
+    struct ble_store_key_sec key_sec;
     struct ble_hs_conn *conn;
+    int authreq_mitm;
     int rc;
 
     rc = ble_hs_misc_pullup_base(om, BLE_L2CAP_SM_SEC_REQ_SZ);
@@ -1919,39 +1997,59 @@ ble_l2cap_sm_rx_sec_req(uint16_t conn_handle, uint8_t op, struct os_mbuf **om)
 
     ble_l2cap_sm_sec_req_parse((*om)->om_data, (*om)->om_len, &cmd);
 
+    /* XXX: Reject if:
+     *     o authreq-bonded flag not set?
+     *     o authreq-reserved flags set?
+     */
+
     BLE_HS_LOG(DEBUG, "rxed sm sec req; authreq=%d\n", cmd.authreq);
 
     ble_hs_lock();
 
-    /* Only handle the security request if a procedure isn't already in
-     * progress for this connection.
-     */
-    proc = ble_l2cap_sm_proc_find(conn_handle, BLE_L2CAP_SM_PROC_STATE_NONE,
-                                  -1, NULL);
-    if (proc != NULL) {
-        rc = BLE_HS_EALREADY;
+    conn = ble_hs_conn_find(conn_handle);
+    if (conn == NULL) {
+        rc = BLE_HS_ENOTCONN;
+    } else if (!(conn->bhc_flags & BLE_HS_CONN_F_MASTER)) {
+        rc = BLE_HS_SM_US_ERR(BLE_L2CAP_SM_ERR_CMD_NOT_SUPP);
+        ble_l2cap_sm_pair_fail_tx(conn_handle, BLE_L2CAP_SM_ERR_CMD_NOT_SUPP);
     } else {
-        conn = ble_hs_conn_find(conn_handle);
-        if (conn == NULL) {
-            rc = BLE_HS_ENOTCONN;
-        } else if (!(conn->bhc_flags & BLE_HS_CONN_F_MASTER)) {
-            rc = BLE_HS_SM_US_ERR(BLE_L2CAP_SM_ERR_CMD_NOT_SUPP);
-            ble_l2cap_sm_pair_fail_tx(conn_handle,
-                                      BLE_L2CAP_SM_ERR_CMD_NOT_SUPP);
-        } else {
-            rc = 0;
-        }
+        rc = 0;
+
+        /* We will be querying the SM database for a key corresponding to the
+         * sender; remember the sender's address while the connection list is
+         * locked.
+         */
+        memset(&key_sec, 0, sizeof key_sec);
+        key_sec.peer_addr_type = conn->bhc_addr_type;
+        memcpy(key_sec.peer_addr, conn->bhc_addr, 6);
     }
 
     ble_hs_unlock();
 
     if (rc == 0) {
-        /* XXX: Ask app / someone if there is a persisted LTK such that:
-         *     o It corresponds to this peer.
-         *     o It meets the specified authreq criteria.
-         * For now, assume we don't have an appropriate LTK; initiate pairing.
+        /* Query database for an LTK corresonding to the sender.  We are the
+         * master, so retrieve a master key.
          */
-        rc = ble_l2cap_sm_pair_initiate(conn_handle);
+        rc = ble_store_read_mst_sec(&key_sec, &value_sec);
+        if (rc == 0) {
+            /* Found a key corresponding to this peer.  Make sure it meets the
+             * requested minimum authreq.
+             */
+            authreq_mitm = cmd.authreq & BLE_L2CAP_SM_PAIR_AUTHREQ_MITM;
+            if ((!authreq_mitm && value_sec.authenticated) ||
+                (authreq_mitm && !value_sec.authenticated)) {
+
+                rc = BLE_HS_EREJECT;
+            }
+        }
+
+        if (rc == 0) {
+            rc = ble_l2cap_sm_enc_initiate(conn_handle, value_sec.ltk,
+                                           value_sec.ediv, value_sec.rand_num,
+                                           value_sec.authenticated);
+        } else {
+            rc = ble_l2cap_sm_pair_initiate(conn_handle);
+        }
     }
 
     return rc;
