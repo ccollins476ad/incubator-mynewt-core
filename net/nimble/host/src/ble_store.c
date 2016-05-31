@@ -168,7 +168,5 @@ ble_store_key_from_value_sec(struct ble_store_key_sec *out_key,
     out_key->peer_addr_type = value->peer_addr_type;
     memcpy(out_key->peer_addr, value->peer_addr, sizeof out_key->peer_addr);
 
-    out_key->ediv = value->ediv;
-    out_key->rand_num = value->rand_num;
-    out_key->ediv_rand_present = 1;
+    out_key->ediv_rand_present = 0;
 }
