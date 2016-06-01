@@ -230,8 +230,6 @@ ble_sm_sc_random_go(struct ble_sm_proc *proc, struct ble_sm_result *res)
             res->passkey_action.action = pkact;
             BLE_HS_DBG_ASSERT(pkact == BLE_SM_PKACT_NUMCMP);
             ble_sm_sc_gen_numcmp(proc, res);
-        } else {
-            res->execute = 1;
         }
     }
 }
