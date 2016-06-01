@@ -177,6 +177,7 @@ struct ble_gap_conn_ctxt {
 
         struct {
             uint8_t action;
+            uint32_t numcmp;
         } passkey_action;
 
         struct {
