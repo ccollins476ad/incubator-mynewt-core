@@ -146,6 +146,11 @@ struct ble_gap_notify_params {
     unsigned indication:1;
 };
 
+struct ble_gap_passkey_action {
+    uint8_t action;
+    uint32_t numcmp;
+};
+
 struct ble_gap_conn_ctxt {
     struct ble_gap_conn_desc *desc;
 
@@ -175,10 +180,7 @@ struct ble_gap_conn_ctxt {
             int status;
         } enc_change;
 
-        struct {
-            uint8_t action;
-            uint32_t numcmp;
-        } passkey_action;
+        struct ble_gap_passkey_action passkey_action;
 
         struct {
             uint16_t attr_handle;
