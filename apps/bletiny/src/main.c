@@ -74,7 +74,7 @@ uint8_t g_host_adv_len;
 static uint8_t bletiny_addr[6] = {0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a};
 
 /* Create a mbuf pool of BLE mbufs */
-#define MBUF_NUM_MBUFS      (12)
+#define MBUF_NUM_MBUFS      (16)
 #define MBUF_BUF_SIZE       OS_ALIGN(BLE_MBUF_PAYLOAD_SIZE, 4)
 #define MBUF_MEMBLOCK_SIZE  (MBUF_BUF_SIZE + BLE_MBUF_MEMBLOCK_OVERHEAD)
 #define MBUF_MEMPOOL_SIZE   OS_MEMPOOL_SIZE(MBUF_NUM_MBUFS, MBUF_MEMBLOCK_SIZE)
@@ -146,11 +146,19 @@ bletiny_print_error(char *msg, uint16_t conn_handle,
 }
 
 static void
+bletiny_print_mac(uint8_t *mac) {
+    int i;
+    for (i = 5; i >= 0; i--) {
+        console_printf("%s0x%02x", i != 5 ? ":" : "", mac[i]);
+    }
+}
+
+static void
 bletiny_print_conn_desc(struct ble_gap_conn_desc *desc)
 {
     console_printf("handle=%d peer_addr_type=%d peer_addr=",
                    desc->conn_handle, desc->peer_addr_type);
-    print_bytes(desc->peer_addr, 6);
+    bletiny_print_mac(desc->peer_addr);
     console_printf(" conn_itvl=%d conn_latency=%d supervision_timeout=%d "
                    "pair_alg=%d enc_enabled=%d authenticated=%d",
                    desc->conn_itvl, desc->conn_latency,
@@ -158,6 +166,15 @@ bletiny_print_conn_desc(struct ble_gap_conn_desc *desc)
                    desc->sec_state.pair_alg,
                    desc->sec_state.enc_enabled,
                    desc->sec_state.authenticated);
+}
+
+static void
+bletiny_print_enh_conn_info(struct ble_gap_enhanced_conn *penh)
+{
+    console_printf(" local_rpa ");
+    bletiny_print_mac(penh->local_rpa);
+    console_printf(" peer_rpa ");
+    bletiny_print_mac(penh->peer_rpa);
 }
 
 static void
@@ -257,7 +274,7 @@ bletiny_print_adv_fields(struct ble_hs_adv_fields *fields)
 
     if (fields->le_addr != NULL) {
         console_printf("    le_addr=");
-        print_bytes(fields->le_addr, BLE_HS_ADV_LE_ADDR_LEN);
+        bletiny_print_mac(fields->le_addr);
         console_printf("\n");
     }
 
@@ -787,6 +804,10 @@ bletiny_gap_event(int event, struct ble_gap_conn_ctxt *ctxt, void *arg)
                        ctxt->connect.status == 0 ? "established" : "failed",
                        ctxt->connect.status);
         bletiny_print_conn_desc(ctxt->desc);
+
+        if (ctxt->connect.status  == 0) {
+            bletiny_print_enh_conn_info(ctxt->connect.enhanced_conn);
+        }
         console_printf("\n");
 
         if (ctxt->connect.status == 0) {
@@ -848,7 +869,6 @@ bletiny_gap_event(int event, struct ble_gap_conn_ctxt *ctxt, void *arg)
         print_bytes(ctxt->notify.attr_data, ctxt->notify.attr_len);
         console_printf("\n");
         return 0;
-
     default:
         return 0;
     }
@@ -868,7 +888,7 @@ bletiny_on_scan(int event, int status, struct ble_gap_disc_desc *desc,
     case BLE_GAP_EVENT_DISC_SUCCESS:
         console_printf("received advertisement; event_type=%d addr_type=%d "
                        "addr=", desc->event_type, desc->addr_type);
-        print_bytes(desc->addr, 6);
+        bletiny_print_mac(desc->addr);
         console_printf(" length_data=%d rssi=%d data=", desc->length_data,
                        desc->rssi);
         print_bytes(desc->data, desc->length_data);
@@ -1063,12 +1083,13 @@ bletiny_adv_stop(void)
 }
 
 int
-bletiny_adv_start(int disc, int conn, uint8_t *peer_addr, int addr_type,
-                  struct hci_adv_params *params)
+bletiny_adv_start(int disc, int conn,
+                uint8_t *peer_addr, uint8_t peer_addr_type,
+                struct ble_gap_adv_params *params)
 {
     int rc;
 
-    rc = ble_gap_adv_start(disc, conn, peer_addr, addr_type, params,
+    rc = ble_gap_adv_start(disc, conn, peer_addr, peer_addr_type, params,
                            bletiny_gap_event, NULL);
     return rc;
 }
@@ -1079,8 +1100,8 @@ bletiny_conn_initiate(int addr_type, uint8_t *peer_addr,
 {
     int rc;
 
-    rc = ble_gap_conn_initiate(addr_type, peer_addr, NULL, bletiny_gap_event,
-                               params);
+    rc = ble_gap_conn_initiate(addr_type, peer_addr, params, bletiny_gap_event,
+                               NULL);
     return rc;
 }
 
@@ -1113,11 +1134,11 @@ bletiny_wl_set(struct ble_gap_white_entry *white_list, int white_list_count)
 
 int
 bletiny_scan(uint32_t dur_ms, uint8_t disc_mode, uint8_t scan_type,
-              uint8_t filter_policy)
+              uint8_t filter_policy, uint8_t addr_mode)
 {
     int rc;
 
-    rc = ble_gap_disc(dur_ms, disc_mode, scan_type, filter_policy,
+    rc = ble_gap_disc(dur_ms, disc_mode, scan_type, filter_policy, addr_mode,
                       bletiny_on_scan, NULL);
     return rc;
 }
