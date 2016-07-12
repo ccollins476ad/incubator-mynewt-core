@@ -458,6 +458,8 @@ ble_l2cap_sig_update(uint16_t conn_handle,
         ble_l2cap_sig_proc_insert(proc);
     }
 
+    ble_hs_heartbeat_sched(BLE_L2CAP_SIG_UNRESPONSIVE_TIMEOUT);
+
 done:
     ble_hs_unlock();
 
@@ -535,13 +537,14 @@ ble_l2cap_sig_create_chan(void)
     return chan;
 }
 
-static void
+static int32_t
 ble_l2cap_sig_extract_expired(struct ble_l2cap_sig_proc_list *dst_list)
 {
     struct ble_l2cap_sig_proc *proc;
     struct ble_l2cap_sig_proc *prev;
     struct ble_l2cap_sig_proc *next;
     uint32_t now;
+    int32_t next_exp_offset;
     int32_t time_diff;
 
     now = os_time_get();
@@ -550,24 +553,31 @@ ble_l2cap_sig_extract_expired(struct ble_l2cap_sig_proc_list *dst_list)
     ble_hs_lock();
 
     prev = NULL;
+    next_exp_offset = BLE_HS_FOREVER;
     proc = STAILQ_FIRST(&ble_l2cap_sig_procs);
     while (proc != NULL) {
         next = STAILQ_NEXT(proc, next);
     
-        time_diff = now - proc->exp_os_ticks;
-        if (time_diff >= 0) {
+        time_diff = proc->exp_os_ticks - now;
+        if (time_diff <= 0) {
             if (prev == NULL) {
                 STAILQ_REMOVE_HEAD(&ble_l2cap_sig_procs, next);
             } else {
                 STAILQ_REMOVE_AFTER(&ble_l2cap_sig_procs, prev, next);
             }
             STAILQ_INSERT_TAIL(dst_list, proc, next);
+        } else {
+            if (time_diff < next_exp_offset) {
+                next_exp_offset = time_diff;
+            }
         }
 
         proc = next;
     }
 
     ble_hs_unlock();
+
+    return next_exp_offset;
 }
 
 /**
@@ -587,11 +597,12 @@ ble_l2cap_sig_heartbeat(void)
 {
     struct ble_l2cap_sig_proc_list temp_list;
     struct ble_l2cap_sig_proc *proc;
+    int32_t ticks_from_now;
 
     /* Remove timed-out procedures from the main list and insert them into a
      * temporary list.
      */
-    ble_l2cap_sig_extract_expired(&temp_list);
+    ticks_from_now = ble_l2cap_sig_extract_expired(&temp_list);
 
     /* Terminate the connection associated with each timed-out procedure. */
     STAILQ_FOREACH(proc, &temp_list, next) {
@@ -599,7 +610,7 @@ ble_l2cap_sig_heartbeat(void)
         ble_gap_terminate(proc->conn_handle, BLE_ERR_REM_USER_CONN_TERM);
     }
 
-    return BLE_HS_FOREVER;
+    return ticks_from_now;
 }
 
 int

@@ -1727,11 +1727,11 @@ ble_gap_adv_start(uint8_t own_addr_type, uint8_t peer_addr_type,
         goto done;
     }
 
+    ble_gap_slave.op = BLE_GAP_OP_S_ADV;
     if (duration_ms != BLE_HS_FOREVER) {
         ble_gap_slave_set_timer(duration_ticks);
     }
 
-    ble_gap_slave.op = BLE_GAP_OP_S_ADV;
     rc = 0;
 
 done:
@@ -2098,11 +2098,10 @@ ble_gap_disc(uint8_t own_addr_type, int32_t duration_ms,
         goto done;
     }
 
+    ble_gap_master.op = BLE_GAP_OP_M_DISC;
     if (duration_ms != BLE_HS_FOREVER) {
         ble_gap_master_set_timer(duration_ticks);
     }
-
-    ble_gap_master.op = BLE_GAP_OP_M_DISC;
 
     rc = 0;
 
@@ -2292,11 +2291,10 @@ ble_gap_connect(uint8_t own_addr_type,
         goto done;
     }
 
+    ble_gap_master.op = BLE_GAP_OP_M_CONN;
     if (duration_ms != BLE_HS_FOREVER) {
         ble_gap_master_set_timer(duration_ticks);
     }
-
-    ble_gap_master.op = BLE_GAP_OP_M_CONN;
 
     rc = 0;
 

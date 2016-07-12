@@ -380,6 +380,7 @@ ble_sm_proc_set_timer(struct ble_sm_proc *proc)
 {
     /* Set a timeout of 30 seconds. */
     proc->exp_os_ticks = os_time_get() + BLE_SM_TIMEOUT_OS_TICKS;
+    ble_hs_heartbeat_sched(BLE_SM_TIMEOUT_OS_TICKS);
 }
 
 static ble_sm_rx_fn *
@@ -655,13 +656,14 @@ ble_sm_insert(struct ble_sm_proc *proc)
     STAILQ_INSERT_HEAD(&ble_sm_procs, proc, next);
 }
 
-static void
+static int32_t
 ble_sm_extract_expired(struct ble_sm_proc_list *dst_list)
 {
     struct ble_sm_proc *proc;
     struct ble_sm_proc *prev;
     struct ble_sm_proc *next;
     uint32_t now;
+    int32_t next_exp_offset;
     int32_t time_diff;
 
     now = os_time_get();
@@ -670,18 +672,23 @@ ble_sm_extract_expired(struct ble_sm_proc_list *dst_list)
     ble_hs_lock();
 
     prev = NULL;
+    next_exp_offset = BLE_HS_FOREVER;
     proc = STAILQ_FIRST(&ble_sm_procs);
     while (proc != NULL) {
         next = STAILQ_NEXT(proc, next);
 
-        time_diff = now - proc->exp_os_ticks;
-        if (time_diff >= 0) {
+        time_diff = proc->exp_os_ticks - now;
+        if (time_diff <= 0) {
             if (prev == NULL) {
                 STAILQ_REMOVE_HEAD(&ble_sm_procs, next);
             } else {
                 STAILQ_REMOVE_AFTER(&ble_sm_procs, prev, next);
             }
             STAILQ_INSERT_HEAD(dst_list, proc, next);
+        } else {
+            if (time_diff < next_exp_offset) {
+                next_exp_offset = time_diff;
+            }
         }
 
         prev = proc;
@@ -691,6 +698,8 @@ ble_sm_extract_expired(struct ble_sm_proc_list *dst_list)
     ble_sm_dbg_assert_no_cycles();
 
     ble_hs_unlock();
+
+    return next_exp_offset;
 }
 
 static void
@@ -2060,11 +2069,12 @@ ble_sm_heartbeat(void)
 {
     struct ble_sm_proc_list exp_list;
     struct ble_sm_proc *proc;
+    int32_t ticks_from_now;
 
     /* Remove all timed out procedures and insert them into a temporary
      * list.
      */
-    ble_sm_extract_expired(&exp_list);
+    ticks_from_now = ble_sm_extract_expired(&exp_list);
 
     /* Notify application of each failure and free the corresponding procedure
      * object.
@@ -2078,7 +2088,7 @@ ble_sm_heartbeat(void)
         ble_sm_proc_free(proc);
     }
 
-    return BLE_HS_FOREVER;
+    return ticks_from_now;
 }
 
 /**

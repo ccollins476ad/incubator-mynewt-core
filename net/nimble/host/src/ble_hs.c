@@ -48,13 +48,6 @@ static void *ble_hs_hci_evt_buf;
 struct os_mempool g_hci_os_event_pool;
 static void *ble_hs_hci_os_event_buf;
 
-#if MYNEWT_SELFTEST
-/** Use a higher frequency timer to allow tests to run faster. */
-#define BLE_HS_HEARTBEAT_OS_TICKS         (OS_TICKS_PER_SEC / 10)
-#else
-#define BLE_HS_HEARTBEAT_OS_TICKS         OS_TICKS_PER_SEC
-#endif
-
 /**
  * Handles unresponsive timeouts and periodic retries in case of resource
  * shortage.
@@ -206,13 +199,6 @@ ble_hs_heartbeat(void *unused)
 {
     int32_t ticks_until_next;
 
-    /* Ensure the timer expires at least once in the next second.
-     * XXX: This is not very power efficient.  We will need separate timers for
-     * each module.
-     */
-    ticks_until_next = BLE_HS_HEARTBEAT_OS_TICKS;
-    ble_hs_heartbeat_sched(ticks_until_next);
-
     ticks_until_next = ble_gattc_heartbeat();
     ble_hs_heartbeat_sched(ticks_until_next);
 
@@ -300,8 +286,6 @@ ble_hs_start(void)
     int rc;
 
     ble_hs_parent_task = os_sched_get_current_task();
-
-    ble_hs_heartbeat_timer_reset(BLE_HS_HEARTBEAT_OS_TICKS);
 
     ble_gatts_start();
 
