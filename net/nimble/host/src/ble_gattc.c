@@ -64,8 +64,6 @@
  * $definitions / declarations                                               *
  *****************************************************************************/
 
-#define BLE_GATT_UNRESPONSIVE_TIMEOUT           (30 * OS_TICKS_PER_SEC)
-
 #define BLE_GATT_OP_NONE                        UINT8_MAX
 #define BLE_GATT_OP_MTU                         0
 #define BLE_GATT_OP_DISC_ALL_SVCS               1
@@ -869,6 +867,7 @@ ble_gattc_heartbeat(void)
     struct ble_gattc_proc_list exp_list;
     struct ble_gattc_proc *proc;
     int32_t ticks_from_now;
+    ble_gattc_err_fn *err_cb;
 
     /* Remove timed-out procedures from the main list and insert them into a
      * temporary list.
@@ -878,6 +877,12 @@ ble_gattc_heartbeat(void)
     /* Terminate the connection associated with each timed-out procedure. */
     while ((proc = STAILQ_FIRST(&exp_list)) != NULL) {
         STATS_INC(ble_gattc_stats, proc_timeout);
+
+        err_cb = ble_gattc_err_dispatch_get(proc->op);
+        if (err_cb != NULL) {
+            err_cb(proc, BLE_HS_ETIMEOUT, 0);
+        }
+
         ble_gap_terminate(proc->conn_handle, BLE_ERR_REM_USER_CONN_TERM);
 
         STAILQ_REMOVE_HEAD(&exp_list, next);

@@ -70,6 +70,14 @@
 #define BLE_SM_PAIR_KEY_SZ_MIN                  7
 #define BLE_SM_PAIR_KEY_SZ_MAX                  16
 
+/** Procedure timeout; 30 seconds. */
+#ifdef MYNEWT_SELFTEST
+/** Expire procedures much more quickly during unit tests to speed up tests. */
+#define BLE_SM_TIMEOUT_OS_TICKS             2
+#else
+#define BLE_SM_TIMEOUT_OS_TICKS             (30 * OS_TICKS_PER_SEC)
+#endif
+
 /*
  * The security manager asks the application to perform a key generation
  * action.  The application passes the passkey back to SM via

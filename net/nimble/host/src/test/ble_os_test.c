@@ -6,7 +6,7 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *  http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
@@ -24,6 +24,7 @@
 #include "nimble/hci_transport.h"
 #include "host/ble_hs_test.h"
 #include "host/ble_gap.h"
+#include "host/ble_sm.h"
 #include "ble_hs_test_util.h"
 
 #define BLE_OS_TEST_STACK_SIZE      256
@@ -51,7 +52,7 @@ ble_os_test_init_app_task(void)
     int rc;
 
     rc = os_task_init(&ble_os_test_app_task,
-                      "ble_gap_terminate_test_task",
+                      "ble_os_test_terminate_task",
                       ble_os_test_app_task_handler, NULL,
                       BLE_OS_TEST_APP_PRIO, OS_WAIT_FOREVER,
                       ble_os_test_app_stack,
@@ -60,8 +61,10 @@ ble_os_test_init_app_task(void)
 }
 
 static void
-ble_os_test_misc_init(void)
+ble_os_test_start(const char *task_name, os_task_func_t handler)
 {
+    int rc;
+
     ble_hs_test_util_init();
 
     /* Receive acknowledgements for the startup sequence.  We sent the
@@ -70,6 +73,39 @@ ble_os_test_misc_init(void)
     ble_hs_test_util_set_startup_acks();
 
     ble_os_test_init_app_task();
+
+    rc = os_task_init(&ble_os_test_task,
+                      (char *)task_name, handler, NULL,
+                      BLE_OS_TEST_TASK_PRIO, OS_WAIT_FOREVER, ble_os_test_stack,
+                      OS_STACK_ALIGN(BLE_OS_TEST_STACK_SIZE));
+    TEST_ASSERT_FATAL(rc == 0);
+
+    os_start();
+}
+
+static void
+ble_os_test_app_task_handler(void *arg)
+{
+    struct os_callout_func *cf;
+    struct os_event *ev;
+    int rc;
+
+    rc = ble_hs_start();
+    TEST_ASSERT(rc == 0);
+
+    while (1) {
+        ev = os_eventq_get(&ble_hs_test_util_evq);
+        switch (ev->ev_type) {
+        case OS_EVENT_T_TIMER:
+            cf = (struct os_callout_func *)ev;
+            assert(cf->cf_func);
+            cf->cf_func(CF_ARG(cf));
+            break;
+        default:
+            assert(0);
+            break;
+        }
+    }
 }
 
 static int
@@ -90,8 +126,12 @@ ble_os_test_misc_conn_exists(uint16_t conn_handle)
     return conn != NULL;
 }
 
+/******************************************************************************
+ * $gap                                                                       *
+ ******************************************************************************/
+
 static int
-ble_gap_direct_connect_test_connect_cb(struct ble_gap_event *event, void *arg)
+ble_os_test_conn_test_connect_cb(struct ble_gap_event *event, void *arg)
 {
     int *cb_called;
 
@@ -110,7 +150,7 @@ ble_gap_direct_connect_test_connect_cb(struct ble_gap_event *event, void *arg)
 }
 
 static void
-ble_gap_direct_connect_test_task_handler(void *arg)
+ble_os_test_conn_task_handler(void *arg)
 {
     struct hci_le_conn_complete evt;
     uint8_t addr[6] = { 1, 2, 3, 4, 5, 6 };
@@ -130,7 +170,7 @@ ble_gap_direct_connect_test_task_handler(void *arg)
     /* Initiate a direct connection. */
     ble_hs_test_util_connect(BLE_ADDR_TYPE_PUBLIC, BLE_ADDR_TYPE_PUBLIC,
                              addr, 0, NULL,
-                             ble_gap_direct_connect_test_connect_cb,
+                             ble_os_test_conn_test_connect_cb,
                              &cb_called, 0);
     TEST_ASSERT(!ble_os_test_misc_conn_exists(BLE_HS_CONN_HANDLE_NONE));
     TEST_ASSERT(!cb_called);
@@ -151,17 +191,9 @@ ble_gap_direct_connect_test_task_handler(void *arg)
     tu_restart();
 }
 
-TEST_CASE(ble_gap_direct_connect_test_case)
+TEST_CASE(ble_os_test_conn_case)
 {
-    ble_os_test_misc_init();
-
-    os_task_init(&ble_os_test_task,
-                 "ble_gap_direct_connect_test_task",
-                 ble_gap_direct_connect_test_task_handler, NULL,
-                 BLE_OS_TEST_TASK_PRIO, OS_WAIT_FOREVER, ble_os_test_stack,
-                 OS_STACK_ALIGN(BLE_OS_TEST_STACK_SIZE));
-
-    os_start();
+    ble_os_test_start("ble_os_test_conn_task", ble_os_test_conn_task_handler);
 }
 
 static int
@@ -183,11 +215,6 @@ ble_os_disc_test_task_handler(void *arg)
     struct ble_gap_disc_params disc_params;
     int cb_called;
     int rc;
-
-    /* Receive acknowledgements for the startup sequence.  We sent the
-     * corresponding requests when the host task was started.
-     */
-    ble_hs_test_util_set_startup_acks();
 
     /* Set the connect callback so we can verify that it gets called with the
      * proper arguments.
@@ -236,15 +263,8 @@ ble_os_disc_test_task_handler(void *arg)
 
 TEST_CASE(ble_os_disc_test_case)
 {
-    ble_os_test_misc_init();
-
-    os_task_init(&ble_os_test_task,
-                 "ble_os_disc_test_task",
-                 ble_os_disc_test_task_handler, NULL,
-                 BLE_OS_TEST_TASK_PRIO, OS_WAIT_FOREVER, ble_os_test_stack,
-                 OS_STACK_ALIGN(BLE_OS_TEST_STACK_SIZE));
-
-    os_start();
+    ble_os_test_start("ble_os_disc_test_task",
+                      ble_os_disc_test_task_handler);
 }
 
 static int
@@ -264,7 +284,7 @@ ble_gap_terminate_cb(struct ble_gap_event *event, void *arg)
 
 
 static void
-ble_gap_terminate_test_task_handler(void *arg)
+ble_os_test_terminate_task_handler(void *arg)
 {
     struct hci_disconn_complete disconn_evt;
     struct hci_le_conn_complete conn_evt;
@@ -272,11 +292,6 @@ ble_gap_terminate_test_task_handler(void *arg)
     uint8_t addr2[6] = { 2, 3, 4, 5, 6, 7 };
     int disconn_handle;
     int rc;
-
-    /* Receive acknowledgements for the startup sequence.  We sent the
-     * corresponding requests when the host task was started.
-     */
-    ble_hs_test_util_set_startup_acks();
 
     /* Set the connect callback so we can verify that it gets called with the
      * proper arguments.
@@ -342,54 +357,436 @@ ble_gap_terminate_test_task_handler(void *arg)
     tu_restart();
 }
 
-static void
-ble_os_test_app_task_handler(void *arg)
+TEST_CASE(ble_os_test_terminate_case)
 {
-    struct os_callout_func *cf;
-    struct os_event *ev;
-    int rc;
-
-    rc = ble_hs_start();
-    TEST_ASSERT(rc == 0);
-
-    while (1) {
-        ev = os_eventq_get(&ble_hs_test_util_evq);
-        switch (ev->ev_type) {
-        case OS_EVENT_T_TIMER:
-            cf = (struct os_callout_func *)ev;
-            assert(cf->cf_func);
-            cf->cf_func(CF_ARG(cf));
-            break;
-        default:
-            assert(0);
-            break;
-        }
-    }
+    ble_os_test_start("ble_os_test_terminate_task",
+                      ble_os_test_terminate_task_handler);
 }
 
-TEST_CASE(ble_gap_terminate_test_case)
-{
-    ble_os_test_misc_init();
-
-    os_task_init(&ble_os_test_task,
-                 "ble_gap_terminate_test_task",
-                 ble_gap_terminate_test_task_handler, NULL,
-                 BLE_OS_TEST_TASK_PRIO, OS_WAIT_FOREVER, ble_os_test_stack,
-                 OS_STACK_ALIGN(BLE_OS_TEST_STACK_SIZE));
-
-    os_start();
-}
-
-TEST_SUITE(ble_os_test_suite)
+TEST_SUITE(ble_os_gap_test_suite)
 {
     ble_os_disc_test_case();
-    ble_gap_direct_connect_test_case();
-    ble_gap_terminate_test_case();
+    ble_os_test_conn_case();
+    ble_os_test_terminate_case();
+}
+
+/******************************************************************************
+ * $gattc                                                                     *
+ ******************************************************************************/
+
+static int
+ble_os_test_util_mtu_cb(uint16_t conn_handle,
+                        const struct ble_gatt_error *error,
+                        uint16_t mtu,
+                        void *arg)
+{
+    int *cb_called;
+
+    cb_called = arg;
+    *cb_called = 1;
+
+    TEST_ASSERT(error->status == BLE_HS_ETIMEOUT);
+
+    return 0;
+}
+
+static void
+ble_os_test_mtu_timeout_task_handler(void *arg)
+{
+    int cb_called;
+    int rc;
+
+    ble_hs_test_util_create_conn(2, ble_os_test_peer_addr, NULL, NULL);
+
+    rc = ble_gattc_exchange_mtu(2, ble_os_test_util_mtu_cb, &cb_called);
+    TEST_ASSERT_FATAL(rc == 0);
+
+    cb_called = 0;
+    os_time_delay(BLE_GATT_UNRESPONSIVE_TIMEOUT);
+    TEST_ASSERT(cb_called);
+
+    tu_restart();
+}
+
+TEST_CASE(ble_os_test_mtu_timeout_case)
+{
+    ble_os_test_start("ble_os_test_mtu_timeout_task",
+                      ble_os_test_mtu_timeout_task_handler);
+}
+
+static int
+ble_os_test_util_svc_cb(uint16_t conn_handle,
+                        const struct ble_gatt_error *error,
+                        const struct ble_gatt_svc *service,
+                        void *arg)
+{
+    int *cb_called;
+
+    cb_called = arg;
+    *cb_called = 1;
+
+    TEST_ASSERT(error->status == BLE_HS_ETIMEOUT);
+    TEST_ASSERT(service == NULL);
+
+    return 0;
+}
+
+static void
+ble_os_test_svc_timeout_task_handler(void *arg)
+{
+    int cb_called;
+    int rc;
+
+    ble_hs_test_util_create_conn(2, ble_os_test_peer_addr, NULL, NULL);
+
+    rc = ble_gattc_disc_all_svcs(2, ble_os_test_util_svc_cb, &cb_called);
+    TEST_ASSERT_FATAL(rc == 0);
+
+    cb_called = 0;
+    os_time_delay(BLE_GATT_UNRESPONSIVE_TIMEOUT);
+    TEST_ASSERT(cb_called);
+
+    rc = ble_gattc_disc_svc_by_uuid(2, BLE_UUID16(0x1234),
+                                    ble_os_test_util_svc_cb, &cb_called);
+    TEST_ASSERT_FATAL(rc == 0);
+
+    cb_called = 0;
+    os_time_delay(BLE_GATT_UNRESPONSIVE_TIMEOUT);
+    TEST_ASSERT(cb_called);
+
+    rc = ble_gattc_find_inc_svcs(2, 100, 200,
+                                 ble_os_test_util_svc_cb, &cb_called);
+    TEST_ASSERT_FATAL(rc == 0);
+
+    cb_called = 0;
+    os_time_delay(BLE_GATT_UNRESPONSIVE_TIMEOUT);
+    TEST_ASSERT(cb_called);
+
+    tu_restart();
+}
+
+TEST_CASE(ble_os_test_svc_timeout_case)
+{
+    ble_os_test_start("ble_os_test_svc_timeout_task",
+                      ble_os_test_svc_timeout_task_handler);
+}
+
+static int
+ble_os_test_util_chr_cb(uint16_t conn_handle,
+                        const struct ble_gatt_error *error,
+                        const struct ble_gatt_chr *chr, void *arg)
+{
+    int *cb_called;
+
+    cb_called = arg;
+    *cb_called = 1;
+
+    TEST_ASSERT(error->status == BLE_HS_ETIMEOUT);
+    TEST_ASSERT(chr == NULL);
+
+    return 0;
+}
+
+static void
+ble_os_test_chr_timeout_task_handler(void *arg)
+{
+    int cb_called;
+    int rc;
+
+    ble_hs_test_util_create_conn(2, ble_os_test_peer_addr, NULL, NULL);
+
+    rc = ble_gattc_disc_all_chrs(2, 5000, 6000,
+                                 ble_os_test_util_chr_cb, &cb_called);
+    TEST_ASSERT_FATAL(rc == 0);
+
+    cb_called = 0;
+    os_time_delay(BLE_GATT_UNRESPONSIVE_TIMEOUT);
+    TEST_ASSERT(cb_called);
+
+    rc = ble_gattc_disc_chrs_by_uuid(2, 1, 0xffff, BLE_UUID16(0xabab),
+                                     ble_os_test_util_chr_cb, &cb_called);
+    TEST_ASSERT_FATAL(rc == 0);
+
+    cb_called = 0;
+    os_time_delay(BLE_GATT_UNRESPONSIVE_TIMEOUT);
+    TEST_ASSERT(cb_called);
+
+    tu_restart();
+}
+
+TEST_CASE(ble_os_test_chr_timeout_case)
+{
+    ble_os_test_start("ble_os_test_chr_timeout_task",
+                      ble_os_test_chr_timeout_task_handler);
+}
+
+static int
+ble_os_test_util_dsc_cb(uint16_t conn_handle,
+                        const struct ble_gatt_error *error,
+                        uint16_t chr_def_handle,
+                        const struct ble_gatt_dsc *dsc, void *arg)
+{
+    int *cb_called;
+
+    cb_called = arg;
+    *cb_called = 1;
+
+    TEST_ASSERT(error->status == BLE_HS_ETIMEOUT);
+    TEST_ASSERT(dsc == NULL);
+
+    return 0;
+}
+
+static void
+ble_os_test_dsc_timeout_task_handler(void *arg)
+{
+    int cb_called;
+    int rc;
+
+    ble_hs_test_util_create_conn(2, ble_os_test_peer_addr, NULL, NULL);
+
+    rc = ble_gattc_disc_all_dscs(2, 5000, 5005,
+                                 ble_os_test_util_dsc_cb, &cb_called);
+    TEST_ASSERT_FATAL(rc == 0);
+
+    cb_called = 0;
+    os_time_delay(BLE_GATT_UNRESPONSIVE_TIMEOUT);
+    TEST_ASSERT(cb_called);
+
+    tu_restart();
+}
+
+TEST_CASE(ble_os_test_dsc_timeout_case)
+{
+    ble_os_test_start("ble_os_test_dsc_timeout_task",
+                      ble_os_test_dsc_timeout_task_handler);
+}
+
+static int
+ble_os_test_util_attr_cb(uint16_t conn_handle,
+                         const struct ble_gatt_error *error,
+                         const struct ble_gatt_attr *attr,
+                         void *arg)
+{
+    int *cb_called;
+
+    cb_called = arg;
+    *cb_called = 1;
+
+    TEST_ASSERT(error->status == BLE_HS_ETIMEOUT);
+
+    return 0;
+}
+
+static void
+ble_os_test_attr_timeout_task_handler(void *arg)
+{
+    int cb_called;
+    int rc;
+
+    ble_hs_test_util_create_conn(2, ble_os_test_peer_addr, NULL, NULL);
+
+    rc = ble_gattc_read(2, 99, ble_os_test_util_attr_cb, &cb_called);
+    TEST_ASSERT_FATAL(rc == 0);
+
+    cb_called = 0;
+    os_time_delay(BLE_GATT_UNRESPONSIVE_TIMEOUT);
+    TEST_ASSERT(cb_called);
+
+    rc = ble_gattc_read_by_uuid(2, 100, 200, BLE_UUID16(0xffaa),
+                                ble_os_test_util_attr_cb, &cb_called);
+    TEST_ASSERT_FATAL(rc == 0);
+
+    cb_called = 0;
+    os_time_delay(BLE_GATT_UNRESPONSIVE_TIMEOUT);
+    TEST_ASSERT(cb_called);
+
+    rc = ble_gattc_read_long(2, 1234,
+                             ble_os_test_util_attr_cb, &cb_called);
+    TEST_ASSERT_FATAL(rc == 0);
+
+    cb_called = 0;
+    os_time_delay(BLE_GATT_UNRESPONSIVE_TIMEOUT);
+    TEST_ASSERT(cb_called);
+
+    rc = ble_gattc_read_mult(2, ((uint16_t[4]){23, 54, 78, 1002}), 4,
+                             ble_os_test_util_attr_cb, &cb_called);
+    TEST_ASSERT_FATAL(rc == 0);
+
+    cb_called = 0;
+    os_time_delay(BLE_GATT_UNRESPONSIVE_TIMEOUT);
+    TEST_ASSERT(cb_called);
+
+    rc = ble_gattc_write(2, 15561, ((uint8_t[3]){1, 2, 3}), 3,
+                         ble_os_test_util_attr_cb, &cb_called);
+    TEST_ASSERT_FATAL(rc == 0);
+
+    cb_called = 0;
+    os_time_delay(BLE_GATT_UNRESPONSIVE_TIMEOUT);
+    TEST_ASSERT(cb_called);
+
+    rc = ble_gattc_write_long(2, 52409, ((uint8_t[3]){1, 2, 3}), 3,
+                         ble_os_test_util_attr_cb, &cb_called);
+    TEST_ASSERT_FATAL(rc == 0);
+
+    cb_called = 0;
+    os_time_delay(BLE_GATT_UNRESPONSIVE_TIMEOUT);
+    TEST_ASSERT(cb_called);
+
+    tu_restart();
+}
+
+TEST_CASE(ble_os_test_attr_timeout_case)
+{
+    ble_os_test_start("ble_os_test_attr_timeout_task",
+                      ble_os_test_attr_timeout_task_handler);
+}
+
+static int
+ble_os_test_util_reliable_attr_cb(uint16_t conn_handle,
+                                  const struct ble_gatt_error *error,
+                                  const struct ble_gatt_attr *attrs,
+                                  uint8_t num_attrs, void *arg)
+{
+    int *cb_called;
+
+    cb_called = arg;
+    *cb_called = 1;
+
+    TEST_ASSERT(error->status == BLE_HS_ETIMEOUT);
+
+    return 0;
+}
+
+static void
+ble_os_test_reliable_attr_timeout_task_handler(void *arg)
+{
+    struct ble_gatt_attr attrs[2];
+    int cb_called;
+    int rc;
+
+    attrs[0].handle = 5251;
+    attrs[0].offset = 0;
+    attrs[0].value_len = 5;
+    attrs[0].value = (uint8_t[5]){5,4,3,2,1};
+
+    attrs[1].handle = 543;
+    attrs[1].offset = 0;
+    attrs[1].value_len = 2;
+    attrs[1].value = (uint8_t[2]){99, 100};
+
+    ble_hs_test_util_create_conn(2, ble_os_test_peer_addr, NULL, NULL);
+
+    rc = ble_gattc_write_reliable(2, attrs, 2,
+                                  ble_os_test_util_reliable_attr_cb,
+                                  &cb_called);
+    TEST_ASSERT_FATAL(rc == 0);
+
+    cb_called = 0;
+    os_time_delay(BLE_GATT_UNRESPONSIVE_TIMEOUT);
+    TEST_ASSERT(cb_called);
+
+    tu_restart();
+}
+
+TEST_CASE(ble_os_test_reliable_attr_timeout_case)
+{
+    ble_os_test_start("ble_os_test_reliable_attr_timeout_task",
+                      ble_os_test_reliable_attr_timeout_task_handler);
+}
+
+TEST_SUITE(ble_os_gattc_test_suite)
+{
+    ble_os_test_mtu_timeout_case();
+    ble_os_test_svc_timeout_case();
+    ble_os_test_chr_timeout_case();
+    ble_os_test_dsc_timeout_case();
+    ble_os_test_attr_timeout_case();
+    ble_os_test_reliable_attr_timeout_case();
+}
+
+/******************************************************************************
+ * $sm                                                                        *
+ ******************************************************************************/
+
+static int
+ble_os_test_pair_gap_event(struct ble_gap_event *event, void *arg)
+{
+    int *cb_called;
+
+    cb_called = arg;
+
+    switch (event->type) {
+    case BLE_GAP_EVENT_ENC_CHANGE:
+        TEST_ASSERT(event->enc_change.status == BLE_HS_ETIMEOUT);
+        *cb_called = 1;
+        break;
+    }
+
+    return 0;
+}
+
+static void
+ble_os_test_pair_timeout_handler(void *arg)
+{
+    int cb_called;
+    int rc;
+
+    ble_hs_test_util_create_conn(2, ble_os_test_peer_addr,
+                                 ble_os_test_pair_gap_event, &cb_called);
+
+    ble_sm_dbg_set_next_pair_rand((uint8_t[16]){0});
+    rc = ble_gap_security_initiate(2);
+    TEST_ASSERT_FATAL(rc == 0);
+
+    cb_called = 0;
+    os_time_delay(BLE_SM_TIMEOUT_OS_TICKS);
+    TEST_ASSERT(cb_called);
+
+    tu_restart();
+}
+
+TEST_CASE(ble_os_test_pair_timeout_case)
+{
+    ble_os_test_start("ble_os_test_pair_task",
+                      ble_os_test_pair_timeout_handler);
+}
+
+static void
+ble_os_test_enc_timeout_handler(void *arg)
+{
+    int cb_called;
+
+    ble_hs_test_util_create_conn(2, ble_os_test_peer_addr,
+                                 ble_os_test_pair_gap_event, &cb_called);
+
+    ble_hs_test_util_enc_initiate(2, ((uint8_t[16]){0}), 0, 0, 0, 0);
+
+    cb_called = 0;
+    os_time_delay(BLE_SM_TIMEOUT_OS_TICKS);
+    TEST_ASSERT(cb_called);
+
+    tu_restart();
+}
+
+TEST_CASE(ble_os_test_enc_timeout_case)
+{
+    ble_os_test_start("ble_os_test_enc_task",
+                      ble_os_test_enc_timeout_handler);
+}
+
+TEST_SUITE(ble_os_sm_test_suite)
+{
+    ble_os_test_pair_timeout_case();
+    ble_os_test_enc_timeout_case();
 }
 
 int
 ble_os_test_all(void)
 {
-    ble_os_test_suite();
+    ble_os_gap_test_suite();
+    ble_os_gattc_test_suite();
+    ble_os_sm_test_suite();
+
     return tu_any_failed;
 }

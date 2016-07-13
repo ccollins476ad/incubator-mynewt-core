@@ -66,6 +66,13 @@ struct ble_att_error_rsp;
 #define BLE_GATT_SVC_TYPE_PRIMARY                       1
 #define BLE_GATT_SVC_TYPE_SECONDARY                     2
 
+/** Expire procedures much more quickly during unit tests to speed up tests. */
+#if MYNEWT_SELFTEST
+#define BLE_GATT_UNRESPONSIVE_TIMEOUT           2
+#else
+#define BLE_GATT_UNRESPONSIVE_TIMEOUT           (30 * OS_TICKS_PER_SEC)
+#endif
+
 /*** @client. */
 struct ble_gatt_error {
     uint16_t status;
@@ -163,16 +170,6 @@ int ble_gattc_write_reliable(uint16_t conn_handle,
                              const struct ble_gatt_attr *attrs,
                              int num_attrs, ble_gatt_reliable_attr_fn *cb,
                              void *cb_arg);
-int ble_gattc_read_dsc(uint16_t conn_handle, uint16_t attr_handle,
-                       ble_gatt_attr_fn *cb, void *cb_arg);
-int ble_gattc_read_long_dsc(uint16_t conn_handle, uint16_t attr_handle,
-                            ble_gatt_attr_fn *cb, void *cb_arg);
-int ble_gattc_write_dsc(uint16_t conn_handle, uint16_t attr_handle,
-                        const void *value, uint16_t value_len,
-                        ble_gatt_attr_fn *cb, void *cb_arg);
-int ble_gattc_write_long_dsc(uint16_t conn_handle, uint16_t attr_handle,
-                             const void *value, uint16_t value_len,
-                             ble_gatt_attr_fn *cb, void *cb_arg);
 int ble_gattc_notify(uint16_t conn_handle, uint16_t chr_val_handle);
 int ble_gattc_notify_custom(uint16_t conn_handle, uint16_t att_handle,
                             const void *attr_data, uint16_t attr_data_len);

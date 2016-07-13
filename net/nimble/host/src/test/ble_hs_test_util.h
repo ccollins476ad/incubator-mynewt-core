@@ -96,8 +96,9 @@ int ble_hs_test_util_wl_set(struct ble_gap_white_entry *white_list,
 int ble_hs_test_util_conn_update(uint16_t conn_handle,
                                  struct ble_gap_upd_params *params,
                                  uint8_t hci_status);
-int ble_hs_test_util_security_initiate(uint16_t conn_handle,
-                                       uint8_t hci_status);
+void ble_hs_test_util_enc_initiate(uint16_t conn_handle, const uint8_t *ltk,
+                                   uint16_t ediv, uint64_t rand_val, int auth,
+                                   uint8_t hci_status);
 int ble_hs_test_util_l2cap_rx_first_frag(uint16_t conn_handle, uint16_t cid,
                                          struct hci_data_hdr *hci_hdr,
                                          struct os_mbuf *om);

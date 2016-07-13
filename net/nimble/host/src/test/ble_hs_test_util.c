@@ -364,6 +364,12 @@ ble_hs_test_util_set_ack_seq(struct ble_hs_test_util_phony_ack *acks)
     ble_hci_set_phony_ack_cb(ble_hs_test_util_phony_ack_cb);
 }
 
+static int
+ble_hs_test_util_conn_cb(struct ble_gap_event *event, void *arg)
+{
+    return 0;
+}
+
 void
 ble_hs_test_util_create_rpa_conn(uint16_t handle, uint8_t own_addr_type,
                                  const uint8_t *our_rpa,
@@ -374,6 +380,10 @@ ble_hs_test_util_create_rpa_conn(uint16_t handle, uint8_t own_addr_type,
 {
     struct hci_le_conn_complete evt;
     int rc;
+
+    if (cb == NULL) {
+        cb = ble_hs_test_util_conn_cb;
+    }
 
     ble_hs_test_util_connect(own_addr_type, peer_addr_type,
                              peer_id_addr, 0, NULL, cb, cb_arg, 0);
@@ -678,16 +688,18 @@ ble_hs_test_util_conn_update(uint16_t conn_handle,
     return rc;
 }
 
-int
-ble_hs_test_util_security_initiate(uint16_t conn_handle, uint8_t hci_status)
+void
+ble_hs_test_util_enc_initiate(uint16_t conn_handle, const uint8_t *ltk,
+                              uint16_t ediv, uint64_t rand_val, int auth,
+                              uint8_t hci_status)
 {
     int rc;
 
     ble_hs_test_util_set_ack(
         BLE_HS_TEST_UTIL_LE_OPCODE(BLE_HCI_OCF_LE_START_ENCRYPT), hci_status);
 
-    rc = ble_gap_security_initiate(conn_handle);
-    return rc;
+    rc = ble_sm_enc_initiate(conn_handle, ltk, ediv, rand_val, auth);
+    TEST_ASSERT(rc == BLE_HS_HCI_ERR(hci_status));
 }
 
 int

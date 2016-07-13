@@ -94,11 +94,12 @@ struct ble_hs_cfg {
      * preventing the host from sending an HCI command to the controller.
      *
      * Every time the controller sends a non-ack HCI event to the host, it also
-     * allocates an OS event (it is unfortunate that these are both called
-     * "events").  The OS event is put on the host-parent-task's event queue;
-     * it is what wakes up the host-parent-task and indicates that an HCI event
-     * needs to be processsed.  The pool of OS events is allocated with the
-     * same number of elements as the HCI buffer pool.
+     * allocates something else called an OS event (it is unfortunate that
+     * these are both called "events").  The OS event is put on the
+     * host-parent-task's event queue; it is what wakes up the host-parent-task
+     * and indicates that an HCI event needs to be processsed.  The pool of OS
+     * events is allocated with the same number of elements as the HCI buffer
+     * pool.
      */
     uint8_t max_hci_bufs;
 

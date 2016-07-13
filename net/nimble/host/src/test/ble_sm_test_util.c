@@ -2353,7 +2353,7 @@ ble_sm_test_util_us_fail_inval(struct ble_sm_test_params *params)
     TEST_ASSERT(ble_sm_dbg_num_procs() == 0);
 
     /* Initiate the pairing procedure. */
-    rc = ble_hs_test_util_security_initiate(2, 0);
+    rc = ble_gap_security_initiate(2);
     TEST_ASSERT_FATAL(rc == 0);
 
     /* Ensure we sent the expected pair request. */
