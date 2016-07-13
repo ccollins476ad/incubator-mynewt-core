@@ -51,9 +51,6 @@
 
 #if NIMBLE_OPT(SM)
 
-/** Procedure timeout; 30 seconds. */
-#define BLE_SM_TIMEOUT_OS_TICKS             (30 * OS_TICKS_PER_SEC)
-
 STAILQ_HEAD(ble_sm_proc_list, ble_sm_proc);
 
 typedef void ble_sm_rx_fn(uint16_t conn_handle, uint8_t op,
@@ -2100,10 +2097,11 @@ ble_sm_pair_initiate(uint16_t conn_handle)
     struct ble_sm_result res;
     struct ble_sm_proc *proc;
 
+    memset(&res, 0, sizeof res);
+
     /* Make sure a procedure isn't already in progress for this connection. */
     ble_hs_lock();
-    proc = ble_sm_proc_find(conn_handle, BLE_SM_PROC_STATE_NONE,
-                                  -1, NULL);
+    proc = ble_sm_proc_find(conn_handle, BLE_SM_PROC_STATE_NONE, -1, NULL);
     if (proc != NULL) {
         res.app_status = BLE_HS_EALREADY;
 
@@ -2137,6 +2135,8 @@ ble_sm_slave_initiate(uint16_t conn_handle)
 {
     struct ble_sm_result res;
     struct ble_sm_proc *proc;
+
+    memset(&res, 0, sizeof res);
 
     ble_hs_lock();
 
