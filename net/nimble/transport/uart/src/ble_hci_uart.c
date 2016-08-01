@@ -75,26 +75,26 @@ struct memblock {
     uint16_t len;       /* Total number of bytes to read/write */
 };
 
-struct tx_acl {
+struct ota_acl {
     struct os_mbuf *buf; /* Buffer containing the data */
     uint16_t len;        /* Target size when buf is considered complete */
 };
 
 static struct {
     /* State of data from host to controller */
-    uint8_t tx_type;    /* Pending packet type. 0 means nothing pending */
+    uint8_t ota_type;    /* Pending packet type. 0 means nothing pending */
     union {
-        struct memblock tx_cmd;
-        struct tx_acl tx_acl;
+        struct memblock ota_cmd;
+        struct ota_acl ota_acl;
     };
 
     /* State of data from controller to host */
-    uint8_t rx_type;    /* Pending packet type. 0 means nothing pending */
+    uint8_t hci_type;    /* Pending packet type. 0 means nothing pending */
     union {
-        struct memblock rx_evt;
-        struct os_mbuf *rx_acl;
+        struct memblock hci_cmd;
+        struct os_mbuf *hci_acl;
     };
-    STAILQ_HEAD(, os_event) rx_pkts; /* Packet queue to send to UART */
+    STAILQ_HEAD(, os_event) hci_pkts; /* Packet queue to send to UART */
 } hci;
 
 static int
@@ -111,7 +111,7 @@ ble_hci_uart_acl_tx(struct os_mbuf *om)
         ev->ev_queued = 1;
 
         OS_ENTER_CRITICAL(sr);
-        STAILQ_INSERT_TAIL(&hci.rx_pkts, ev, ev_next);
+        STAILQ_INSERT_TAIL(&hci.hci_pkts, ev, ev_next);
         OS_EXIT_CRITICAL(sr);
 
         hal_uart_start_tx(HCI_UART);
@@ -122,24 +122,6 @@ ble_hci_uart_acl_tx(struct os_mbuf *om)
         rc = -1;
     }
 
-    return rc;
-}
-
-int
-ble_hci_trans_hs_acl_send(struct os_mbuf *om)
-{
-    int rc;
-
-    rc = ble_hci_uart_acl_tx(om);
-    return rc;
-}
-
-int
-ble_hci_trans_ll_acl_send(struct os_mbuf *om)
-{
-    int rc;
-
-    rc = ble_hci_uart_acl_tx(om);
     return rc;
 }
 
@@ -163,12 +145,282 @@ ble_hci_uart_cmdevt_tx(uint8_t *hci_ev, uint8_t h4_type)
     ev->ev_queued = 1;
 
     OS_ENTER_CRITICAL(sr);
-    STAILQ_INSERT_TAIL(&hci.rx_pkts, ev, ev_next);
+    STAILQ_INSERT_TAIL(&hci.hci_pkts, ev, ev_next);
     OS_EXIT_CRITICAL(sr);
 
     hal_uart_start_tx(HCI_UART);
 
     return 0;
+}
+
+static int
+ble_hci_uart_tx_pkt_type(void)
+{
+    struct os_event *ev;
+    os_sr_t sr;
+    int rc;
+
+    OS_ENTER_CRITICAL(sr);
+
+    ev = STAILQ_FIRST(&hci.hci_pkts);
+    if (!ev) {
+        OS_EXIT_CRITICAL(sr);
+        return -1;
+    }
+
+    STAILQ_REMOVE(&hci.hci_pkts, ev, os_event, ev_next);
+    ev->ev_queued = 0;
+
+    OS_EXIT_CRITICAL(sr);
+
+    switch (ev->ev_type) {
+    case BLE_HCI_TRANS_EVENT_CMD:
+        hci.hci_type = H4_CMD;
+        hci.hci_cmd.data = ev->ev_arg;
+        hci.hci_cmd.cur = 0;
+        hci.hci_cmd.len = hci.hci_cmd.data[2] + HCI_CMD_HDR_LEN;
+        rc = H4_CMD;
+        break;
+
+    case BLE_HCI_TRANS_EVENT_EVT:
+        hci.hci_type = H4_EVT;
+        hci.hci_cmd.data = ev->ev_arg;
+        hci.hci_cmd.cur = 0;
+        hci.hci_cmd.len = hci.hci_cmd.data[1] + HCI_EVT_HDR_LEN;
+        rc = H4_EVT;
+        break;
+
+    case BLE_HCI_TRANS_EVENT_ACL:
+        hci.hci_type = H4_ACL;
+        hci.hci_acl = ev->ev_arg;
+        rc = H4_ACL;
+        break;
+    default:
+        rc = -1;
+        break;
+    }
+
+    os_memblock_put(&ble_hci_uart_os_evt_pool, ev);
+
+    return rc;
+}
+
+static int
+ble_hci_uart_tx_char(void *arg)
+{
+    int rc = -1;
+
+    switch (hci.hci_type) {
+    case H4_NONE: /* No pending packet, pick one from the queue */
+        rc = ble_hci_uart_tx_pkt_type();
+        break;
+
+    case H4_CMD:
+    case H4_EVT:
+        rc = hci.hci_cmd.data[hci.hci_cmd.cur++];
+
+        if (hci.hci_cmd.cur == hci.hci_cmd.len) {
+            ble_hci_trans_free_buf(hci.hci_cmd.data);
+            hci.hci_type = H4_NONE;
+        }
+        break;
+
+    case H4_ACL:
+        rc = *OS_MBUF_DATA(hci.hci_acl, uint8_t *);
+        os_mbuf_adj(hci.hci_acl, 1);
+        if (!OS_MBUF_PKTLEN(hci.hci_acl)) {
+            os_mbuf_free_chain(hci.hci_acl);
+            hci.hci_type = H4_NONE;
+        }
+        break;
+    }
+
+    if (rc != -1) {
+        ble_hci_uart_tx_log[ble_hci_uart_tx_log_sz++] = rc;
+        if (ble_hci_uart_tx_log_sz == sizeof ble_hci_uart_tx_log) {
+            ble_hci_uart_tx_log_sz = 0;
+        }
+    }
+
+    return rc;
+}
+
+static int
+ble_hci_uart_rx_pkt_type(uint8_t data)
+{
+    hci.ota_type = data;
+
+    /* XXX: For now we assert that buffer allocation succeeds.  The correct
+     * thing to do is return -1 on allocation failure so that flow control is
+     * engaged.  Then, we will need to tell the UART to start receiving again
+     * when we free a buffer.
+     */
+    switch (hci.ota_type) {
+    case H4_CMD:
+        hci.ota_cmd.data = ble_hci_trans_alloc_buf(BLE_HCI_TRANS_BUF_CMD);
+        assert(hci.ota_cmd.data != NULL);
+
+        hci.ota_cmd.len = 0;
+        hci.ota_cmd.cur = 0;
+        break;
+
+    case H4_EVT:
+        hci.ota_cmd.data = ble_hci_trans_alloc_buf(BLE_HCI_TRANS_BUF_EVT_HI);
+        assert(hci.ota_cmd.data != NULL);
+
+        hci.ota_cmd.len = 0;
+        hci.ota_cmd.cur = 0;
+        break;
+
+    case H4_ACL:
+        hci.ota_acl.buf = os_msys_get_pkthdr(HCI_ACL_HDR_LEN, 0);
+        assert(hci.ota_acl.buf != NULL);
+
+        hci.ota_acl.len = 0;
+        break;
+
+    default:
+        hci.ota_type = H4_NONE;
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+ble_hci_uart_rx_cmd(uint8_t data)
+{
+    int rc;
+
+    hci.ota_cmd.data[hci.ota_cmd.cur++] = data;
+
+    if (hci.ota_cmd.cur < HCI_CMD_HDR_LEN) {
+        return 0;
+    } else if (hci.ota_cmd.cur == HCI_CMD_HDR_LEN) {
+        hci.ota_cmd.len = hci.ota_cmd.data[2] + HCI_CMD_HDR_LEN;
+    }
+
+    if (hci.ota_cmd.cur == hci.ota_cmd.len) {
+        assert(ble_hci_uart_rx_cmd_cb != NULL);
+        rc = ble_hci_uart_rx_cmd_cb(hci.ota_cmd.data, ble_hci_uart_rx_cmd_arg);
+        if (rc != 0) {
+            rc = ble_hci_trans_free_buf(hci.ota_cmd.data);
+            assert(rc == 0);
+        }
+        hci.ota_type = H4_NONE;
+    }
+
+    return 0;
+}
+
+static int
+ble_hci_uart_rx_evt(uint8_t data)
+{
+    int rc;
+
+    hci.ota_cmd.data[hci.ota_cmd.cur++] = data;
+
+    if (hci.ota_cmd.cur < HCI_EVT_HDR_LEN) {
+        return 0;
+    } else if (hci.ota_cmd.cur == HCI_EVT_HDR_LEN) {
+        hci.ota_cmd.len = hci.ota_cmd.data[1] + HCI_EVT_HDR_LEN;
+    }
+
+    if (hci.ota_cmd.cur == hci.ota_cmd.len) {
+        assert(ble_hci_uart_rx_cmd_cb != NULL);
+        rc = ble_hci_uart_rx_cmd_cb(hci.ota_cmd.data, ble_hci_uart_rx_cmd_arg);
+        if (rc != 0) {
+            rc = ble_hci_trans_free_buf(hci.ota_cmd.data);
+            assert(rc == 0);
+        }
+        hci.ota_type = H4_NONE;
+    }
+
+    return 0;
+}
+
+static int
+ble_hci_uart_rx_acl(uint8_t data)
+{
+    os_mbuf_append(hci.ota_acl.buf, &data, 1);
+
+    if (OS_MBUF_PKTLEN(hci.ota_acl.buf) < HCI_ACL_HDR_LEN) {
+        return 0;
+    } else if (OS_MBUF_PKTLEN(hci.ota_acl.buf) == HCI_ACL_HDR_LEN) {
+        os_mbuf_copydata(hci.ota_acl.buf, 2, sizeof(hci.ota_acl.len),
+                         &hci.ota_acl.len);
+        hci.ota_acl.len = le16toh(&hci.ota_acl.len) + HCI_ACL_HDR_LEN;
+    }
+
+    if (OS_MBUF_PKTLEN(hci.ota_acl.buf) == hci.ota_acl.len) {
+        assert(ble_hci_uart_rx_cmd_cb != NULL);
+        ble_hci_uart_rx_acl_cb(hci.ota_acl.buf, ble_hci_uart_rx_acl_arg);
+        hci.ota_type = H4_NONE;
+    }
+
+    return 0;
+}
+
+static int
+ble_hci_uart_rx_char(void *arg, uint8_t data)
+{
+    ble_hci_uart_rx_log[ble_hci_uart_rx_log_sz++] = data;
+    if (ble_hci_uart_rx_log_sz == sizeof ble_hci_uart_rx_log) {
+        ble_hci_uart_rx_log_sz = 0;
+    }
+
+    switch (hci.ota_type) {
+    case H4_NONE:
+        return ble_hci_uart_rx_pkt_type(data);
+    case H4_CMD:
+        return ble_hci_uart_rx_cmd(data);
+    case H4_EVT:
+        return ble_hci_uart_rx_evt(data);
+    case H4_ACL:
+        return ble_hci_uart_rx_acl(data);
+    default:
+        return -1;
+    }
+}
+
+static void
+ble_hci_uart_set_rx_cbs(ble_hci_trans_rx_cmd_fn *cmd_cb,
+                        void *cmd_arg,
+                        ble_hci_trans_rx_acl_fn *acl_cb,
+                        void *acl_arg)
+{
+    ble_hci_uart_rx_cmd_cb = cmd_cb;
+    ble_hci_uart_rx_cmd_arg = cmd_arg;
+    ble_hci_uart_rx_acl_cb = acl_cb;
+    ble_hci_uart_rx_acl_arg = acl_arg;
+}
+
+static void
+ble_hci_uart_free_mem(void)
+{
+    free(ble_hci_uart_evt_buf);
+    ble_hci_uart_evt_buf = NULL;
+
+    free(ble_hci_uart_os_evt_buf);
+    ble_hci_uart_os_evt_buf = NULL;
+}
+
+int
+ble_hci_trans_hs_acl_send(struct os_mbuf *om)
+{
+    int rc;
+
+    rc = ble_hci_uart_acl_tx(om);
+    return rc;
+}
+
+int
+ble_hci_trans_ll_acl_send(struct os_mbuf *om)
+{
+    int rc;
+
+    rc = ble_hci_uart_acl_tx(om);
+    return rc;
 }
 
 int
@@ -189,259 +441,22 @@ ble_hci_trans_ll_evt_send(uint8_t *cmd)
     return rc;
 }
 
-static int
-uart_tx_pkt_type(void)
-{
-    struct os_event *ev;
-    os_sr_t sr;
-    int rc;
-
-    OS_ENTER_CRITICAL(sr);
-
-    ev = STAILQ_FIRST(&hci.rx_pkts);
-    if (!ev) {
-        OS_EXIT_CRITICAL(sr);
-        return -1;
-    }
-
-    STAILQ_REMOVE(&hci.rx_pkts, ev, os_event, ev_next);
-    ev->ev_queued = 0;
-
-    OS_EXIT_CRITICAL(sr);
-
-    switch (ev->ev_type) {
-    case BLE_HCI_TRANS_EVENT_CMD:
-        hci.rx_type = H4_CMD;
-        hci.rx_evt.data = ev->ev_arg;
-        hci.rx_evt.cur = 0;
-        hci.rx_evt.len = hci.rx_evt.data[2] + HCI_CMD_HDR_LEN;
-        rc = H4_CMD;
-        break;
-
-    case BLE_HCI_TRANS_EVENT_EVT:
-        hci.rx_type = H4_EVT;
-        hci.rx_evt.data = ev->ev_arg;
-        hci.rx_evt.cur = 0;
-        hci.rx_evt.len = hci.rx_evt.data[1] + HCI_EVT_HDR_LEN;
-        rc = H4_EVT;
-        break;
-
-    case BLE_HCI_TRANS_EVENT_ACL:
-        hci.rx_type = H4_ACL;
-        hci.rx_acl = ev->ev_arg;
-        rc = H4_ACL;
-        break;
-    default:
-        rc = -1;
-        break;
-    }
-
-    os_memblock_put(&ble_hci_uart_os_evt_pool, ev);
-
-    return rc;
-}
-
-static int
-uart_tx_char(void *arg)
-{
-    int rc = -1;
-
-    switch (hci.rx_type) {
-    case H4_NONE: /* No pending packet, pick one from the queue */
-        rc = uart_tx_pkt_type();
-        break;
-
-    case H4_CMD:
-    case H4_EVT:
-        rc = hci.rx_evt.data[hci.rx_evt.cur++];
-
-        if (hci.rx_evt.cur == hci.rx_evt.len) {
-            ble_hci_trans_free_buf(hci.rx_evt.data);
-            hci.rx_type = H4_NONE;
-        }
-        break;
-
-    case H4_ACL:
-        rc = *OS_MBUF_DATA(hci.rx_acl, uint8_t *);
-        os_mbuf_adj(hci.rx_acl, 1);
-        if (!OS_MBUF_PKTLEN(hci.rx_acl)) {
-            os_mbuf_free_chain(hci.rx_acl);
-            hci.rx_type = H4_NONE;
-        }
-        break;
-    }
-
-    if (rc != -1) {
-        ble_hci_uart_tx_log[ble_hci_uart_tx_log_sz++] = rc;
-        if (ble_hci_uart_tx_log_sz == sizeof ble_hci_uart_tx_log) {
-            ble_hci_uart_tx_log_sz = 0;
-        }
-    }
-
-    return rc;
-}
-
-static int
-uart_rx_pkt_type(uint8_t data)
-{
-    hci.tx_type = data;
-
-    switch (hci.tx_type) {
-    case H4_CMD:
-        hci.tx_cmd.data = ble_hci_trans_alloc_buf(BLE_HCI_TRANS_BUF_CMD);
-        assert(hci.tx_cmd.data != NULL);
-
-        hci.tx_cmd.len = 0;
-        hci.tx_cmd.cur = 0;
-        break;
-
-    case H4_EVT:
-        hci.tx_cmd.data = ble_hci_trans_alloc_buf(BLE_HCI_TRANS_BUF_EVT_HI);
-        assert(hci.tx_cmd.data != NULL);
-
-        hci.tx_cmd.len = 0;
-        hci.tx_cmd.cur = 0;
-        break;
-
-    case H4_ACL:
-        hci.tx_acl.buf = os_msys_get_pkthdr(HCI_ACL_HDR_LEN, 0);
-        assert(hci.tx_acl.buf != NULL);
-
-        hci.tx_acl.len = 0;
-        break;
-
-    default:
-        hci.tx_type = H4_NONE;
-        return -1;
-    }
-
-    return 0;
-}
-
-static int
-uart_rx_cmd(uint8_t data)
-{
-    int rc;
-
-    hci.tx_cmd.data[hci.tx_cmd.cur++] = data;
-
-    if (hci.tx_cmd.cur < HCI_CMD_HDR_LEN) {
-        return 0;
-    } else if (hci.tx_cmd.cur == HCI_CMD_HDR_LEN) {
-        hci.tx_cmd.len = hci.tx_cmd.data[2] + HCI_CMD_HDR_LEN;
-    }
-
-    if (hci.tx_cmd.cur == hci.tx_cmd.len) {
-        assert(ble_hci_uart_rx_cmd_cb != NULL);
-        rc = ble_hci_uart_rx_cmd_cb(hci.tx_cmd.data, ble_hci_uart_rx_cmd_arg);
-        if (rc != 0) {
-            rc = ble_hci_trans_free_buf(hci.tx_cmd.data);
-            assert(rc == 0);
-        }
-        hci.tx_type = H4_NONE;
-    }
-
-    return 0;
-}
-
-static int
-uart_rx_evt(uint8_t data)
-{
-    int rc;
-
-    hci.tx_cmd.data[hci.tx_cmd.cur++] = data;
-
-    if (hci.tx_cmd.cur < HCI_EVT_HDR_LEN) {
-        return 0;
-    } else if (hci.tx_cmd.cur == HCI_EVT_HDR_LEN) {
-        hci.tx_cmd.len = hci.tx_cmd.data[1] + HCI_EVT_HDR_LEN;
-    }
-
-    if (hci.tx_cmd.cur == hci.tx_cmd.len) {
-        assert(ble_hci_uart_rx_cmd_cb != NULL);
-        rc = ble_hci_uart_rx_cmd_cb(hci.tx_cmd.data, ble_hci_uart_rx_cmd_arg);
-        if (rc != 0) {
-            rc = ble_hci_trans_free_buf(hci.tx_cmd.data);
-            assert(rc == 0);
-        }
-        hci.tx_type = H4_NONE;
-    }
-
-    return 0;
-}
-
-static int
-uart_rx_acl(uint8_t data)
-{
-    os_mbuf_append(hci.tx_acl.buf, &data, 1);
-
-    if (OS_MBUF_PKTLEN(hci.tx_acl.buf) < HCI_ACL_HDR_LEN) {
-        return 0;
-    } else if (OS_MBUF_PKTLEN(hci.tx_acl.buf) == HCI_ACL_HDR_LEN) {
-        os_mbuf_copydata(hci.tx_acl.buf, 2, sizeof(hci.tx_acl.len),
-                         &hci.tx_acl.len);
-        hci.tx_acl.len = le16toh(&hci.tx_acl.len) + HCI_ACL_HDR_LEN;
-    }
-
-    if (OS_MBUF_PKTLEN(hci.tx_acl.buf) == hci.tx_acl.len) {
-        assert(ble_hci_uart_rx_cmd_cb != NULL);
-        ble_hci_uart_rx_acl_cb(hci.tx_acl.buf, ble_hci_uart_rx_acl_arg);
-        hci.tx_type = H4_NONE;
-    }
-
-    return 0;
-}
-
-static void
-ble_hci_uart_set_rx_cbs(ble_hci_trans_rx_cmd_fn *cmd_cb,
-                        void *cmd_arg,
-                        ble_hci_trans_rx_acl_fn *acl_cb,
-                        void *acl_arg)
-{
-    ble_hci_uart_rx_cmd_cb = cmd_cb;
-    ble_hci_uart_rx_cmd_arg = cmd_arg;
-    ble_hci_uart_rx_acl_cb = acl_cb;
-    ble_hci_uart_rx_acl_arg = acl_arg;
-}
-
 void
 ble_hci_trans_set_rx_cbs_hs(ble_hci_trans_rx_cmd_fn *cmd_cb,
-                                void *cmd_arg,
-                                ble_hci_trans_rx_acl_fn *acl_cb,
-                                void *acl_arg)
+                            void *cmd_arg,
+                            ble_hci_trans_rx_acl_fn *acl_cb,
+                            void *acl_arg)
 {
     ble_hci_uart_set_rx_cbs(cmd_cb, cmd_arg, acl_cb, acl_arg);
 }
 
 void
 ble_hci_trans_set_rx_cbs_ll(ble_hci_trans_rx_cmd_fn *cmd_cb,
-                                void *cmd_arg,
-                                ble_hci_trans_rx_acl_fn *acl_cb,
-                                void *acl_arg)
+                            void *cmd_arg,
+                            ble_hci_trans_rx_acl_fn *acl_cb,
+                            void *acl_arg)
 {
     ble_hci_uart_set_rx_cbs(cmd_cb, cmd_arg, acl_cb, acl_arg);
-}
-
-static int
-uart_rx_char(void *arg, uint8_t data)
-{
-    ble_hci_uart_rx_log[ble_hci_uart_rx_log_sz++] = data;
-    if (ble_hci_uart_rx_log_sz == sizeof ble_hci_uart_rx_log) {
-        ble_hci_uart_rx_log_sz = 0;
-    }
-
-    switch (hci.tx_type) {
-    case H4_NONE:
-        return uart_rx_pkt_type(data);
-    case H4_CMD:
-        return uart_rx_cmd(data);
-    case H4_EVT:
-        return uart_rx_evt(data);
-    case H4_ACL:
-        return uart_rx_acl(data);
-    default:
-        return -1;
-    }
 }
 
 uint8_t *
@@ -471,16 +486,6 @@ ble_hci_trans_free_buf(uint8_t *buf)
 
     rc = os_memblock_put(&ble_hci_uart_evt_pool, buf);
     return rc;
-}
-
-static void
-ble_hci_uart_free_mem(void)
-{
-    free(ble_hci_uart_evt_buf);
-    ble_hci_uart_evt_buf = NULL;
-
-    free(ble_hci_uart_os_evt_buf);
-    ble_hci_uart_os_evt_buf = NULL;
 }
 
 int
@@ -521,9 +526,10 @@ ble_hci_uart_init(int num_evt_bufs, int buf_size)
 
     memset(&hci, 0, sizeof(hci));
 
-    STAILQ_INIT(&hci.rx_pkts);
+    STAILQ_INIT(&hci.hci_pkts);
 
-    rc = hal_uart_init_cbs(HCI_UART, uart_tx_char, NULL, uart_rx_char, NULL);
+    rc = hal_uart_init_cbs(HCI_UART, ble_hci_uart_tx_char, NULL,
+                           ble_hci_uart_rx_char, NULL);
     if (rc != 0) {
         return rc;
     }
