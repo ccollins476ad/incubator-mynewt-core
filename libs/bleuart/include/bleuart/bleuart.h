@@ -17,20 +17,18 @@
  * under the License.
  */
 
-#ifndef H_OS_PRIV_
-#define H_OS_PRIV_
+#ifndef _BLEUART_H_
+#define _BLEUART_H_
 
-#include "os/queue.h"
+int
+bleuart_init(int max_input);
+int
+bleuart_svc_register(void);
+int
+bleuart_gatt_svr_init(struct ble_hs_cfg *cfg);
+void
+bleuart_set_conn_handle(uint16_t conn_handle);
 
-TAILQ_HEAD(os_task_list, os_task);
-TAILQ_HEAD(os_callout_list, os_callout);
-STAILQ_HEAD(os_task_stailq, os_task);
+extern const uint8_t gatt_svr_svc_uart[16];
 
-extern struct os_task g_idle_task;
-extern struct os_task_list g_os_run_list;
-extern struct os_task_list g_os_sleep_list;
-extern struct os_task_stailq g_os_task_list;
-extern struct os_task *g_current_task;
-extern struct os_callout_list g_callout_list;
-
-#endif
+#endif /* _BLEUART_H */

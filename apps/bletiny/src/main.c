@@ -1250,7 +1250,7 @@ bletiny_read_mult(uint16_t conn_handle, uint16_t *attr_handles,
 }
 
 int
-bletiny_write(uint16_t conn_handle, uint16_t attr_handle, struct os_mbuf **om)
+bletiny_write(uint16_t conn_handle, uint16_t attr_handle, struct os_mbuf *om)
 {
     int rc;
 
@@ -1266,7 +1266,7 @@ bletiny_write(uint16_t conn_handle, uint16_t attr_handle, struct os_mbuf **om)
 
 int
 bletiny_write_no_rsp(uint16_t conn_handle, uint16_t attr_handle,
-                     struct os_mbuf **om)
+                     struct os_mbuf *om)
 {
     int rc;
 
@@ -1277,7 +1277,7 @@ bletiny_write_no_rsp(uint16_t conn_handle, uint16_t attr_handle,
 
 int
 bletiny_write_long(uint16_t conn_handle, uint16_t attr_handle,
-                   struct os_mbuf **om)
+                   struct os_mbuf *om)
 {
     int rc;
 
@@ -1567,9 +1567,6 @@ bletiny_task_handler(void *arg)
     rc = ble_hs_start();
     assert(rc == 0);
 
-    rc = ble_hs_id_set_rnd(((uint8_t[6]){0x79,0xe4,0x59,0x8f,0xbc,0xf2}));
-    assert(rc == 0);
-
     while (1) {
         ev = os_eventq_get(&bletiny_evq);
         switch (ev->ev_type) {
@@ -1662,10 +1659,6 @@ main(void)
     assert(rc == 0);
 
     rc = os_msys_register(&default_mbuf_pool);
-    assert(rc == 0);
-
-    /* Initialize the console (for shell and logging). */
-    rc = console_init(shell_console_rx_cb);
     assert(rc == 0);
 
     /* Create the shell task. */

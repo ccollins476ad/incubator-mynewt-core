@@ -104,7 +104,7 @@ extern void bletest_completed_pkt(uint16_t handle);
  */
 
 /* XXX: this does not belong here! Move to transport? */
-extern int ble_hs_rx_data(struct os_mbuf **om);
+extern int ble_hs_rx_data(struct os_mbuf *om);
 
 /*
  * The amount of time that we will wait to hear the start of a receive
@@ -462,8 +462,8 @@ ble_ll_conn_calc_access_addr(void)
         transitions = 0;
         consecutive = 0;
         mask = 0x00000001;
-        prev_bit = aa & mask;
         while (mask < 0x80000000) {
+            prev_bit = aa & mask;
             mask <<= 1;
             if (mask & aa) {
                 if (prev_bit == 0) {
@@ -2569,7 +2569,7 @@ ble_ll_conn_rx_data_pdu(struct os_mbuf *rxpdu, struct ble_mbuf_hdr *hdr)
                     acl_hdr = (acl_hdr << 12) | connsm->conn_handle;
                     htole16(rxbuf, acl_hdr);
                     htole16(rxbuf + 2, acl_len);
-                    ble_hs_rx_data(&rxpdu);
+                    ble_hs_rx_data(rxpdu);
                 }
 
                 /* NOTE: we dont free the mbuf since we handed it off! */
