@@ -63,9 +63,6 @@ static void *ble_hci_uart_evt_buf;
 static struct os_mempool ble_hci_uart_os_evt_pool;
 static void *ble_hci_uart_os_evt_buf;
 
-static uint8_t *ble_hci_uart_hs_cmd_buf;
-static uint8_t ble_hci_uart_hs_cmd_buf_alloced;
-
 #define BLE_HCI_UART_LOG_SZ 1024
 static uint8_t ble_hci_uart_tx_log[BLE_HCI_UART_LOG_SZ];
 static int ble_hci_uart_tx_log_sz;
@@ -291,15 +288,28 @@ uart_rx_pkt_type(uint8_t data)
 
     switch (hci.tx_type) {
     case H4_CMD:
-    case H4_EVT:
-        hci.tx_cmd.data = ble_hci_trans_alloc_buf(BLE_HCI_TRANS_BUF_EVT_HI);
+        hci.tx_cmd.data = ble_hci_trans_alloc_buf(BLE_HCI_TRANS_BUF_CMD);
+        assert(hci.tx_cmd.data != NULL);
+
         hci.tx_cmd.len = 0;
         hci.tx_cmd.cur = 0;
         break;
+
+    case H4_EVT:
+        hci.tx_cmd.data = ble_hci_trans_alloc_buf(BLE_HCI_TRANS_BUF_EVT_HI);
+        assert(hci.tx_cmd.data != NULL);
+
+        hci.tx_cmd.len = 0;
+        hci.tx_cmd.cur = 0;
+        break;
+
     case H4_ACL:
         hci.tx_acl.buf = os_msys_get_pkthdr(HCI_ACL_HDR_LEN, 0);
+        assert(hci.tx_acl.buf != NULL);
+
         hci.tx_acl.len = 0;
         break;
+
     default:
         hci.tx_type = H4_NONE;
         return -1;
@@ -440,15 +450,10 @@ ble_hci_trans_alloc_buf(int type)
     uint8_t *buf;
 
     switch (type) {
+    case BLE_HCI_TRANS_BUF_CMD:
     case BLE_HCI_TRANS_BUF_EVT_LO:
     case BLE_HCI_TRANS_BUF_EVT_HI:
         buf = os_memblock_get(&ble_hci_uart_evt_pool);
-        break;
-
-    case BLE_HCI_TRANS_BUF_CMD:
-        assert(!ble_hci_uart_hs_cmd_buf_alloced);
-        ble_hci_uart_hs_cmd_buf_alloced = 1;
-        buf = ble_hci_uart_hs_cmd_buf;
         break;
 
     default:
@@ -464,14 +469,7 @@ ble_hci_trans_free_buf(uint8_t *buf)
 {
     int rc;
 
-    if (buf == ble_hci_uart_hs_cmd_buf) {
-        assert(ble_hci_uart_hs_cmd_buf_alloced);
-        ble_hci_uart_hs_cmd_buf_alloced = 0;
-        rc = 0;
-    } else {
-        rc = os_memblock_put(&ble_hci_uart_evt_pool, buf);
-    }
-
+    rc = os_memblock_put(&ble_hci_uart_evt_pool, buf);
     return rc;
 }
 
@@ -480,9 +478,6 @@ ble_hci_uart_free_mem(void)
 {
     free(ble_hci_uart_evt_buf);
     ble_hci_uart_evt_buf = NULL;
-
-    free(ble_hci_uart_hs_cmd_buf);
-    ble_hci_uart_hs_cmd_buf = NULL;
 
     free(ble_hci_uart_os_evt_buf);
     ble_hci_uart_os_evt_buf = NULL;
@@ -522,12 +517,6 @@ ble_hci_uart_init(int num_evt_bufs, int buf_size)
                          "ble_hci_uart_os_evt_pool");
     if (rc != 0) {
         return EINVAL;
-    }
-
-    ble_hci_uart_hs_cmd_buf = malloc(BLE_HCI_TRANS_CMD_SZ);
-    if (ble_hci_uart_hs_cmd_buf == NULL) {
-        rc = ENOMEM;
-        goto err;
     }
 
     memset(&hci, 0, sizeof(hci));
