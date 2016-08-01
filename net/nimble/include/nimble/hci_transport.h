@@ -20,13 +20,40 @@
 #ifndef H_HCI_TRANSPORT_
 #define H_HCI_TRANSPORT_
 
+#include <inttypes.h>
+struct os_mbuf;
+
+#define BLE_HCI_TRANS_CMD_SZ        260
+
+#define BLE_HCI_TRANS_BUF_EVT_LO    1
+#define BLE_HCI_TRANS_BUF_EVT_HI    2
+#define BLE_HCI_TRANS_BUF_CMD       3
+
+typedef int ble_hci_trans_rx_cmd_fn(uint8_t *cmd, void *arg);
+typedef int ble_hci_trans_rx_acl_fn(struct os_mbuf *om, void *arg);
+
+void ble_hci_trans_set_rx_cbs_hs(ble_hci_trans_rx_cmd_fn *cmd_cb,
+                                 void *cmd_arg,
+                                 ble_hci_trans_rx_acl_fn *acl_cb,
+                                 void *acl_arg);
+void ble_hci_trans_set_rx_cbs_ll(ble_hci_trans_rx_cmd_fn *cmd_cb,
+                                 void *cmd_arg,
+                                 ble_hci_trans_rx_acl_fn *acl_cb,
+                                 void *acl_arg);
+
 /* Send a HCI command from the host to the controller */
-int ble_hci_transport_host_cmd_send(uint8_t *cmd);
+int ble_hci_trans_hs_cmd_send(uint8_t *cmd);
 
 /* Send a HCI event from the controller to the host */
-int ble_hci_transport_ctlr_event_send(uint8_t *hci_ev);
+int ble_hci_trans_ll_evt_send(uint8_t *hci_ev);
 
 /* Send ACL data from host to contoller */
-int ble_hci_transport_host_acl_data_send(struct os_mbuf *om);
+int ble_hci_trans_hs_acl_send(struct os_mbuf *om);
+
+/* Send ACL data from controller to host */
+int ble_hci_trans_ll_acl_send(struct os_mbuf *om);
+
+uint8_t *ble_hci_trans_alloc_buf(int type);
+int ble_hci_trans_free_buf(uint8_t *buf);
 
 #endif /* H_HCI_TRANSPORT_ */

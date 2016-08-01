@@ -36,6 +36,7 @@
 #include "nimble/ble.h"
 #include "nimble/nimble_opt.h"
 #include "nimble/hci_transport.h"
+#include "controller/ble_ll.h"
 #include "host/host_hci.h"
 #include "host/ble_hs.h"
 #include "host/ble_hs_adv.h"
@@ -45,7 +46,7 @@
 #include "host/ble_gatt.h"
 #include "host/ble_store.h"
 #include "host/ble_sm.h"
-#include "controller/ble_ll.h"
+#include "transport/ram/ble_hci_ram.h"
 
 /* RAM persistence layer. */
 #include "store/ram/ble_store_ram.h"
@@ -1084,7 +1085,7 @@ bletiny_tx_timer_cb(void *arg)
 
         /* Set packet header length */
         OS_MBUF_PKTHDR(om)->omp_len = om->om_len;
-        ble_hci_transport_host_acl_data_send(om);
+        ble_hci_trans_hs_acl_send(om);
 
         --bletiny_tx_data.tx_num;
     }
@@ -1708,6 +1709,9 @@ main(void)
 
     /* Initialize NimBLE host. */
     rc = ble_hs_init(&bletiny_evq, &cfg);
+    assert(rc == 0);
+
+    rc = ble_hci_ram_init(cfg.max_hci_bufs, 260);
     assert(rc == 0);
 
     rc = cmd_init();

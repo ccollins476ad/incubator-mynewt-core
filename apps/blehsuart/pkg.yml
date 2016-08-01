@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-pkg.name: apps/blehci
+pkg.name: apps/blehsuart
 pkg.type: app
-pkg.description: BLE controller application exposing HCI over UART
-pkg.author: "Johan Hedberg <johan.hedberg@intel.com>"
+pkg.description: XXX
+pkg.author: XXX
 pkg.homepage: "http://mynewt.apache.org/"
 pkg.keywords:
 
@@ -26,5 +26,7 @@ pkg.deps:
     - libs/baselibc
     - libs/console/stub
     - libs/os
-    - net/nimble/controller
+    - net/nimble/host
+    - net/nimble/host/services/mandatory
+    - net/nimble/host/store/ram
     - net/nimble/transport/uart

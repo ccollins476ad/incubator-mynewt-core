@@ -47,9 +47,11 @@ struct ble_hs_conn;
 struct ble_l2cap_chan;
 struct os_mbuf;
 struct os_mempool;
+struct os_event;
 
 #define BLE_HOST_HCI_EVENT_CTLR_EVENT   (OS_EVENT_T_PERUSER + 0)
 #define BLE_HS_EVENT_TX_NOTIFICATIONS   (OS_EVENT_T_PERUSER + 1)
+#define BLE_HS_EVENT_RESET              (OS_EVENT_T_PERUSER + 2)
 
 STATS_SECT_START(ble_hs_stats)
     STATS_SECT_ENTRY(conn_create)
@@ -69,6 +71,11 @@ extern const uint8_t ble_hs_misc_null_addr[6];
 void ble_hs_process_tx_data_queue(void);
 void ble_hs_process_rx_data_queue(void);
 int ble_hs_tx_data(struct os_mbuf *om);
+void ble_hs_enqueue_hci_event(uint8_t *hci_evt);
+void ble_hs_event_enqueue(struct os_event *ev);
+
+int host_hci_evt_rx(uint8_t *hci_ev, void *arg);
+int host_hci_acl_process(struct os_mbuf *om);
 
 int ble_hs_misc_malloc_mempool(void **mem, struct os_mempool *pool,
                                int num_entries, int entry_size, char *name);
@@ -86,6 +93,7 @@ int ble_hs_locked_by_cur_task(void);
 int ble_hs_is_parent_task(void);
 void ble_hs_lock(void);
 void ble_hs_unlock(void);
+void ble_hs_sched_reset(int reason);
 void ble_hs_heartbeat_sched(int32_t ticks);
 void ble_hs_notifications_sched(void);
 

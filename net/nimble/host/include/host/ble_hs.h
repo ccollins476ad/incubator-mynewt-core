@@ -86,7 +86,6 @@ struct os_event;
 #define BLE_HS_IO_KEYBOARD_DISPLAY          0x04
 
 struct ble_hs_cfg {
-    /*** HCI settings. */
     /**
      * An HCI buffer is a "flat" 260-byte buffer.  HCI buffers are used by the
      * controller to send unsolicited events to the host.
@@ -230,9 +229,7 @@ struct ble_hs_cfg {
 
 extern const struct ble_hs_cfg ble_hs_cfg_dflt;
 
-int ble_hs_rx_data(struct os_mbuf *om);
 int ble_hs_start(void);
-void ble_hs_event_enqueue(struct os_event *ev);
 int ble_hs_init(struct os_eventq *app_evq, struct ble_hs_cfg *cfg);
 
 #endif

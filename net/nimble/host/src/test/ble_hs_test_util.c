@@ -27,6 +27,7 @@
 #include "host/ble_hs_adv.h"
 #include "host/ble_hs_id.h"
 #include "host/host_hci.h"
+#include "transport/ram/ble_hci_ram.h"
 #include "ble_hs_test_util.h"
 
 /** Use lots of small mbufs to ensure correct mbuf usage. */
@@ -246,13 +247,14 @@ ble_hs_test_util_rx_hci_evt(uint8_t *evt)
     TEST_ASSERT_FATAL(totlen <= UINT8_MAX + BLE_HCI_EVENT_HDR_LEN);
 
     if (os_started()) {
-        evbuf = os_memblock_get(&g_hci_evt_pool);
+        evbuf = ble_hci_trans_alloc_buf(
+            BLE_HCI_TRANS_BUF_EVT_LO);
         TEST_ASSERT_FATAL(evbuf != NULL);
 
         memcpy(evbuf, evt, totlen);
-        rc = ble_hci_transport_ctlr_event_send(evbuf);
+        rc = ble_hci_trans_ll_evt_send(evbuf);
     } else {
-        rc = host_hci_event_rx(evt);
+        rc = host_hci_evt_process(evt);
     }
 
     TEST_ASSERT_FATAL(rc == 0);
@@ -1279,6 +1281,21 @@ ble_hs_test_util_post_test(void *arg)
     ble_hs_test_util_assert_mbufs_freed();
 }
 
+static int
+ble_hs_test_util_pkt_txed(struct os_mbuf *om, void *arg)
+{
+    ble_hs_test_util_prev_tx_enqueue(om);
+    return 0;
+}
+
+static int
+ble_hs_test_util_hci_txed(uint8_t *cmdbuf, void *arg)
+{
+    ble_hs_test_util_enqueue_hci_tx(cmdbuf);
+    ble_hci_trans_free_buf(cmdbuf);
+    return 0;
+}
+
 void
 ble_hs_test_util_init(void)
 {
@@ -1329,4 +1346,10 @@ ble_hs_test_util_init(void)
 
     /* Use a very low buffer size (16) to test fragmentation. */
     host_hci_set_buf_size(16, 64);
+
+    ble_hci_trans_set_rx_cbs_ll(ble_hs_test_util_hci_txed, NULL,
+                                ble_hs_test_util_pkt_txed, NULL);
+
+    rc = ble_hci_ram_init(cfg.max_hci_bufs, 260);
+    TEST_ASSERT_FATAL(rc == 0);
 }

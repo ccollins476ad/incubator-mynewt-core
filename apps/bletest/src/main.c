@@ -768,7 +768,7 @@ bletest_execute_advertiser(void)
 
                         /* Add length */
                         OS_MBUF_PKTHDR(om)->omp_len = om->om_len;
-                        ble_hci_transport_host_acl_data_send(om);
+                        ble_hci_trans_hs_acl_data_send(om);
 
                         /* Increment last handle used */
                         ++g_last_handle_used;
@@ -824,7 +824,7 @@ bletest_execute_advertiser(void)
 
                 /* Add length */
                 OS_MBUF_PKTHDR(om)->omp_len = om->om_len;
-                ble_hci_transport_host_acl_data_send(om);
+                ble_hci_trans_hs_acl_data_send(om);
 
                 ++g_bletest_outstanding_pkts;
             }
