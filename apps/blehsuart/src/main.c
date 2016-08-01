@@ -62,7 +62,7 @@ struct os_mempool blehsuart_mbuf_mpool;
 struct log blehsuart_log;
 
 /* Our global device address (public) */
-uint8_t g_dev_addr[BLE_DEV_ADDR_LEN] = { 0 };
+uint8_t g_dev_addr[BLE_DEV_ADDR_LEN] = { 0x11,0x22,0x33,0x44,0x55,0x66 };
 
 /* Our random address (in case we need it) */
 uint8_t g_random_addr[BLE_DEV_ADDR_LEN] = { 0 };
@@ -74,19 +74,145 @@ os_membuf_t default_mbuf_mpool_data[MBUF_MEMPOOL_SIZE];
 struct os_mbuf_pool default_mbuf_pool;
 struct os_mempool default_mbuf_mpool;
 
+static void blehsuart_advertise(void);
+
+/**
+ * The nimble host executes this callback when a GAP event occurs.  The
+ * application associates a GAP event callback with each connection that forms.
+ * blehsuart uses the same callback for all connections.
+ *
+ * @param event                 The type of event being signalled.
+ * @param ctxt                  Various information pertaining to the event.
+ * @param arg                   Application-specified argument; unuesd by
+ *                                  blehsuart.
+ *
+ * @return                      0 if the application successfully handled the
+ *                                  event; nonzero on failure.  The semantics
+ *                                  of the return code is specific to the
+ *                                  particular GAP event being signalled.
+ */
+static int
+blehsuart_gap_event(struct ble_gap_event *event, void *arg)
+{
+    struct ble_gap_conn_desc desc;
+    int rc;
+
+    switch (event->type) {
+    case BLE_GAP_EVENT_CONNECT:
+        /* A new connection was established or a connection attempt failed. */
+        if (event->connect.status == 0) {
+            rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
+            assert(rc == 0);
+        }
+
+        if (event->connect.status != 0) {
+            /* Connection failed; resume advertising. */
+            blehsuart_advertise();
+        }
+        return 0;
+
+    case BLE_GAP_EVENT_DISCONNECT:
+        /* Connection terminated; resume advertising. */
+        blehsuart_advertise();
+        return 0;
+
+    case BLE_GAP_EVENT_CONN_UPDATE:
+        /* The central has updated the connection parameters. */
+        rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
+        assert(rc == 0);
+        return 0;
+
+    case BLE_GAP_EVENT_ENC_CHANGE:
+        /* Encryption has been enabled or disabled for this connection. */
+        rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
+        assert(rc == 0);
+        return 0;
+
+    case BLE_GAP_EVENT_SUBSCRIBE:
+        return 0;
+    }
+
+    return 0;
+}
+
+/**
+ * Enables advertising with the following parameters:
+ *     o General discoverable mode.
+ *     o Undirected connectable mode.
+ */
+static void
+blehsuart_advertise(void)
+{
+    struct ble_gap_adv_params adv_params;
+    struct ble_hs_adv_fields fields;
+    const char *name;
+    int rc;
+
+    /**
+     *  Set the advertisement data included in our advertisements:
+     *     o Flags (indicates advertisement type and other general info).
+     *     o Advertising tx power.
+     *     o Device name.
+     *     o 16-bit service UUIDs (alert notifications).
+     */
+
+    memset(&fields, 0, sizeof fields);
+
+    /* Indicate that the flags field should be included; specify a value of 0
+     * to instruct the stack to fill the value in for us.
+     */
+    fields.flags_is_present = 1;
+    fields.flags = 0;
+
+    /* Indicate that the TX power level field should be included; have the
+     * stack fill this one automatically as well.  This is done by assiging the
+     * special value BLE_HS_ADV_TX_PWR_LVL_AUTO.
+     */
+    fields.tx_pwr_lvl_is_present = 1;
+    fields.tx_pwr_lvl = BLE_HS_ADV_TX_PWR_LVL_AUTO;
+
+    name = ble_svc_gap_device_name();
+    fields.name = (uint8_t *)name;
+    fields.name_len = strlen(name);
+    fields.name_is_complete = 1;
+
+    rc = ble_gap_adv_set_fields(&fields);
+    if (rc != 0) {
+        return;
+    }
+
+    /* Begin advertising. */
+    memset(&adv_params, 0, sizeof adv_params);
+    adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
+    adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
+    rc = ble_gap_adv_start(BLE_ADDR_TYPE_RANDOM, 0, NULL, BLE_HS_FOREVER,
+                           &adv_params, blehsuart_gap_event, NULL);
+    if (rc != 0) {
+        return;
+    }
+}
+
 /**
  * Event loop for the main blehsuart task.
  */
 static void
 blehsuart_task_handler(void *unused)
 {
+    static const uint8_t rndaddr[6] = { 0x44, 0x44, 0x44, 0x44, 0x44, 0xcc };
     struct os_event *ev;
     struct os_callout_func *cf;
+    int rc;
 
     /* Activate the host.  This causes the host to synchronize with the
      * controller.
      */
     ble_hs_start();
+
+    rc = ble_hs_id_set_rnd(rndaddr);
+    assert(rc == 0);
+
+    /* Begin advertising. */
+    blehsuart_advertise();
 
     while (1) {
         ev = os_eventq_get(&blehsuart_evq);
