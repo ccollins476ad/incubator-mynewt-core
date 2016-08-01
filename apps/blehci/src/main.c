@@ -35,7 +35,7 @@
 #define MBUF_MEMPOOL_SIZE   OS_MEMPOOL_SIZE(MBUF_NUM_MBUFS, MBUF_MEMBLOCK_SIZE)
 
 /* Our global device address (public) */
-uint8_t g_dev_addr[BLE_DEV_ADDR_LEN] = { 0 };
+uint8_t g_dev_addr[BLE_DEV_ADDR_LEN] = { 0x11,0x22,0x33,0x44,0x55,0x66 };
 
 /* Our random address (in case we need it) */
 uint8_t g_random_addr[BLE_DEV_ADDR_LEN] = { 0 };

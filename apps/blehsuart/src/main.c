@@ -61,12 +61,6 @@ struct os_mempool blehsuart_mbuf_mpool;
 //static struct log_handler blehsuart_log_console_handler;
 struct log blehsuart_log;
 
-/* Our global device address (public) */
-uint8_t g_dev_addr[BLE_DEV_ADDR_LEN] = { 0x11,0x22,0x33,0x44,0x55,0x66 };
-
-/* Our random address (in case we need it) */
-uint8_t g_random_addr[BLE_DEV_ADDR_LEN] = { 0 };
-
 #define HCI_MAX_BUFS        (5)
 
 os_membuf_t default_mbuf_mpool_data[MBUF_MEMPOOL_SIZE];
@@ -185,7 +179,7 @@ blehsuart_advertise(void)
     memset(&adv_params, 0, sizeof adv_params);
     adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
     adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
-    rc = ble_gap_adv_start(BLE_ADDR_TYPE_RANDOM, 0, NULL, BLE_HS_FOREVER,
+    rc = ble_gap_adv_start(BLE_ADDR_TYPE_PUBLIC, 0, NULL, BLE_HS_FOREVER,
                            &adv_params, blehsuart_gap_event, NULL);
     if (rc != 0) {
         return;
@@ -234,9 +228,9 @@ int
 main(void)
 {
     struct ble_hs_cfg cfg;
-    uint32_t seed;
+    //uint32_t seed;
     int rc;
-    int i;
+    //int i;
 
     /* Initialize OS */
     os_init();
@@ -245,6 +239,7 @@ main(void)
     rc = cputime_init(1000000);
     assert(rc == 0);
 
+#if 0
     /* Seed random number generator with least significant bytes of device
      * address.
      */
@@ -254,6 +249,7 @@ main(void)
         seed <<= 8;
     }
     srand(seed);
+#endif
 
     /* Initialize msys mbufs. */
     rc = os_mempool_init(&blehsuart_mbuf_mpool, MBUF_NUM_MBUFS,
