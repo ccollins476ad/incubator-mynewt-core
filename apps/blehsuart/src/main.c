@@ -58,7 +58,7 @@ struct os_mbuf_pool blehsuart_mbuf_pool;
 struct os_mempool blehsuart_mbuf_mpool;
 
 /** Log data. */
-static struct log_handler blehsuart_log_console_handler;
+//static struct log_handler blehsuart_log_console_handler;
 struct log blehsuart_log;
 
 /* Our global device address (public) */
@@ -82,13 +82,11 @@ blehsuart_task_handler(void *unused)
 {
     struct os_event *ev;
     struct os_callout_func *cf;
-    int rc;
 
     /* Activate the host.  This causes the host to synchronize with the
      * controller.
      */
-    rc = ble_hs_start();
-    assert(rc == 0);
+    ble_hs_start();
 
     while (1) {
         ev = os_eventq_get(&blehsuart_evq);
@@ -145,13 +143,13 @@ main(void)
     assert(rc == 0);
 
     /* Initialize the console (for log output). */
-    rc = console_init(NULL);
-    assert(rc == 0);
+    //rc = console_init(NULL);
+    //assert(rc == 0);
 
     /* Initialize the logging system. */
     log_init();
-    log_console_handler_init(&blehsuart_log_console_handler);
-    log_register("blehsuart", &blehsuart_log, &blehsuart_log_console_handler);
+    //log_console_handler_init(&blehsuart_log_console_handler);
+    //log_register("blehsuart", &blehsuart_log, &blehsuart_log_console_handler);
 
     /* Initialize the eventq for the application task. */
     os_eventq_init(&blehsuart_evq);
