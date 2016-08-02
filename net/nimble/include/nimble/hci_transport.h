@@ -56,4 +56,6 @@ int ble_hci_trans_ll_acl_send(struct os_mbuf *om);
 uint8_t *ble_hci_trans_alloc_buf(int type);
 int ble_hci_trans_free_buf(uint8_t *buf);
 
+int ble_hci_trans_reset(void);
+
 #endif /* H_HCI_TRANSPORT_ */

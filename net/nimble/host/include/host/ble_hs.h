@@ -85,6 +85,9 @@ struct os_event;
 #define BLE_HS_IO_NO_INPUT_OUTPUT           0x03
 #define BLE_HS_IO_KEYBOARD_DISPLAY          0x04
 
+typedef void ble_hs_reset_fn(int reason);
+typedef void ble_hs_sync_fn(void);
+
 struct ble_hs_cfg {
     /**
      * An HCI buffer is a "flat" 260-byte buffer.  HCI buffers are used by the
@@ -210,6 +213,19 @@ struct ble_hs_cfg {
     uint8_t sm_our_key_dist;
     uint8_t sm_their_key_dist;
 
+    /*** HCI settings */
+    /**
+     * This callback is executed when the host resets itself and the controller
+     * due to fatal error.
+     */
+    ble_hs_reset_fn *reset_cb;
+
+    /**
+     * This callback is executed when the host and controller become synced.
+     * This happens at startup and after a reset.
+     */
+    ble_hs_sync_fn *sync_cb;
+
     /*** Store settings. */
     /**
      * These function callbacks handle persistence of sercurity material
@@ -219,7 +235,7 @@ struct ble_hs_cfg {
     ble_store_write_fn *store_write_cb;
     ble_store_delete_fn *store_delete_cb;
 
-    /*** privacy settings */
+    /*** Privacy settings. */
     /**
      * The frequency at which new resovlable private addresses are generated.
      * Units are seconds.

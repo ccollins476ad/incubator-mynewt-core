@@ -23,6 +23,7 @@
 #include "bsp/bsp.h"
 #include "os/os.h"
 #include "hal/hal_cputime.h"
+#include "hal/hal_uart.h"
 #include "console/console.h"
 
 /* BLE */
@@ -186,27 +187,37 @@ blehsuart_advertise(void)
     }
 }
 
-/**
- * Event loop for the main blehsuart task.
- */
 static void
-blehsuart_task_handler(void *unused)
+blehsuart_on_reset(int reason)
+{
+}
+
+static void
+blehsuart_on_sync(void)
 {
     static const uint8_t rndaddr[6] = { 0x44, 0x44, 0x44, 0x44, 0x44, 0xcc };
-    struct os_event *ev;
-    struct os_callout_func *cf;
     int rc;
-
-    /* Activate the host.  This causes the host to synchronize with the
-     * controller.
-     */
-    ble_hs_start();
 
     rc = ble_hs_id_set_rnd(rndaddr);
     assert(rc == 0);
 
     /* Begin advertising. */
     blehsuart_advertise();
+}
+
+/**
+ * Event loop for the main blehsuart task.
+ */
+static void
+blehsuart_task_handler(void *unused)
+{
+    struct os_event *ev;
+    struct os_callout_func *cf;
+
+    /* Activate the host.  This causes the host to synchronize with the
+     * controller.
+     */
+    ble_hs_start();
 
     while (1) {
         ev = os_eventq_get(&blehsuart_evq);
@@ -227,6 +238,7 @@ blehsuart_task_handler(void *unused)
 int
 main(void)
 {
+    struct ble_hci_uart_cfg hci_cfg;
     struct ble_hs_cfg cfg;
     //uint32_t seed;
     int rc;
@@ -290,6 +302,8 @@ main(void)
     cfg.sm_bonding = 1;
     cfg.sm_our_key_dist = BLE_SM_PAIR_KEY_DIST_ENC;
     cfg.sm_their_key_dist = BLE_SM_PAIR_KEY_DIST_ENC;
+    cfg.reset_cb = blehsuart_on_reset;
+    cfg.sync_cb = blehsuart_on_sync;
     cfg.store_read_cb = ble_store_ram_read;
     cfg.store_write_cb = ble_store_ram_write;
 
@@ -304,7 +318,8 @@ main(void)
     rc = ble_hs_init(&blehsuart_evq, &cfg);
     assert(rc == 0);
 
-    rc = ble_hci_uart_init(cfg.max_hci_bufs, 260);
+    hci_cfg = ble_hci_uart_cfg_dflt;
+    rc = ble_hci_uart_init(&hci_cfg);
     assert(rc == 0);
 
     /* Set the default device name. */

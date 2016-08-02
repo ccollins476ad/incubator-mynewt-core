@@ -222,6 +222,9 @@ ble_hs_sync(void)
     rc = ble_hs_startup_go();
     if (rc == 0) {
         ble_hs_synced = 1;
+        if (ble_hs_cfg.sync_cb != NULL) {
+            ble_hs_cfg.sync_cb();
+        }
     }
 
     ble_hs_heartbeat_sched(BLE_HS_SYNC_RETRY_RATE);
@@ -236,6 +239,11 @@ ble_hs_reset(int reason)
 
     ble_hs_synced = 0;
 
+    rc = ble_hci_trans_reset();
+    if (rc != 0) {
+        return rc;
+    }
+
     ble_hs_clear_data_queue(&ble_hs_tx_q);
     ble_hs_clear_data_queue(&ble_hs_rx_q);
 
@@ -246,6 +254,10 @@ ble_hs_reset(int reason)
         }
 
         ble_gap_conn_broken(conn_handle, reason);
+    }
+
+    if (ble_hs_cfg.reset_cb != NULL) {
+        ble_hs_cfg.reset_cb(reason);
     }
 
     rc = ble_hs_sync();

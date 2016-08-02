@@ -135,7 +135,8 @@ ble_hci_cmd_rx_cmd_status(uint8_t event_code, uint8_t *data, int len,
 }
 
 static int
-ble_hci_cmd_process_ack(uint8_t *params_buf, uint8_t params_buf_len,
+ble_hci_cmd_process_ack(uint16_t expected_opcode,
+                        uint8_t *params_buf, uint8_t params_buf_len,
                         struct ble_hci_ack *out_ack)
 {
     uint8_t event_code;
@@ -186,10 +187,11 @@ ble_hci_cmd_process_ack(uint8_t *params_buf, uint8_t params_buf_len,
             memcpy(params_buf, out_ack->bha_params, out_ack->bha_params_len);
         }
         out_ack->bha_params = params_buf;
-    }
 
-    ble_hci_trans_free_buf(ble_hci_cmd_ack);
-    ble_hci_cmd_ack = NULL;
+        if (out_ack->bha_opcode != expected_opcode) {
+            rc = BLE_HS_ECONTROLLER;
+        }
+    }
 
     return rc;
 }
@@ -212,6 +214,7 @@ ble_hci_cmd_wait_for_ack(void)
     rc = os_sem_pend(&ble_hci_cmd_sem, BLE_HCI_CMD_TIMEOUT);
     switch (rc) {
     case 0:
+        BLE_HS_DBG_ASSERT(ble_hci_cmd_ack != NULL);
         break;
     case OS_TIMEOUT:
         rc = BLE_HS_ETIMEOUT_HCI;
@@ -230,8 +233,12 @@ ble_hci_cmd_tx(void *cmd, void *evt_buf, uint8_t evt_buf_len,
                uint8_t *out_evt_buf_len)
 {
     struct ble_hci_ack ack;
+    uint16_t opcode;
     int rc;
 
+    opcode = le16toh((uint8_t *)cmd);
+
+    BLE_HS_DBG_ASSERT(ble_hci_cmd_ack == NULL);
     ble_hci_cmd_lock();
 
     rc = host_hci_cmd_send_buf(cmd);
@@ -241,13 +248,11 @@ ble_hci_cmd_tx(void *cmd, void *evt_buf, uint8_t evt_buf_len,
 
     rc = ble_hci_cmd_wait_for_ack();
     if (rc != 0) {
-        ble_hs_sched_reset(rc);
         goto done;
     }
 
-    rc = ble_hci_cmd_process_ack(evt_buf, evt_buf_len, &ack);
+    rc = ble_hci_cmd_process_ack(opcode, evt_buf, evt_buf_len, &ack);
     if (rc != 0) {
-        ble_hs_sched_reset(rc);
         goto done;
     }
 
@@ -258,6 +263,11 @@ ble_hci_cmd_tx(void *cmd, void *evt_buf, uint8_t evt_buf_len,
     rc = ack.bha_status;
 
 done:
+    if (ble_hci_cmd_ack != NULL) {
+        ble_hci_trans_free_buf(ble_hci_cmd_ack);
+        ble_hci_cmd_ack = NULL;
+    }
+
     ble_hci_cmd_unlock();
     return rc;
 }
@@ -283,6 +293,7 @@ ble_hci_cmd_rx_ack(uint8_t *ack_ev)
         ble_hci_trans_free_buf(ack_ev);
         return;
     }
+    BLE_HS_DBG_ASSERT(ble_hci_cmd_ack == NULL);
 
     /* Unblock the application now that the HCI command buffer is populated
      * with the acknowledgement.
