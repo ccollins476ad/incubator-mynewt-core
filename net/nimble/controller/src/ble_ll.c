@@ -26,7 +26,7 @@
 #include "nimble/ble.h"
 #include "nimble/nimble_opt.h"
 #include "nimble/hci_common.h"
-#include "nimble/hci_transport.h"
+#include "nimble/ble_hci_trans.h"
 #include "controller/ble_hw.h"
 #include "controller/ble_phy.h"
 #include "controller/ble_ll.h"
@@ -1197,7 +1197,7 @@ ble_ll_init(uint8_t ll_task_prio, uint8_t num_acl_pkts, uint16_t acl_pkt_size)
                             STATS_NAME_INIT_PARMS(ble_ll_stats),
                             "ble_ll");
 
-    ble_hci_trans_set_rx_cbs_ll(ble_ll_hci_cmd_rx, NULL,
+    ble_hci_trans_cfg_ll(ble_ll_hci_cmd_rx, NULL,
                                     ble_ll_hci_acl_rx, NULL);
     return rc;
 }

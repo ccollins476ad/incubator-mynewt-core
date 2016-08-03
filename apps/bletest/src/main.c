@@ -36,7 +36,7 @@
 
 /* BLE */
 #include "nimble/ble.h"
-#include "nimble/hci_transport.h"
+#include "nimble/ble_hci_trans.h"
 #include "nimble/hci_common.h"
 #include "host/host_hci.h"
 #include "host/ble_hs.h"

@@ -23,7 +23,7 @@
 #include "stats/stats.h"
 #include "util/tpq.h"
 #include "os/os.h"
-#include "nimble/hci_transport.h"
+#include "nimble/ble_hci_trans.h"
 #include "host/host_hci.h"
 #include "ble_hs_priv.h"
 
@@ -163,7 +163,7 @@ ble_hs_process_tx_data_queue(void)
     struct os_mbuf *om;
 
     while ((om = os_mqueue_get(&ble_hs_tx_q)) != NULL) {
-        ble_hci_trans_hs_acl_send(om);
+        ble_hci_trans_hs_acl_tx(om);
     }
 }
 
@@ -378,7 +378,7 @@ ble_hs_enqueue_hci_event(uint8_t *hci_evt)
 
     ev = os_memblock_get(&ble_hs_hci_ev_pool);
     if (ev == NULL) {
-        ble_hci_trans_free_buf(ev->ev_arg);
+        ble_hci_trans_buf_free(ev->ev_arg);
     } else {
         ev->ev_queued = 0;
         ev->ev_type = BLE_HOST_HCI_EVENT_CTLR_EVENT;
@@ -601,7 +601,7 @@ ble_hs_init(struct os_eventq *app_evq, struct ble_hs_cfg *cfg)
     ble_hs_dbg_mutex_locked = 0;
 #endif
 
-    ble_hci_trans_set_rx_cbs_hs(host_hci_evt_rx, NULL,
+    ble_hci_trans_cfg_hs(host_hci_evt_rx, NULL,
                                     ble_hs_rx_data, NULL);
 
     return 0;

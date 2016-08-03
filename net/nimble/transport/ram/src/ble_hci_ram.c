@@ -2,7 +2,7 @@
 #include <errno.h>
 #include <stddef.h>
 #include "os/os.h"
-#include "nimble/hci_transport.h"
+#include "nimble/ble_hci_trans.h"
 
 static ble_hci_trans_rx_cmd_fn *ble_hci_ram_rx_cmd_hs_cb;
 static void *ble_hci_ram_rx_cmd_hs_arg;
@@ -23,7 +23,7 @@ static uint8_t *ble_hci_ram_hs_cmd_buf;
 static uint8_t ble_hci_ram_hs_cmd_buf_alloced;
 
 void
-ble_hci_trans_set_rx_cbs_hs(ble_hci_trans_rx_cmd_fn *cmd_cb,
+ble_hci_trans_cfg_hs(ble_hci_trans_rx_cmd_fn *cmd_cb,
                                 void *cmd_arg,
                                 ble_hci_trans_rx_acl_fn *acl_cb,
                                 void *acl_arg)
@@ -35,7 +35,7 @@ ble_hci_trans_set_rx_cbs_hs(ble_hci_trans_rx_cmd_fn *cmd_cb,
 }
 
 void
-ble_hci_trans_set_rx_cbs_ll(ble_hci_trans_rx_cmd_fn *cmd_cb,
+ble_hci_trans_cfg_ll(ble_hci_trans_rx_cmd_fn *cmd_cb,
                                 void *cmd_arg,
                                 ble_hci_trans_rx_acl_fn *acl_cb,
                                 void *acl_arg)
@@ -47,7 +47,7 @@ ble_hci_trans_set_rx_cbs_ll(ble_hci_trans_rx_cmd_fn *cmd_cb,
 }
 
 int
-ble_hci_trans_hs_cmd_send(uint8_t *cmd)
+ble_hci_trans_hs_cmd_tx(uint8_t *cmd)
 {
     int rc;
 
@@ -58,7 +58,7 @@ ble_hci_trans_hs_cmd_send(uint8_t *cmd)
 }
 
 int
-ble_hci_trans_ll_evt_send(uint8_t *hci_ev)
+ble_hci_trans_ll_evt_tx(uint8_t *hci_ev)
 {
     int rc;
 
@@ -69,7 +69,7 @@ ble_hci_trans_ll_evt_send(uint8_t *hci_ev)
 }
 
 int
-ble_hci_trans_hs_acl_send(struct os_mbuf *om)
+ble_hci_trans_hs_acl_tx(struct os_mbuf *om)
 {
     int rc;
 
@@ -80,7 +80,7 @@ ble_hci_trans_hs_acl_send(struct os_mbuf *om)
 }
 
 int
-ble_hci_trans_ll_acl_send(struct os_mbuf *om)
+ble_hci_trans_ll_acl_tx(struct os_mbuf *om)
 {
     int rc;
 
@@ -91,7 +91,7 @@ ble_hci_trans_ll_acl_send(struct os_mbuf *om)
 }
 
 uint8_t *
-ble_hci_trans_alloc_buf(int type)
+ble_hci_trans_buf_alloc(int type)
 {
     uint8_t *buf;
 
@@ -116,7 +116,7 @@ ble_hci_trans_alloc_buf(int type)
 }
 
 int
-ble_hci_trans_free_buf(uint8_t *buf)
+ble_hci_trans_buf_free(uint8_t *buf)
 {
     int rc;
 

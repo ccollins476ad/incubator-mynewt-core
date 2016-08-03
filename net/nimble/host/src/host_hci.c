@@ -23,7 +23,7 @@
 #include "os/os.h"
 #include "console/console.h"
 #include "nimble/hci_common.h"
-#include "nimble/hci_transport.h"
+#include "nimble/ble_hci_trans.h"
 #include "host/host_hci.h"
 #include "host/ble_gap.h"
 #include "ble_hs_priv.h"
@@ -610,7 +610,7 @@ host_hci_evt_process(uint8_t *data)
         rc = entry->hed_fn(event_code, data, event_len);
     }
 
-    ble_hci_trans_free_buf(data);
+    ble_hci_trans_buf_free(data);
 
     return rc;
 }

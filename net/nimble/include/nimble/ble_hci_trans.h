@@ -47,12 +47,12 @@ typedef int ble_hci_trans_rx_acl_fn(struct os_mbuf *om, void *arg);
  * Sends an HCI event from the controller to the host.
  *
  * @param cmd                   The HCI event to send.  This buffer must be
- *                                  allocated via ble_hci_trans_alloc_buf().
+ *                                  allocated via ble_hci_trans_buf_alloc().
  *
  * @return                      0 on success;
  *                              A BLE_ERR_[...] error code on failure.
  */
-int ble_hci_trans_ll_evt_send(uint8_t *hci_ev);
+int ble_hci_trans_ll_evt_tx(uint8_t *hci_ev);
 
 /**
  * Sends ACL data from controller to host.
@@ -62,18 +62,18 @@ int ble_hci_trans_ll_evt_send(uint8_t *hci_ev);
  * @return                      0 on success;
  *                              A BLE_ERR_[...] error code on failure.
  */
-int ble_hci_trans_ll_acl_send(struct os_mbuf *om);
+int ble_hci_trans_ll_acl_tx(struct os_mbuf *om);
 
 /**
  * Sends an HCI command from the host to the controller.
  *
  * @param cmd                   The HCI command to send.  This buffer must be
- *                                  allocated via ble_hci_trans_alloc_buf().
+ *                                  allocated via ble_hci_trans_buf_alloc().
  *
  * @return                      0 on success;
  *                              A BLE_ERR_[...] error code on failure.
  */
-int ble_hci_trans_hs_cmd_send(uint8_t *cmd);
+int ble_hci_trans_hs_cmd_tx(uint8_t *cmd);
 
 /**
  * Sends ACL data from host to controller.
@@ -83,7 +83,7 @@ int ble_hci_trans_hs_cmd_send(uint8_t *cmd);
  * @return                      0 on success;
  *                              A BLE_ERR_[...] error code on failure.
  */
-int ble_hci_trans_hs_acl_send(struct os_mbuf *om);
+int ble_hci_trans_hs_acl_tx(struct os_mbuf *om);
 
 /**
  * Allocates a flat buffer of the specified type.
@@ -94,20 +94,19 @@ int ble_hci_trans_hs_acl_send(struct os_mbuf *om);
  * @return                      The allocated buffer on success;
  *                              NULL on buffer exhaustion.
  */
-uint8_t *ble_hci_trans_alloc_buf(int type);
+uint8_t *ble_hci_trans_buf_alloc(int type);
 
 /**
  * Frees the specified flat buffer.  The buffer must have been allocated via
- * ble_hci_trans_alloc_buf().
+ * ble_hci_trans_buf_alloc().
  *
  * @param buf                   The buffer to free.
  */
-void ble_hci_trans_free_buf(uint8_t *buf);
+void ble_hci_trans_buf_free(uint8_t *buf);
 
 /**
- * Configures the HCI transport to call the specified callback upon receiving
- * HCI packets from the host.  This function should only be called by by
- * controller.
+ * Configures the HCI transport to operate with a controller.  The transport
+ * will execute specified callbacks upon receiving HCI packets from the host.
  *
  * @param cmd_cb                The callback to execute upon receiving an HCI
  *                                  command.
@@ -118,15 +117,14 @@ void ble_hci_trans_free_buf(uint8_t *buf);
  * @param acl_arg               Optional argument to pass to the ACL
  *                                  callback.
  */
-void ble_hci_trans_set_rx_cbs_ll(ble_hci_trans_rx_cmd_fn *cmd_cb,
-                                 void *cmd_arg,
-                                 ble_hci_trans_rx_acl_fn *acl_cb,
-                                 void *acl_arg);
+void ble_hci_trans_cfg_ll(ble_hci_trans_rx_cmd_fn *cmd_cb,
+                          void *cmd_arg,
+                          ble_hci_trans_rx_acl_fn *acl_cb,
+                          void *acl_arg);
 
 /**
- * Configures the HCI transport to call the specified callback upon receiving
- * HCI packets from the controller.  This function should only be called by by
- * host.
+ * Configures the HCI transport to operate with a host.  The transport will
+ * execute specified callbacks upon receiving HCI packets from the controller.
  *
  * @param cmd_cb                The callback to execute upon receiving an HCI
  *                                  event.
@@ -137,10 +135,10 @@ void ble_hci_trans_set_rx_cbs_ll(ble_hci_trans_rx_cmd_fn *cmd_cb,
  * @param acl_arg               Optional argument to pass to the ACL
  *                                  callback.
  */
-void ble_hci_trans_set_rx_cbs_hs(ble_hci_trans_rx_cmd_fn *cmd_cb,
-                                 void *cmd_arg,
-                                 ble_hci_trans_rx_acl_fn *acl_cb,
-                                 void *acl_arg);
+void ble_hci_trans_cfg_hs(ble_hci_trans_rx_cmd_fn *cmd_cb,
+                          void *cmd_arg,
+                          ble_hci_trans_rx_acl_fn *acl_cb,
+                          void *acl_arg);
 
 /**
  * Resets the HCI module to a clean state.  Frees all buffers and reinitializes

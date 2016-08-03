@@ -24,7 +24,7 @@
 #include "os/os.h"
 #include "console/console.h"
 #include "nimble/hci_common.h"
-#include "nimble/hci_transport.h"
+#include "nimble/ble_hci_trans.h"
 #include "host/host_hci.h"
 #include "host_dbg_priv.h"
 #include "ble_hs_priv.h"
@@ -34,7 +34,7 @@ host_hci_cmd_transport(uint8_t *cmdbuf)
 {
     int rc;
 
-    rc = ble_hci_trans_hs_cmd_send(cmdbuf);
+    rc = ble_hci_trans_hs_cmd_tx(cmdbuf);
     switch (rc) {
     case 0:
         return 0;
@@ -66,7 +66,7 @@ host_hci_cmd_send(uint8_t ogf, uint8_t ocf, uint8_t len, const void *cmddata)
     uint8_t *buf;
     int rc;
 
-    buf = ble_hci_trans_alloc_buf(BLE_HCI_TRANS_BUF_CMD);
+    buf = ble_hci_trans_buf_alloc(BLE_HCI_TRANS_BUF_CMD);
     BLE_HS_DBG_ASSERT(buf != NULL);
 
     htole16(buf, ogf << 10 | ocf);

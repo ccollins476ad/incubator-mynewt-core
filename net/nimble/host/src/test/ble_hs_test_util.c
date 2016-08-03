@@ -23,7 +23,7 @@
 #include "testutil/testutil.h"
 #include "nimble/ble.h"
 #include "nimble/hci_common.h"
-#include "nimble/hci_transport.h"
+#include "nimble/ble_hci_trans.h"
 #include "host/ble_hs_adv.h"
 #include "host/ble_hs_id.h"
 #include "host/host_hci.h"
@@ -247,12 +247,12 @@ ble_hs_test_util_rx_hci_evt(uint8_t *evt)
     TEST_ASSERT_FATAL(totlen <= UINT8_MAX + BLE_HCI_EVENT_HDR_LEN);
 
     if (os_started()) {
-        evbuf = ble_hci_trans_alloc_buf(
+        evbuf = ble_hci_trans_buf_alloc(
             BLE_HCI_TRANS_BUF_EVT_LO);
         TEST_ASSERT_FATAL(evbuf != NULL);
 
         memcpy(evbuf, evt, totlen);
-        rc = ble_hci_trans_ll_evt_send(evbuf);
+        rc = ble_hci_trans_ll_evt_tx(evbuf);
     } else {
         rc = host_hci_evt_process(evt);
     }
@@ -1292,7 +1292,7 @@ static int
 ble_hs_test_util_hci_txed(uint8_t *cmdbuf, void *arg)
 {
     ble_hs_test_util_enqueue_hci_tx(cmdbuf);
-    ble_hci_trans_free_buf(cmdbuf);
+    ble_hci_trans_buf_free(cmdbuf);
     return 0;
 }
 
@@ -1347,7 +1347,7 @@ ble_hs_test_util_init(void)
     /* Use a very low buffer size (16) to test fragmentation. */
     host_hci_set_buf_size(16, 64);
 
-    ble_hci_trans_set_rx_cbs_ll(ble_hs_test_util_hci_txed, NULL,
+    ble_hci_trans_cfg_ll(ble_hs_test_util_hci_txed, NULL,
                                 ble_hs_test_util_pkt_txed, NULL);
 
     rc = ble_hci_ram_init(cfg.max_hci_bufs, 260);

@@ -35,7 +35,7 @@
 /* BLE */
 #include "nimble/ble.h"
 #include "nimble/nimble_opt.h"
-#include "nimble/hci_transport.h"
+#include "nimble/ble_hci_trans.h"
 #include "controller/ble_ll.h"
 #include "host/host_hci.h"
 #include "host/ble_hs.h"
@@ -1085,7 +1085,7 @@ bletiny_tx_timer_cb(void *arg)
 
         /* Set packet header length */
         OS_MBUF_PKTHDR(om)->omp_len = om->om_len;
-        ble_hci_trans_hs_acl_send(om);
+        ble_hci_trans_hs_acl_tx(om);
 
         --bletiny_tx_data.tx_num;
     }

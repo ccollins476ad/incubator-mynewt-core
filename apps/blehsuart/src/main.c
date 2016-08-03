@@ -29,7 +29,7 @@
 /* BLE */
 #include "nimble/ble.h"
 #include "nimble/nimble_opt.h"
-#include "nimble/hci_transport.h"
+#include "nimble/ble_hci_trans.h"
 #include "transport/uart/ble_hci_uart.h"
 #include "host/ble_hs.h"
 

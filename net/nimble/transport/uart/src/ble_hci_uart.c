@@ -32,7 +32,7 @@
 #include "nimble/ble.h"
 #include "nimble/nimble_opt.h"
 #include "nimble/hci_common.h"
-#include "nimble/hci_transport.h"
+#include "nimble/ble_hci_trans.h"
 
 #include "transport/uart/ble_hci_uart.h"
 
@@ -157,7 +157,7 @@ ble_hci_uart_cmdevt_tx(uint8_t *hci_ev, uint8_t h4_type)
 
     pkt = os_memblock_get(&ble_hci_uart_pkt_pool);
     if (pkt == NULL) {
-        ble_hci_trans_free_buf(hci_ev);
+        ble_hci_trans_buf_free(hci_ev);
         return BLE_ERR_MEM_CAPACITY;
     }
 
@@ -248,7 +248,7 @@ ble_hci_uart_tx_char(void *arg)
         rc = ble_hci_uart_state.tx_cmd.data[ble_hci_uart_state.tx_cmd.cur++];
 
         if (ble_hci_uart_state.tx_cmd.cur == ble_hci_uart_state.tx_cmd.len) {
-            ble_hci_trans_free_buf(ble_hci_uart_state.tx_cmd.data);
+            ble_hci_trans_buf_free(ble_hci_uart_state.tx_cmd.data);
             ble_hci_uart_state.tx_type = BLE_HCI_UART_H4_NONE;
         }
         break;
@@ -292,7 +292,7 @@ ble_hci_uart_rx_pkt_type(uint8_t data)
     switch (ble_hci_uart_state.rx_type) {
     case BLE_HCI_UART_H4_CMD:
         ble_hci_uart_state.rx_cmd.data =
-            ble_hci_trans_alloc_buf(BLE_HCI_TRANS_BUF_CMD);
+            ble_hci_trans_buf_alloc(BLE_HCI_TRANS_BUF_CMD);
         assert(ble_hci_uart_state.rx_cmd.data != NULL);
 
         ble_hci_uart_state.rx_cmd.len = 0;
@@ -301,7 +301,7 @@ ble_hci_uart_rx_pkt_type(uint8_t data)
 
     case BLE_HCI_UART_H4_EVT:
         ble_hci_uart_state.rx_cmd.data =
-            ble_hci_trans_alloc_buf(BLE_HCI_TRANS_BUF_EVT_HI);
+            ble_hci_trans_buf_alloc(BLE_HCI_TRANS_BUF_EVT_HI);
         assert(ble_hci_uart_state.rx_cmd.data != NULL);
 
         ble_hci_uart_state.rx_cmd.len = 0;
@@ -345,7 +345,7 @@ ble_hci_uart_rx_cmd(uint8_t data)
         rc = ble_hci_uart_rx_cmd_cb(ble_hci_uart_state.rx_cmd.data,
                                     ble_hci_uart_rx_cmd_arg);
         if (rc != 0) {
-            ble_hci_trans_free_buf(ble_hci_uart_state.rx_cmd.data);
+            ble_hci_trans_buf_free(ble_hci_uart_state.rx_cmd.data);
         }
         ble_hci_uart_state.rx_type = BLE_HCI_UART_H4_NONE;
     }
@@ -372,7 +372,7 @@ ble_hci_uart_rx_evt(uint8_t data)
         rc = ble_hci_uart_rx_cmd_cb(ble_hci_uart_state.rx_cmd.data,
                                     ble_hci_uart_rx_cmd_arg);
         if (rc != 0) {
-            ble_hci_trans_free_buf(ble_hci_uart_state.rx_cmd.data);
+            ble_hci_trans_buf_free(ble_hci_uart_state.rx_cmd.data);
         }
         ble_hci_uart_state.rx_type = BLE_HCI_UART_H4_NONE;
     }
@@ -453,7 +453,7 @@ ble_hci_uart_free_pkt(uint8_t type, uint8_t *cmdevt, struct os_mbuf *acl)
 
     case BLE_HCI_UART_H4_CMD:
     case BLE_HCI_UART_H4_EVT:
-        ble_hci_trans_free_buf(cmdevt);
+        ble_hci_trans_buf_free(cmdevt);
         break;
 
     case BLE_HCI_UART_H4_ACL:
@@ -505,13 +505,13 @@ ble_hci_uart_config(void)
  * Sends an HCI event from the controller to the host.
  *
  * @param cmd                   The HCI event to send.  This buffer must be
- *                                  allocated via ble_hci_trans_alloc_buf().
+ *                                  allocated via ble_hci_trans_buf_alloc().
  *
  * @return                      0 on success;
  *                              A BLE_ERR_[...] error code on failure.
  */
 int
-ble_hci_trans_ll_evt_send(uint8_t *cmd)
+ble_hci_trans_ll_evt_tx(uint8_t *cmd)
 {
     int rc;
 
@@ -528,7 +528,7 @@ ble_hci_trans_ll_evt_send(uint8_t *cmd)
  *                              A BLE_ERR_[...] error code on failure.
  */
 int
-ble_hci_trans_ll_acl_send(struct os_mbuf *om)
+ble_hci_trans_ll_acl_tx(struct os_mbuf *om)
 {
     int rc;
 
@@ -540,13 +540,13 @@ ble_hci_trans_ll_acl_send(struct os_mbuf *om)
  * Sends an HCI command from the host to the controller.
  *
  * @param cmd                   The HCI command to send.  This buffer must be
- *                                  allocated via ble_hci_trans_alloc_buf().
+ *                                  allocated via ble_hci_trans_buf_alloc().
  *
  * @return                      0 on success;
  *                              A BLE_ERR_[...] error code on failure.
  */
 int
-ble_hci_trans_hs_cmd_send(uint8_t *cmd)
+ble_hci_trans_hs_cmd_tx(uint8_t *cmd)
 {
     int rc;
 
@@ -563,7 +563,7 @@ ble_hci_trans_hs_cmd_send(uint8_t *cmd)
  *                              A BLE_ERR_[...] error code on failure.
  */
 int
-ble_hci_trans_hs_acl_send(struct os_mbuf *om)
+ble_hci_trans_hs_acl_tx(struct os_mbuf *om)
 {
     int rc;
 
@@ -586,7 +586,7 @@ ble_hci_trans_hs_acl_send(struct os_mbuf *om)
  *                                  callback.
  */
 void
-ble_hci_trans_set_rx_cbs_hs(ble_hci_trans_rx_cmd_fn *cmd_cb,
+ble_hci_trans_cfg_hs(ble_hci_trans_rx_cmd_fn *cmd_cb,
                             void *cmd_arg,
                             ble_hci_trans_rx_acl_fn *acl_cb,
                             void *acl_arg)
@@ -595,12 +595,11 @@ ble_hci_trans_set_rx_cbs_hs(ble_hci_trans_rx_cmd_fn *cmd_cb,
 }
 
 /**
- * Configures the HCI transport to call the specified callback upon receiving
- * HCI packets from the host.  This function should only be called by by
- * controller.
+ * Configures the HCI transport to operate with a host.  The transport will
+ * execute specified callbacks upon receiving HCI packets from the controller.
  *
  * @param cmd_cb                The callback to execute upon receiving an HCI
- *                                  command.
+ *                                  event.
  * @param cmd_arg               Optional argument to pass to the command
  *                                  callback.
  * @param acl_cb                The callback to execute upon receiving ACL
@@ -609,7 +608,7 @@ ble_hci_trans_set_rx_cbs_hs(ble_hci_trans_rx_cmd_fn *cmd_cb,
  *                                  callback.
  */
 void
-ble_hci_trans_set_rx_cbs_ll(ble_hci_trans_rx_cmd_fn *cmd_cb,
+ble_hci_trans_cfg_ll(ble_hci_trans_rx_cmd_fn *cmd_cb,
                             void *cmd_arg,
                             ble_hci_trans_rx_acl_fn *acl_cb,
                             void *acl_arg)
@@ -627,7 +626,7 @@ ble_hci_trans_set_rx_cbs_ll(ble_hci_trans_rx_cmd_fn *cmd_cb,
  *                              NULL on buffer exhaustion.
  */
 uint8_t *
-ble_hci_trans_alloc_buf(int type)
+ble_hci_trans_buf_alloc(int type)
 {
     uint8_t *buf;
 
@@ -648,12 +647,12 @@ ble_hci_trans_alloc_buf(int type)
 
 /**
  * Frees the specified flat buffer.  The buffer must have been allocated via
- * ble_hci_trans_alloc_buf().
+ * ble_hci_trans_buf_alloc().
  *
  * @param buf                   The buffer to free.
  */
 void
-ble_hci_trans_free_buf(uint8_t *buf)
+ble_hci_trans_buf_free(uint8_t *buf)
 {
     int rc;
 
