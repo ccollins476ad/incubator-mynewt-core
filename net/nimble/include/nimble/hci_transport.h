@@ -25,37 +25,130 @@ struct os_mbuf;
 
 #define BLE_HCI_TRANS_CMD_SZ        260
 
+/*** Type of buffers for holding commands and events. */
+/**
+ * Low-priority event (advertising reports).  A request to allocate a
+ * high-priority event buffer may allocate one of these instead if no
+ * high-priority buffers are available.
+ */
 #define BLE_HCI_TRANS_BUF_EVT_LO    1
+
+/* High-priority event (all events except advertising reports). */
 #define BLE_HCI_TRANS_BUF_EVT_HI    2
+
+/* Host-to-controller command. */
 #define BLE_HCI_TRANS_BUF_CMD       3
 
+/** Callback function types; executed when HCI packets are received. */
 typedef int ble_hci_trans_rx_cmd_fn(uint8_t *cmd, void *arg);
 typedef int ble_hci_trans_rx_acl_fn(struct os_mbuf *om, void *arg);
 
-void ble_hci_trans_set_rx_cbs_hs(ble_hci_trans_rx_cmd_fn *cmd_cb,
-                                 void *cmd_arg,
-                                 ble_hci_trans_rx_acl_fn *acl_cb,
-                                 void *acl_arg);
+/**
+ * Sends an HCI event from the controller to the host.
+ *
+ * @param cmd                   The HCI event to send.  This buffer must be
+ *                                  allocated via ble_hci_trans_alloc_buf().
+ *
+ * @return                      0 on success;
+ *                              A BLE_ERR_[...] error code on failure.
+ */
+int ble_hci_trans_ll_evt_send(uint8_t *hci_ev);
+
+/**
+ * Sends ACL data from controller to host.
+ *
+ * @param om                    The ACL data packet to send.
+ *
+ * @return                      0 on success;
+ *                              A BLE_ERR_[...] error code on failure.
+ */
+int ble_hci_trans_ll_acl_send(struct os_mbuf *om);
+
+/**
+ * Sends an HCI command from the host to the controller.
+ *
+ * @param cmd                   The HCI command to send.  This buffer must be
+ *                                  allocated via ble_hci_trans_alloc_buf().
+ *
+ * @return                      0 on success;
+ *                              A BLE_ERR_[...] error code on failure.
+ */
+int ble_hci_trans_hs_cmd_send(uint8_t *cmd);
+
+/**
+ * Sends ACL data from host to controller.
+ *
+ * @param om                    The ACL data packet to send.
+ *
+ * @return                      0 on success;
+ *                              A BLE_ERR_[...] error code on failure.
+ */
+int ble_hci_trans_hs_acl_send(struct os_mbuf *om);
+
+/**
+ * Allocates a flat buffer of the specified type.
+ *
+ * @param type                  The type of buffer to allocate; one of the
+ *                                  BLE_HCI_TRANS_BUF_[...] constants.
+ *
+ * @return                      The allocated buffer on success;
+ *                              NULL on buffer exhaustion.
+ */
+uint8_t *ble_hci_trans_alloc_buf(int type);
+
+/**
+ * Frees the specified flat buffer.  The buffer must have been allocated via
+ * ble_hci_trans_alloc_buf().
+ *
+ * @param buf                   The buffer to free.
+ */
+void ble_hci_trans_free_buf(uint8_t *buf);
+
+/**
+ * Configures the HCI transport to call the specified callback upon receiving
+ * HCI packets from the host.  This function should only be called by by
+ * controller.
+ *
+ * @param cmd_cb                The callback to execute upon receiving an HCI
+ *                                  command.
+ * @param cmd_arg               Optional argument to pass to the command
+ *                                  callback.
+ * @param acl_cb                The callback to execute upon receiving ACL
+ *                                  data.
+ * @param acl_arg               Optional argument to pass to the ACL
+ *                                  callback.
+ */
 void ble_hci_trans_set_rx_cbs_ll(ble_hci_trans_rx_cmd_fn *cmd_cb,
                                  void *cmd_arg,
                                  ble_hci_trans_rx_acl_fn *acl_cb,
                                  void *acl_arg);
 
-/* Send a HCI command from the host to the controller */
-int ble_hci_trans_hs_cmd_send(uint8_t *cmd);
+/**
+ * Configures the HCI transport to call the specified callback upon receiving
+ * HCI packets from the controller.  This function should only be called by by
+ * host.
+ *
+ * @param cmd_cb                The callback to execute upon receiving an HCI
+ *                                  event.
+ * @param cmd_arg               Optional argument to pass to the command
+ *                                  callback.
+ * @param acl_cb                The callback to execute upon receiving ACL
+ *                                  data.
+ * @param acl_arg               Optional argument to pass to the ACL
+ *                                  callback.
+ */
+void ble_hci_trans_set_rx_cbs_hs(ble_hci_trans_rx_cmd_fn *cmd_cb,
+                                 void *cmd_arg,
+                                 ble_hci_trans_rx_acl_fn *acl_cb,
+                                 void *acl_arg);
 
-/* Send a HCI event from the controller to the host */
-int ble_hci_trans_ll_evt_send(uint8_t *hci_ev);
-
-/* Send ACL data from host to contoller */
-int ble_hci_trans_hs_acl_send(struct os_mbuf *om);
-
-/* Send ACL data from controller to host */
-int ble_hci_trans_ll_acl_send(struct os_mbuf *om);
-
-uint8_t *ble_hci_trans_alloc_buf(int type);
-int ble_hci_trans_free_buf(uint8_t *buf);
-
+/**
+ * Resets the HCI module to a clean state.  Frees all buffers and reinitializes
+ * the underlying transport.
+ *
+ * @return                      0 on success;
+ *                              A BLE_ERR_[...] error code on failure.
+ */
 int ble_hci_trans_reset(void);
 
 #endif /* H_HCI_TRANSPORT_ */

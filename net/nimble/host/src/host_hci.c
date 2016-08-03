@@ -588,7 +588,6 @@ host_hci_evt_process(uint8_t *data)
     uint8_t event_code;
     uint8_t param_len;
     int event_len;
-    int err;
     int rc;
 
     /* Count events received */
@@ -611,8 +610,7 @@ host_hci_evt_process(uint8_t *data)
         rc = entry->hed_fn(event_code, data, event_len);
     }
 
-    err = ble_hci_trans_free_buf(data);
-    BLE_HS_DBG_ASSERT_EVAL(err == 0);
+    ble_hci_trans_free_buf(data);
 
     return rc;
 }

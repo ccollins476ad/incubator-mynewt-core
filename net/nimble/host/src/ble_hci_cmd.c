@@ -248,11 +248,13 @@ ble_hci_cmd_tx(void *cmd, void *evt_buf, uint8_t evt_buf_len,
 
     rc = ble_hci_cmd_wait_for_ack();
     if (rc != 0) {
+        ble_hs_sched_reset(rc);
         goto done;
     }
 
     rc = ble_hci_cmd_process_ack(opcode, evt_buf, evt_buf_len, &ack);
     if (rc != 0) {
+        ble_hs_sched_reset(rc);
         goto done;
     }
 

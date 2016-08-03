@@ -375,12 +375,10 @@ void
 ble_hs_enqueue_hci_event(uint8_t *hci_evt)
 {
     struct os_event *ev;
-    int rc;
 
     ev = os_memblock_get(&ble_hs_hci_ev_pool);
     if (ev == NULL) {
-        rc = ble_hci_trans_free_buf(ev->ev_arg);
-        BLE_HS_DBG_ASSERT_EVAL(rc == 0);
+        ble_hci_trans_free_buf(ev->ev_arg);
     } else {
         ev->ev_queued = 0;
         ev->ev_type = BLE_HOST_HCI_EVENT_CTLR_EVENT;

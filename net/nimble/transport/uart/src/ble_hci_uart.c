@@ -31,24 +31,24 @@
 /* BLE */
 #include "nimble/ble.h"
 #include "nimble/nimble_opt.h"
+#include "nimble/hci_common.h"
 #include "nimble/hci_transport.h"
 
 #include "transport/uart/ble_hci_uart.h"
 
-#define HCI_CMD_HDR_LEN 3
-#define HCI_ACL_HDR_LEN 4
-#define HCI_EVT_HDR_LEN 2
+/***
+ * NOTE:
+ * The UART HCI transport doesn't use event buffer priorities.  All incoming
+ * and outgoing events and commands use buffers from the same pool.
+ */
 
-#define H4_NONE 0x00
-#define H4_CMD  0x01
-#define H4_ACL  0x02
-#define H4_SCO  0x03
-#define H4_EVT  0x04
+#define BLE_HCI_UART_H4_NONE        0x00
+#define BLE_HCI_UART_H4_CMD         0x01
+#define BLE_HCI_UART_H4_ACL         0x02
+#define BLE_HCI_UART_H4_SCO         0x03
+#define BLE_HCI_UART_H4_EVT         0x04
 
-#define BLE_HCI_TRANS_EVENT_CMD     (OS_EVENT_T_PERUSER + 0)
-#define BLE_HCI_TRANS_EVENT_EVT     (OS_EVENT_T_PERUSER + 1)
-#define BLE_HCI_TRANS_EVENT_ACL     (OS_EVENT_T_PERUSER + 2)
-
+/** Default configuration. */
 const struct ble_hci_uart_cfg ble_hci_uart_cfg_dflt = {
     .uart_port = 0,
     .baud = 1000000,
@@ -58,7 +58,7 @@ const struct ble_hci_uart_cfg ble_hci_uart_cfg_dflt = {
     .parity = HAL_UART_PARITY_NONE,
 
     .num_evt_bufs = 8,
-    .evt_buf_sz = 260,
+    .evt_buf_sz = BLE_HCI_TRANS_CMD_SZ,
 };
 
 static ble_hci_trans_rx_cmd_fn *ble_hci_uart_rx_cmd_cb;
@@ -70,8 +70,8 @@ static void *ble_hci_uart_rx_acl_arg;
 static struct os_mempool ble_hci_uart_evt_pool;
 static void *ble_hci_uart_evt_buf;
 
-static struct os_mempool ble_hci_uart_os_evt_pool;
-static void *ble_hci_uart_os_evt_buf;
+static struct os_mempool ble_hci_uart_pkt_pool;
+static void *ble_hci_uart_pkt_buf;
 
 #define BLE_HCI_UART_LOG_SZ 1024
 static uint8_t ble_hci_uart_tx_log[BLE_HCI_UART_LOG_SZ];
@@ -79,32 +79,48 @@ static int ble_hci_uart_tx_log_sz;
 static uint8_t ble_hci_uart_rx_log[BLE_HCI_UART_LOG_SZ];
 static int ble_hci_uart_rx_log_sz;
 
-struct memblock {
-    uint8_t *data;      /* Pointer to memblock data */
+/**
+ * An incoming or outgoing command or event.
+ */
+struct ble_hci_uart_cmd {
+    uint8_t *data;      /* Pointer to ble_hci_uart_cmd data */
     uint16_t cur;       /* Number of bytes read/written */
     uint16_t len;       /* Total number of bytes to read/write */
 };
 
-struct ota_acl {
+/**
+ * An incoming ACL data packet.
+ */
+struct ble_hci_uart_acl {
     struct os_mbuf *buf; /* Buffer containing the data */
     uint16_t len;        /* Target size when buf is considered complete */
 };
 
+/**
+ * A packet to be sent over the UART.  This can be a command, an event, or ACL
+ * data.
+ */
+struct ble_hci_uart_pkt {
+    STAILQ_ENTRY(ble_hci_uart_pkt) next;
+    void *data;
+    uint8_t type;
+};
+
 static struct {
-    /* State of data from host to controller */
-    uint8_t ota_type;    /* Pending packet type. 0 means nothing pending */
+    /*** State of data received over UART. */
+    uint8_t rx_type;    /* Pending packet type. 0 means nothing pending */
     union {
-        struct memblock ota_cmd;
-        struct ota_acl ota_acl;
+        struct ble_hci_uart_cmd rx_cmd;
+        struct ble_hci_uart_acl rx_acl;
     };
 
-    /* State of data from controller to host */
-    uint8_t hci_type;    /* Pending packet type. 0 means nothing pending */
+    /*** State of data transmitted over UART. */
+    uint8_t tx_type;    /* Pending packet type. 0 means nothing pending */
     union {
-        struct memblock hci_cmd;
-        struct os_mbuf *hci_acl;
+        struct ble_hci_uart_cmd tx_cmd;
+        struct os_mbuf *tx_acl;
     };
-    STAILQ_HEAD(, os_event) hci_pkts; /* Packet queue to send to UART */
+    STAILQ_HEAD(, ble_hci_uart_pkt) tx_pkts; /* Packet queue to send to UART */
 } ble_hci_uart_state;
 
 static struct ble_hci_uart_cfg ble_hci_uart_cfg;
@@ -112,52 +128,20 @@ static struct ble_hci_uart_cfg ble_hci_uart_cfg;
 static int
 ble_hci_uart_acl_tx(struct os_mbuf *om)
 {
-    struct os_event *ev;
+    struct ble_hci_uart_pkt *pkt;
     os_sr_t sr;
-    int rc;
 
-    ev = os_memblock_get(&ble_hci_uart_os_evt_pool);
-    if (ev != NULL) {
-        ev->ev_type = BLE_HCI_TRANS_EVENT_ACL;
-        ev->ev_arg = om;
-        ev->ev_queued = 1;
-
-        OS_ENTER_CRITICAL(sr);
-        STAILQ_INSERT_TAIL(&ble_hci_uart_state.hci_pkts, ev, ev_next);
-        OS_EXIT_CRITICAL(sr);
-
-        hal_uart_start_tx(ble_hci_uart_cfg.uart_port);
-
-        rc = 0;
-    } else {
+    pkt = os_memblock_get(&ble_hci_uart_pkt_pool);
+    if (pkt == NULL) {
         os_mbuf_free_chain(om);
-        rc = -1;
+        return BLE_ERR_MEM_CAPACITY;
     }
 
-    return rc;
-}
-
-static int
-ble_hci_uart_cmdevt_tx(uint8_t *hci_ev, uint8_t h4_type)
-{
-    struct os_event *ev;
-    os_sr_t sr;
-    int rc;
-
-    ev = os_memblock_get(&ble_hci_uart_os_evt_pool);
-    if (!ev) {
-        rc = ble_hci_trans_free_buf(hci_ev);
-        assert(rc == OS_OK);
-
-        return -1;
-    }
-
-    ev->ev_type = h4_type;
-    ev->ev_arg = hci_ev;
-    ev->ev_queued = 1;
+    pkt->type = BLE_HCI_UART_H4_ACL;
+    pkt->data = om;
 
     OS_ENTER_CRITICAL(sr);
-    STAILQ_INSERT_TAIL(&ble_hci_uart_state.hci_pkts, ev, ev_next);
+    STAILQ_INSERT_TAIL(&ble_hci_uart_state.tx_pkts, pkt, next);
     OS_EXIT_CRITICAL(sr);
 
     hal_uart_start_tx(ble_hci_uart_cfg.uart_port);
@@ -166,85 +150,115 @@ ble_hci_uart_cmdevt_tx(uint8_t *hci_ev, uint8_t h4_type)
 }
 
 static int
+ble_hci_uart_cmdevt_tx(uint8_t *hci_ev, uint8_t h4_type)
+{
+    struct ble_hci_uart_pkt *pkt;
+    os_sr_t sr;
+
+    pkt = os_memblock_get(&ble_hci_uart_pkt_pool);
+    if (pkt == NULL) {
+        ble_hci_trans_free_buf(hci_ev);
+        return BLE_ERR_MEM_CAPACITY;
+    }
+
+    pkt->type = h4_type;
+    pkt->data = hci_ev;
+
+    OS_ENTER_CRITICAL(sr);
+    STAILQ_INSERT_TAIL(&ble_hci_uart_state.tx_pkts, pkt, next);
+    OS_EXIT_CRITICAL(sr);
+
+    hal_uart_start_tx(ble_hci_uart_cfg.uart_port);
+
+    return 0;
+}
+
+/**
+ * @return                      The packet type to transmit on success;
+ *                              -1 if there is nothing to send.
+ */
+static int
 ble_hci_uart_tx_pkt_type(void)
 {
-    struct os_event *ev;
+    struct ble_hci_uart_pkt *pkt;
     os_sr_t sr;
     int rc;
 
     OS_ENTER_CRITICAL(sr);
 
-    ev = STAILQ_FIRST(&ble_hci_uart_state.hci_pkts);
-    if (!ev) {
+    pkt = STAILQ_FIRST(&ble_hci_uart_state.tx_pkts);
+    if (!pkt) {
         OS_EXIT_CRITICAL(sr);
         return -1;
     }
 
-    STAILQ_REMOVE(&ble_hci_uart_state.hci_pkts, ev, os_event, ev_next);
-    ev->ev_queued = 0;
+    STAILQ_REMOVE(&ble_hci_uart_state.tx_pkts, pkt, ble_hci_uart_pkt, next);
 
     OS_EXIT_CRITICAL(sr);
 
-    switch (ev->ev_type) {
-    case BLE_HCI_TRANS_EVENT_CMD:
-        ble_hci_uart_state.hci_type = H4_CMD;
-        ble_hci_uart_state.hci_cmd.data = ev->ev_arg;
-        ble_hci_uart_state.hci_cmd.cur = 0;
-        ble_hci_uart_state.hci_cmd.len = ble_hci_uart_state.hci_cmd.data[2] +
-                                         HCI_CMD_HDR_LEN;
-        rc = H4_CMD;
+    rc = pkt->type;
+    switch (pkt->type) {
+    case BLE_HCI_UART_H4_CMD:
+        ble_hci_uart_state.tx_type = BLE_HCI_UART_H4_CMD;
+        ble_hci_uart_state.tx_cmd.data = pkt->data;
+        ble_hci_uart_state.tx_cmd.cur = 0;
+        ble_hci_uart_state.tx_cmd.len = ble_hci_uart_state.tx_cmd.data[2] +
+                                        BLE_HCI_CMD_HDR_LEN;
         break;
 
-    case BLE_HCI_TRANS_EVENT_EVT:
-        ble_hci_uart_state.hci_type = H4_EVT;
-        ble_hci_uart_state.hci_cmd.data = ev->ev_arg;
-        ble_hci_uart_state.hci_cmd.cur = 0;
-        ble_hci_uart_state.hci_cmd.len = ble_hci_uart_state.hci_cmd.data[1] +
-                                         HCI_EVT_HDR_LEN;
-        rc = H4_EVT;
+    case BLE_HCI_UART_H4_EVT:
+        ble_hci_uart_state.tx_type = BLE_HCI_UART_H4_EVT;
+        ble_hci_uart_state.tx_cmd.data = pkt->data;
+        ble_hci_uart_state.tx_cmd.cur = 0;
+        ble_hci_uart_state.tx_cmd.len = ble_hci_uart_state.tx_cmd.data[1] +
+                                        BLE_HCI_EVENT_HDR_LEN;
         break;
 
-    case BLE_HCI_TRANS_EVENT_ACL:
-        ble_hci_uart_state.hci_type = H4_ACL;
-        ble_hci_uart_state.hci_acl = ev->ev_arg;
-        rc = H4_ACL;
+    case BLE_HCI_UART_H4_ACL:
+        ble_hci_uart_state.tx_type = BLE_HCI_UART_H4_ACL;
+        ble_hci_uart_state.tx_acl = pkt->data;
         break;
+
     default:
         rc = -1;
         break;
     }
 
-    os_memblock_put(&ble_hci_uart_os_evt_pool, ev);
+    os_memblock_put(&ble_hci_uart_pkt_pool, pkt);
 
     return rc;
 }
 
+/**
+ * @return                      The byte to transmit on success;
+ *                              -1 if there is nothing to send.
+ */
 static int
 ble_hci_uart_tx_char(void *arg)
 {
     int rc = -1;
 
-    switch (ble_hci_uart_state.hci_type) {
-    case H4_NONE: /* No pending packet, pick one from the queue */
+    switch (ble_hci_uart_state.tx_type) {
+    case BLE_HCI_UART_H4_NONE: /* No pending packet, pick one from the queue */
         rc = ble_hci_uart_tx_pkt_type();
         break;
 
-    case H4_CMD:
-    case H4_EVT:
-        rc = ble_hci_uart_state.hci_cmd.data[ble_hci_uart_state.hci_cmd.cur++];
+    case BLE_HCI_UART_H4_CMD:
+    case BLE_HCI_UART_H4_EVT:
+        rc = ble_hci_uart_state.tx_cmd.data[ble_hci_uart_state.tx_cmd.cur++];
 
-        if (ble_hci_uart_state.hci_cmd.cur == ble_hci_uart_state.hci_cmd.len) {
-            ble_hci_trans_free_buf(ble_hci_uart_state.hci_cmd.data);
-            ble_hci_uart_state.hci_type = H4_NONE;
+        if (ble_hci_uart_state.tx_cmd.cur == ble_hci_uart_state.tx_cmd.len) {
+            ble_hci_trans_free_buf(ble_hci_uart_state.tx_cmd.data);
+            ble_hci_uart_state.tx_type = BLE_HCI_UART_H4_NONE;
         }
         break;
 
-    case H4_ACL:
-        rc = *OS_MBUF_DATA(ble_hci_uart_state.hci_acl, uint8_t *);
-        os_mbuf_adj(ble_hci_uart_state.hci_acl, 1);
-        if (!OS_MBUF_PKTLEN(ble_hci_uart_state.hci_acl)) {
-            os_mbuf_free_chain(ble_hci_uart_state.hci_acl);
-            ble_hci_uart_state.hci_type = H4_NONE;
+    case BLE_HCI_UART_H4_ACL:
+        rc = *OS_MBUF_DATA(ble_hci_uart_state.tx_acl, uint8_t *);
+        os_mbuf_adj(ble_hci_uart_state.tx_acl, 1);
+        if (!OS_MBUF_PKTLEN(ble_hci_uart_state.tx_acl)) {
+            os_mbuf_free_chain(ble_hci_uart_state.tx_acl);
+            ble_hci_uart_state.tx_type = BLE_HCI_UART_H4_NONE;
         }
         break;
     }
@@ -259,134 +273,138 @@ ble_hci_uart_tx_char(void *arg)
     return rc;
 }
 
+/**
+ * @return                      The type of packet to follow success;
+ *                              -1 if there is no valid packet to receive.
+ */
 static int
 ble_hci_uart_rx_pkt_type(uint8_t data)
 {
-    ble_hci_uart_state.ota_type = data;
+    ble_hci_uart_state.rx_type = data;
 
     /* XXX: For now we assert that buffer allocation succeeds.  The correct
      * thing to do is return -1 on allocation failure so that flow control is
      * engaged.  Then, we will need to tell the UART to start receiving again
-     * when we free a buffer.
+     * as follows:
+     *     o flat buf: when we free a buffer.
+     *     o mbuf: periodically? (which task executes the callout?)
      */
-    switch (ble_hci_uart_state.ota_type) {
-    case H4_CMD:
-        ble_hci_uart_state.ota_cmd.data =
+    switch (ble_hci_uart_state.rx_type) {
+    case BLE_HCI_UART_H4_CMD:
+        ble_hci_uart_state.rx_cmd.data =
             ble_hci_trans_alloc_buf(BLE_HCI_TRANS_BUF_CMD);
-        assert(ble_hci_uart_state.ota_cmd.data != NULL);
+        assert(ble_hci_uart_state.rx_cmd.data != NULL);
 
-        ble_hci_uart_state.ota_cmd.len = 0;
-        ble_hci_uart_state.ota_cmd.cur = 0;
+        ble_hci_uart_state.rx_cmd.len = 0;
+        ble_hci_uart_state.rx_cmd.cur = 0;
         break;
 
-    case H4_EVT:
-        ble_hci_uart_state.ota_cmd.data =
+    case BLE_HCI_UART_H4_EVT:
+        ble_hci_uart_state.rx_cmd.data =
             ble_hci_trans_alloc_buf(BLE_HCI_TRANS_BUF_EVT_HI);
-        assert(ble_hci_uart_state.ota_cmd.data != NULL);
+        assert(ble_hci_uart_state.rx_cmd.data != NULL);
 
-        ble_hci_uart_state.ota_cmd.len = 0;
-        ble_hci_uart_state.ota_cmd.cur = 0;
+        ble_hci_uart_state.rx_cmd.len = 0;
+        ble_hci_uart_state.rx_cmd.cur = 0;
         break;
 
-    case H4_ACL:
-        ble_hci_uart_state.ota_acl.buf =
-            os_msys_get_pkthdr(HCI_ACL_HDR_LEN, 0);
-        assert(ble_hci_uart_state.ota_acl.buf != NULL);
+    case BLE_HCI_UART_H4_ACL:
+        ble_hci_uart_state.rx_acl.buf =
+            os_msys_get_pkthdr(BLE_HCI_DATA_HDR_SZ, 0);
+        assert(ble_hci_uart_state.rx_acl.buf != NULL);
 
-        ble_hci_uart_state.ota_acl.len = 0;
+        ble_hci_uart_state.rx_acl.len = 0;
         break;
 
     default:
-        ble_hci_uart_state.ota_type = H4_NONE;
+        ble_hci_uart_state.rx_type = BLE_HCI_UART_H4_NONE;
         return -1;
     }
 
     return 0;
 }
 
-static int
+static void
 ble_hci_uart_rx_cmd(uint8_t data)
 {
     int rc;
 
-    ble_hci_uart_state.ota_cmd.data[ble_hci_uart_state.ota_cmd.cur++] = data;
+    ble_hci_uart_state.rx_cmd.data[ble_hci_uart_state.rx_cmd.cur++] = data;
 
-    if (ble_hci_uart_state.ota_cmd.cur < HCI_CMD_HDR_LEN) {
-        return 0;
-    } else if (ble_hci_uart_state.ota_cmd.cur == HCI_CMD_HDR_LEN) {
-        ble_hci_uart_state.ota_cmd.len = ble_hci_uart_state.ota_cmd.data[2] +
-                                         HCI_CMD_HDR_LEN;
+    if (ble_hci_uart_state.rx_cmd.cur < BLE_HCI_CMD_HDR_LEN) {
+        return;
     }
 
-    if (ble_hci_uart_state.ota_cmd.cur == ble_hci_uart_state.ota_cmd.len) {
+    if (ble_hci_uart_state.rx_cmd.cur == BLE_HCI_CMD_HDR_LEN) {
+        ble_hci_uart_state.rx_cmd.len = ble_hci_uart_state.rx_cmd.data[2] +
+                                         BLE_HCI_CMD_HDR_LEN;
+    }
+
+    if (ble_hci_uart_state.rx_cmd.cur == ble_hci_uart_state.rx_cmd.len) {
         assert(ble_hci_uart_rx_cmd_cb != NULL);
-        rc = ble_hci_uart_rx_cmd_cb(ble_hci_uart_state.ota_cmd.data,
+        rc = ble_hci_uart_rx_cmd_cb(ble_hci_uart_state.rx_cmd.data,
                                     ble_hci_uart_rx_cmd_arg);
         if (rc != 0) {
-            rc = ble_hci_trans_free_buf(ble_hci_uart_state.ota_cmd.data);
-            assert(rc == 0);
+            ble_hci_trans_free_buf(ble_hci_uart_state.rx_cmd.data);
         }
-        ble_hci_uart_state.ota_type = H4_NONE;
+        ble_hci_uart_state.rx_type = BLE_HCI_UART_H4_NONE;
     }
-
-    return 0;
 }
 
-static int
+static void
 ble_hci_uart_rx_evt(uint8_t data)
 {
     int rc;
 
-    ble_hci_uart_state.ota_cmd.data[ble_hci_uart_state.ota_cmd.cur++] = data;
+    ble_hci_uart_state.rx_cmd.data[ble_hci_uart_state.rx_cmd.cur++] = data;
 
-    if (ble_hci_uart_state.ota_cmd.cur < HCI_EVT_HDR_LEN) {
-        return 0;
-    } else if (ble_hci_uart_state.ota_cmd.cur == HCI_EVT_HDR_LEN) {
-        ble_hci_uart_state.ota_cmd.len = ble_hci_uart_state.ota_cmd.data[1] +
-                                         HCI_EVT_HDR_LEN;
+    if (ble_hci_uart_state.rx_cmd.cur < BLE_HCI_EVENT_HDR_LEN) {
+        return;
     }
 
-    if (ble_hci_uart_state.ota_cmd.cur == ble_hci_uart_state.ota_cmd.len) {
+    if (ble_hci_uart_state.rx_cmd.cur == BLE_HCI_EVENT_HDR_LEN) {
+        ble_hci_uart_state.rx_cmd.len = ble_hci_uart_state.rx_cmd.data[1] +
+                                        BLE_HCI_EVENT_HDR_LEN;
+    }
+
+    if (ble_hci_uart_state.rx_cmd.cur == ble_hci_uart_state.rx_cmd.len) {
         assert(ble_hci_uart_rx_cmd_cb != NULL);
-        rc = ble_hci_uart_rx_cmd_cb(ble_hci_uart_state.ota_cmd.data,
+        rc = ble_hci_uart_rx_cmd_cb(ble_hci_uart_state.rx_cmd.data,
                                     ble_hci_uart_rx_cmd_arg);
         if (rc != 0) {
-            rc = ble_hci_trans_free_buf(ble_hci_uart_state.ota_cmd.data);
-            assert(rc == 0);
+            ble_hci_trans_free_buf(ble_hci_uart_state.rx_cmd.data);
         }
-        ble_hci_uart_state.ota_type = H4_NONE;
+        ble_hci_uart_state.rx_type = BLE_HCI_UART_H4_NONE;
     }
-
-    return 0;
 }
 
-static int
+static void
 ble_hci_uart_rx_acl(uint8_t data)
 {
     uint16_t pktlen;
 
-    os_mbuf_append(ble_hci_uart_state.ota_acl.buf, &data, 1);
+    os_mbuf_append(ble_hci_uart_state.rx_acl.buf, &data, 1);
 
-    pktlen = OS_MBUF_PKTLEN(ble_hci_uart_state.ota_acl.buf);
+    pktlen = OS_MBUF_PKTLEN(ble_hci_uart_state.rx_acl.buf);
 
-    if (pktlen < HCI_ACL_HDR_LEN) {
-        return 0;
-    } else if (pktlen == HCI_ACL_HDR_LEN) {
-        os_mbuf_copydata(ble_hci_uart_state.ota_acl.buf, 2,
-                         sizeof(ble_hci_uart_state.ota_acl.len),
-                         &ble_hci_uart_state.ota_acl.len);
-        ble_hci_uart_state.ota_acl.len =
-            le16toh(&ble_hci_uart_state.ota_acl.len) + HCI_ACL_HDR_LEN;
+    if (pktlen < BLE_HCI_DATA_HDR_SZ) {
+        return;
     }
 
-    if (pktlen == ble_hci_uart_state.ota_acl.len) {
+    if (pktlen == BLE_HCI_DATA_HDR_SZ) {
+        os_mbuf_copydata(ble_hci_uart_state.rx_acl.buf, 2,
+                         sizeof(ble_hci_uart_state.rx_acl.len),
+                         &ble_hci_uart_state.rx_acl.len);
+        ble_hci_uart_state.rx_acl.len =
+            le16toh(&ble_hci_uart_state.rx_acl.len) + BLE_HCI_DATA_HDR_SZ;
+    }
+
+    if (pktlen == ble_hci_uart_state.rx_acl.len) {
         assert(ble_hci_uart_rx_cmd_cb != NULL);
-        ble_hci_uart_rx_acl_cb(ble_hci_uart_state.ota_acl.buf,
+        ble_hci_uart_rx_acl_cb(ble_hci_uart_state.rx_acl.buf,
                                ble_hci_uart_rx_acl_arg);
-        ble_hci_uart_state.ota_type = H4_NONE;
+        ble_hci_uart_state.rx_type = BLE_HCI_UART_H4_NONE;
     }
-
-    return 0;
 }
 
 static int
@@ -397,15 +415,18 @@ ble_hci_uart_rx_char(void *arg, uint8_t data)
         ble_hci_uart_rx_log_sz = 0;
     }
 
-    switch (ble_hci_uart_state.ota_type) {
-    case H4_NONE:
+    switch (ble_hci_uart_state.rx_type) {
+    case BLE_HCI_UART_H4_NONE:
         return ble_hci_uart_rx_pkt_type(data);
-    case H4_CMD:
-        return ble_hci_uart_rx_cmd(data);
-    case H4_EVT:
-        return ble_hci_uart_rx_evt(data);
-    case H4_ACL:
-        return ble_hci_uart_rx_acl(data);
+    case BLE_HCI_UART_H4_CMD:
+        ble_hci_uart_rx_cmd(data);
+        return 0;
+    case BLE_HCI_UART_H4_EVT:
+        ble_hci_uart_rx_evt(data);
+        return 0;
+    case BLE_HCI_UART_H4_ACL:
+        ble_hci_uart_rx_acl(data);
+        return 0;
     default:
         return -1;
     }
@@ -424,20 +445,18 @@ ble_hci_uart_set_rx_cbs(ble_hci_trans_rx_cmd_fn *cmd_cb,
 }
 
 static void
-ble_hci_uart_free_pkt(uint8_t type, struct memblock *cmd, struct os_mbuf *acl)
+ble_hci_uart_free_pkt(uint8_t type, uint8_t *cmdevt, struct os_mbuf *acl)
 {
     switch (type) {
-    case H4_NONE:
+    case BLE_HCI_UART_H4_NONE:
         break;
 
-    case H4_CMD:
-    case H4_EVT:
-        if (cmd != NULL) {
-            ble_hci_trans_free_buf(cmd->data);
-        }
+    case BLE_HCI_UART_H4_CMD:
+    case BLE_HCI_UART_H4_EVT:
+        ble_hci_trans_free_buf(cmdevt);
         break;
 
-    case H4_ACL:
+    case BLE_HCI_UART_H4_ACL:
         os_mbuf_free_chain(acl);
         break;
 
@@ -453,8 +472,8 @@ ble_hci_uart_free_mem(void)
     free(ble_hci_uart_evt_buf);
     ble_hci_uart_evt_buf = NULL;
 
-    free(ble_hci_uart_os_evt_buf);
-    ble_hci_uart_os_evt_buf = NULL;
+    free(ble_hci_uart_pkt_buf);
+    ble_hci_uart_pkt_buf = NULL;
 }
 
 static int
@@ -466,7 +485,7 @@ ble_hci_uart_config(void)
                            ble_hci_uart_tx_char, NULL,
                            ble_hci_uart_rx_char, NULL);
     if (rc != 0) {
-        return ENXIO;
+        return BLE_ERR_UNSPECIFIED;
     }
 
     rc = hal_uart_config(ble_hci_uart_cfg.uart_port,
@@ -476,21 +495,38 @@ ble_hci_uart_config(void)
                          ble_hci_uart_cfg.parity,
                          ble_hci_uart_cfg.flow_ctrl);
     if (rc != 0) {
-        return ENXIO;
+        return BLE_ERR_HW_FAIL;
     }
 
     return 0;
 }
 
+/**
+ * Sends an HCI event from the controller to the host.
+ *
+ * @param cmd                   The HCI event to send.  This buffer must be
+ *                                  allocated via ble_hci_trans_alloc_buf().
+ *
+ * @return                      0 on success;
+ *                              A BLE_ERR_[...] error code on failure.
+ */
 int
-ble_hci_trans_hs_acl_send(struct os_mbuf *om)
+ble_hci_trans_ll_evt_send(uint8_t *cmd)
 {
     int rc;
 
-    rc = ble_hci_uart_acl_tx(om);
+    rc = ble_hci_uart_cmdevt_tx(cmd, BLE_HCI_UART_H4_EVT);
     return rc;
 }
 
+/**
+ * Sends ACL data from controller to host.
+ *
+ * @param om                    The ACL data packet to send.
+ *
+ * @return                      0 on success;
+ *                              A BLE_ERR_[...] error code on failure.
+ */
 int
 ble_hci_trans_ll_acl_send(struct os_mbuf *om)
 {
@@ -500,24 +536,55 @@ ble_hci_trans_ll_acl_send(struct os_mbuf *om)
     return rc;
 }
 
+/**
+ * Sends an HCI command from the host to the controller.
+ *
+ * @param cmd                   The HCI command to send.  This buffer must be
+ *                                  allocated via ble_hci_trans_alloc_buf().
+ *
+ * @return                      0 on success;
+ *                              A BLE_ERR_[...] error code on failure.
+ */
 int
 ble_hci_trans_hs_cmd_send(uint8_t *cmd)
 {
     int rc;
 
-    rc = ble_hci_uart_cmdevt_tx(cmd, BLE_HCI_TRANS_EVENT_CMD);
+    rc = ble_hci_uart_cmdevt_tx(cmd, BLE_HCI_UART_H4_CMD);
     return rc;
 }
 
+/**
+ * Sends ACL data from host to controller.
+ *
+ * @param om                    The ACL data packet to send.
+ *
+ * @return                      0 on success;
+ *                              A BLE_ERR_[...] error code on failure.
+ */
 int
-ble_hci_trans_ll_evt_send(uint8_t *cmd)
+ble_hci_trans_hs_acl_send(struct os_mbuf *om)
 {
     int rc;
 
-    rc = ble_hci_uart_cmdevt_tx(cmd, BLE_HCI_TRANS_EVENT_EVT);
+    rc = ble_hci_uart_acl_tx(om);
     return rc;
 }
 
+/**
+ * Configures the HCI transport to call the specified callback upon receiving
+ * HCI packets from the controller.  This function should only be called by by
+ * host.
+ *
+ * @param cmd_cb                The callback to execute upon receiving an HCI
+ *                                  event.
+ * @param cmd_arg               Optional argument to pass to the command
+ *                                  callback.
+ * @param acl_cb                The callback to execute upon receiving ACL
+ *                                  data.
+ * @param acl_arg               Optional argument to pass to the ACL
+ *                                  callback.
+ */
 void
 ble_hci_trans_set_rx_cbs_hs(ble_hci_trans_rx_cmd_fn *cmd_cb,
                             void *cmd_arg,
@@ -527,6 +594,20 @@ ble_hci_trans_set_rx_cbs_hs(ble_hci_trans_rx_cmd_fn *cmd_cb,
     ble_hci_uart_set_rx_cbs(cmd_cb, cmd_arg, acl_cb, acl_arg);
 }
 
+/**
+ * Configures the HCI transport to call the specified callback upon receiving
+ * HCI packets from the host.  This function should only be called by by
+ * controller.
+ *
+ * @param cmd_cb                The callback to execute upon receiving an HCI
+ *                                  command.
+ * @param cmd_arg               Optional argument to pass to the command
+ *                                  callback.
+ * @param acl_cb                The callback to execute upon receiving ACL
+ *                                  data.
+ * @param acl_arg               Optional argument to pass to the ACL
+ *                                  callback.
+ */
 void
 ble_hci_trans_set_rx_cbs_ll(ble_hci_trans_rx_cmd_fn *cmd_cb,
                             void *cmd_arg,
@@ -536,6 +617,15 @@ ble_hci_trans_set_rx_cbs_ll(ble_hci_trans_rx_cmd_fn *cmd_cb,
     ble_hci_uart_set_rx_cbs(cmd_cb, cmd_arg, acl_cb, acl_arg);
 }
 
+/**
+ * Allocates a flat buffer of the specified type.
+ *
+ * @param type                  The type of buffer to allocate; one of the
+ *                                  BLE_HCI_TRANS_BUF_[...] constants.
+ *
+ * @return                      The allocated buffer on success;
+ *                              NULL on buffer exhaustion.
+ */
 uint8_t *
 ble_hci_trans_alloc_buf(int type)
 {
@@ -556,42 +646,58 @@ ble_hci_trans_alloc_buf(int type)
     return buf;
 }
 
-int
+/**
+ * Frees the specified flat buffer.  The buffer must have been allocated via
+ * ble_hci_trans_alloc_buf().
+ *
+ * @param buf                   The buffer to free.
+ */
+void
 ble_hci_trans_free_buf(uint8_t *buf)
 {
     int rc;
 
     rc = os_memblock_put(&ble_hci_uart_evt_pool, buf);
-    return rc;
+    assert(rc == 0);
 }
 
+/**
+ * Resets the HCI UART transport to a clean state.  Frees all buffers and
+ * reconfigures the UART.
+ *
+ * @return                      0 on success;
+ *                              A BLE_ERR_[...] error code on failure.
+ */
 int
 ble_hci_trans_reset(void)
 {
-    struct os_event *os_ev;
+    struct ble_hci_uart_pkt *pkt;
     int rc;
 
+    /* Close the UART to prevent race conditions as the buffers are freed. */
     rc = hal_uart_close(ble_hci_uart_cfg.uart_port);
     if (rc != 0) {
-        return ENXIO;
+        return BLE_ERR_HW_FAIL;
     }
 
-    ble_hci_uart_free_pkt(ble_hci_uart_state.ota_type,
-                          &ble_hci_uart_state.ota_cmd,
-                          ble_hci_uart_state.ota_acl.buf);
-    ble_hci_uart_state.ota_type = H4_NONE;
+    ble_hci_uart_free_pkt(ble_hci_uart_state.rx_type,
+                          ble_hci_uart_state.rx_cmd.data,
+                          ble_hci_uart_state.rx_acl.buf);
+    ble_hci_uart_state.rx_type = BLE_HCI_UART_H4_NONE;
 
-    ble_hci_uart_free_pkt(ble_hci_uart_state.hci_type,
-                          &ble_hci_uart_state.hci_cmd,
-                          ble_hci_uart_state.hci_acl);
-    ble_hci_uart_state.hci_type = H4_NONE;
+    ble_hci_uart_free_pkt(ble_hci_uart_state.tx_type,
+                          ble_hci_uart_state.tx_cmd.data,
+                          ble_hci_uart_state.tx_acl);
+    ble_hci_uart_state.tx_type = BLE_HCI_UART_H4_NONE;
 
-    while ((os_ev = STAILQ_FIRST(&ble_hci_uart_state.hci_pkts)) != NULL) {
-        STAILQ_REMOVE(&ble_hci_uart_state.hci_pkts, os_ev, os_event, ev_next);
-        ble_hci_trans_free_buf(os_ev->ev_arg);
-        os_memblock_put(&ble_hci_uart_os_evt_pool, os_ev);
+    while ((pkt = STAILQ_FIRST(&ble_hci_uart_state.tx_pkts)) != NULL) {
+        STAILQ_REMOVE(&ble_hci_uart_state.tx_pkts, pkt, ble_hci_uart_pkt,
+                      next);
+        ble_hci_uart_free_pkt(pkt->type, pkt->data, pkt->data);
+        os_memblock_put(&ble_hci_uart_pkt_pool, pkt);
     }
 
+    /* Reopen the UART. */
     rc = ble_hci_uart_config();
     if (rc != 0) {
         return rc;
@@ -600,6 +706,15 @@ ble_hci_trans_reset(void)
     return 0;
 }
 
+/**
+ * Initializes the UART HCI transport module.
+ *
+ * @param cfg                   The settings to initialize the HCI UART
+ *                                  transport with.
+ *
+ * @return                      0 on success;
+ *                              A BLE_ERR_[...] error code on failure.
+ */
 int
 ble_hci_uart_init(const struct ble_hci_uart_cfg *cfg)
 {
@@ -613,43 +728,45 @@ ble_hci_uart_init(const struct ble_hci_uart_cfg *cfg)
         OS_MEMPOOL_BYTES(ble_hci_uart_cfg.num_evt_bufs,
                          ble_hci_uart_cfg.evt_buf_sz));
     if (ble_hci_uart_evt_buf == NULL) {
-        rc = ENOMEM;
+        rc = BLE_ERR_MEM_CAPACITY;
         goto err;
     }
 
-    /* Create memory pool of command buffers */
+    /* Create memory pool of HCI command / event buffers */
     rc = os_mempool_init(&ble_hci_uart_evt_pool, ble_hci_uart_cfg.num_evt_bufs,
                          ble_hci_uart_cfg.evt_buf_sz, ble_hci_uart_evt_buf,
                          "ble_hci_uart_evt_pool");
     if (rc != 0) {
-        return EINVAL;
-    }
-
-    ble_hci_uart_os_evt_buf = malloc(
-        OS_MEMPOOL_BYTES(ble_hci_uart_cfg.num_evt_bufs,
-        sizeof (struct os_event)));
-    if (ble_hci_uart_os_evt_buf == NULL) {
-        rc = ENOMEM;
+        rc = BLE_ERR_UNSPECIFIED;
         goto err;
     }
 
-    /* Create memory pool of command buffers */
-    rc = os_mempool_init(&ble_hci_uart_os_evt_pool,
+    ble_hci_uart_pkt_buf = malloc(
+        OS_MEMPOOL_BYTES(ble_hci_uart_cfg.num_evt_bufs,
+        sizeof (struct os_event)));
+    if (ble_hci_uart_pkt_buf == NULL) {
+        rc = BLE_ERR_MEM_CAPACITY;
+        goto err;
+    }
+
+    /* Create memory pool of packet list nodes. */
+    rc = os_mempool_init(&ble_hci_uart_pkt_pool,
                          ble_hci_uart_cfg.num_evt_bufs,
-                         sizeof (struct os_event),
-                         ble_hci_uart_os_evt_buf,
-                         "ble_hci_uart_os_evt_pool");
+                         sizeof (struct ble_hci_uart_pkt),
+                         ble_hci_uart_pkt_buf,
+                         "ble_hci_uart_pkt_pool");
     if (rc != 0) {
-        return EINVAL;
+        rc = BLE_ERR_UNSPECIFIED;
+        goto err;
     }
 
     rc = ble_hci_uart_config();
     if (rc != 0) {
-        return rc;
+        goto err;
     }
 
-    memset(&ble_hci_uart_state, 0, sizeof(ble_hci_uart_state));
-    STAILQ_INIT(&ble_hci_uart_state.hci_pkts);
+    memset(&ble_hci_uart_state, 0, sizeof ble_hci_uart_state);
+    STAILQ_INIT(&ble_hci_uart_state.tx_pkts);
 
     return 0;
 
