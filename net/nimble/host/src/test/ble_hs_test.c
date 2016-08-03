@@ -23,9 +23,6 @@
 #include "testutil/testutil.h"
 #include "ble_hs_test_util.h"
 
-/* Our global device address. */
-uint8_t g_dev_addr[BLE_DEV_ADDR_LEN] = { 0x0a, 0x54, 0xab, 0x49, 0x7f, 0x06 };
-
 #ifdef MYNEWT_SELFTEST
 
 int

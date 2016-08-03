@@ -604,7 +604,7 @@ host_hci_evt_process(uint8_t *data)
 
     entry = host_hci_dispatch_entry_find(event_code);
     if (entry == NULL) {
-        STATS_INC(ble_hs_stats, hci_invalid_ack);
+        STATS_INC(ble_hs_stats, hci_unknown_event);
         rc = BLE_HS_ENOTSUP;
     } else {
         rc = entry->hed_fn(event_code, data, event_len);

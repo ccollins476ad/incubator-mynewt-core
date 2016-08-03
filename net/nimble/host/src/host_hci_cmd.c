@@ -98,6 +98,10 @@ host_hci_cmd_send_buf(void *buf)
     uint8_t len;
     int rc;
 
+    if (!ble_hs_synced()) {
+        return BLE_HS_ENOTSYNCED;
+    }
+
     u8ptr = buf;
 
     opcode = le16toh(u8ptr + 0);

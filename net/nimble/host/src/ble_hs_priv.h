@@ -60,6 +60,9 @@ STATS_SECT_START(ble_hs_stats)
     STATS_SECT_ENTRY(hci_event)
     STATS_SECT_ENTRY(hci_invalid_ack)
     STATS_SECT_ENTRY(hci_unknown_event)
+    STATS_SECT_ENTRY(hci_timeout)
+    STATS_SECT_ENTRY(reset)
+    STATS_SECT_ENTRY(sync)
 STATS_SECT_END
 extern STATS_SECT_DECL(ble_hs_stats) ble_hs_stats;
 

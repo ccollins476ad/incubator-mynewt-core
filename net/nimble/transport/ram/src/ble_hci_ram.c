@@ -115,7 +115,7 @@ ble_hci_trans_buf_alloc(int type)
     return buf;
 }
 
-int
+void
 ble_hci_trans_buf_free(uint8_t *buf)
 {
     int rc;
@@ -123,12 +123,10 @@ ble_hci_trans_buf_free(uint8_t *buf)
     if (buf == ble_hci_ram_hs_cmd_buf) {
         assert(ble_hci_ram_hs_cmd_buf_alloced);
         ble_hci_ram_hs_cmd_buf_alloced = 0;
-        rc = 0;
     } else {
         rc = os_memblock_put(&ble_hci_ram_evt_pool, buf);
+        assert(rc == 0);
     }
-
-    return rc;
 }
 
 static void
@@ -140,6 +138,12 @@ ble_hci_ram_free_mem(void)
     free(ble_hci_ram_hs_cmd_buf);
     ble_hci_ram_hs_cmd_buf = NULL;
     ble_hci_ram_hs_cmd_buf_alloced = 0;
+}
+
+int
+ble_hci_trans_reset(void)
+{
+    return 0;
 }
 
 int

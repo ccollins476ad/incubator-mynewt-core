@@ -62,6 +62,7 @@ struct os_event;
 #define BLE_HS_ETIMEOUT_HCI         19
 #define BLE_HS_ENOMEM_EVT           20
 #define BLE_HS_ENOADDR              21
+#define BLE_HS_ENOTSYNCED           22
 
 #define BLE_HS_ERR_ATT_BASE         0x100   /* 256 */
 #define BLE_HS_ATT_ERR(x)           ((x) ? BLE_HS_ERR_ATT_BASE + (x) : 0)
@@ -106,6 +107,10 @@ struct ble_hs_cfg {
      * it is what wakes up the host-parent-task and indicates that an HCI event
      * needs to be processsed.  The pool of OS events is allocated with the
      * same number of elements as the HCI buffer pool.
+     */
+    /* XXX: This should either be renamed to indicate it is only used for OS
+     * events, or it should go away entirely (copy the number from the
+     * transport's config).
      */
     uint8_t max_hci_bufs;
 
@@ -245,6 +250,7 @@ struct ble_hs_cfg {
 
 extern const struct ble_hs_cfg ble_hs_cfg_dflt;
 
+int ble_hs_synced(void);
 int ble_hs_start(void);
 int ble_hs_init(struct os_eventq *app_evq, struct ble_hs_cfg *cfg);
 

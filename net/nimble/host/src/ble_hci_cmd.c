@@ -72,7 +72,6 @@ ble_hci_cmd_rx_cmd_complete(uint8_t event_code, uint8_t *data, int len,
     uint8_t num_pkts;
 
     if (len < BLE_HCI_EVENT_CMD_COMPLETE_HDR_LEN) {
-        /* XXX: Increment stat. */
         return BLE_HS_ECONTROLLER;
     }
 
@@ -115,7 +114,6 @@ ble_hci_cmd_rx_cmd_status(uint8_t event_code, uint8_t *data, int len,
     uint8_t status;
 
     if (len < BLE_HCI_EVENT_CMD_STATUS_LEN) {
-        /* XXX: Increment stat. */
         return BLE_HS_ECONTROLLER;
     }
 
@@ -193,6 +191,10 @@ ble_hci_cmd_process_ack(uint16_t expected_opcode,
         }
     }
 
+    if (rc != 0) {
+        STATS_INC(ble_hs_stats, hci_invalid_ack);
+    }
+
     return rc;
 }
 
@@ -218,6 +220,7 @@ ble_hci_cmd_wait_for_ack(void)
         break;
     case OS_TIMEOUT:
         rc = BLE_HS_ETIMEOUT_HCI;
+        STATS_INC(ble_hs_stats, hci_timeout);
         break;
     default:
         rc = BLE_HS_EOS;

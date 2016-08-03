@@ -40,10 +40,7 @@
 #include "host/ble_gatt.h"
 #include "host/ble_l2cap.h"
 #include "host/ble_sm.h"
-#include "controller/ble_ll.h"
-/* Newtmgr include */
-#include "newtmgr/newtmgr.h"
-#include "nmgrble/newtmgr_ble.h"
+//#include "controller/ble_ll.h"
 
 /* RAM persistence layer. */
 #include "store/ram/ble_store_ram.h"
@@ -51,6 +48,13 @@
 /* Mandatory services. */
 #include "services/mandatory/ble_svc_gap.h"
 #include "services/mandatory/ble_svc_gatt.h"
+
+/* HCI transport. */
+#include "transport/uart/ble_hci_uart.h"
+
+/* Newtmgr include */
+#include "newtmgr/newtmgr.h"
+#include "nmgrble/newtmgr_ble.h"
 
 /* Application-specified header. */
 #include "bleprph.h"
@@ -66,7 +70,7 @@ struct os_mbuf_pool bleprph_mbuf_pool;
 struct os_mempool bleprph_mbuf_mpool;
 
 /** Log data. */
-static struct log_handler bleprph_log_console_handler;
+//static struct log_handler bleprph_log_console_handler;
 struct log bleprph_log;
 
 /** Priority of the nimble host and controller tasks. */
@@ -267,6 +271,18 @@ bleprph_gap_event(struct ble_gap_event *event, void *arg)
     return 0;
 }
 
+static void
+bleprph_on_reset(int reason)
+{
+}
+
+static void
+bleprph_on_sync(void)
+{
+    /* Begin advertising. */
+    bleprph_advertise();
+}
+
 /**
  * Event loop for the main bleprph task.
  */
@@ -281,10 +297,6 @@ bleprph_task_handler(void *unused)
      * controller.
      */
     rc = ble_hs_start();
-    assert(rc == 0);
-
-    /* Begin advertising. */
-    bleprph_advertise();
 
     while (1) {
         ev = os_eventq_get(&bleprph_evq);
@@ -320,10 +332,11 @@ bleprph_task_handler(void *unused)
 int
 main(void)
 {
+    struct ble_hci_uart_cfg hci_cfg;
     struct ble_hs_cfg cfg;
-    uint32_t seed;
+    //uint32_t seed;
     int rc;
-    int i;
+    //int i;
 
     /* Initialize OS */
     os_init();
@@ -332,6 +345,7 @@ main(void)
     rc = cputime_init(1000000);
     assert(rc == 0);
 
+#if 0
     /* Seed random number generator with least significant bytes of device
      * address.
      */
@@ -341,6 +355,7 @@ main(void)
         seed <<= 8;
     }
     srand(seed);
+#endif
 
     /* Initialize msys mbufs. */
     rc = os_mempool_init(&bleprph_mbuf_mpool, MBUF_NUM_MBUFS,
@@ -356,13 +371,13 @@ main(void)
     assert(rc == 0);
 
     /* Initialize the console (for log output). */
-    rc = console_init(NULL);
-    assert(rc == 0);
+    //rc = console_init(NULL);
+    //assert(rc == 0);
 
     /* Initialize the logging system. */
     log_init();
-    log_console_handler_init(&bleprph_log_console_handler);
-    log_register("bleprph", &bleprph_log, &bleprph_log_console_handler);
+    //log_console_handler_init(&bleprph_log_console_handler);
+    //log_register("bleprph", &bleprph_log, &bleprph_log_console_handler);
 
     /* Initialize eventq */
     os_eventq_init(&bleprph_evq);
@@ -375,8 +390,8 @@ main(void)
                  bleprph_stack, BLEPRPH_STACK_SIZE);
 
     /* Initialize the BLE LL */
-    rc = ble_ll_init(BLE_LL_TASK_PRI, MBUF_NUM_MBUFS, BLE_MBUF_PAYLOAD_SIZE);
-    assert(rc == 0);
+    //rc = ble_ll_init(BLE_LL_TASK_PRI, MBUF_NUM_MBUFS, BLE_MBUF_PAYLOAD_SIZE);
+    //assert(rc == 0);
 
     /* Initialize the NimBLE host configuration. */
     cfg = ble_hs_cfg_dflt;
@@ -384,6 +399,8 @@ main(void)
     cfg.sm_bonding = 1;
     cfg.sm_our_key_dist = BLE_SM_PAIR_KEY_DIST_ENC;
     cfg.sm_their_key_dist = BLE_SM_PAIR_KEY_DIST_ENC;
+    cfg.reset_cb = bleprph_on_reset;
+    cfg.sync_cb = bleprph_on_sync;
     cfg.store_read_cb = ble_store_ram_read;
     cfg.store_write_cb = ble_store_ram_write;
     cfg.gatts_register_cb = gatt_svr_register_cb;
@@ -405,8 +422,12 @@ main(void)
     rc = ble_hs_init(&bleprph_evq, &cfg);
     assert(rc == 0);
 
-    rc = ble_hci_ram_init(cfg.max_hci_bufs, 260);
+    hci_cfg = ble_hci_uart_cfg_dflt;
+    rc = ble_hci_uart_init(&hci_cfg);
     assert(rc == 0);
+
+    //rc = ble_hci_ram_init(cfg.max_hci_bufs, 260);
+    //assert(rc == 0);
 
     nmgr_task_init(NEWTMGR_TASK_PRIO, newtmgr_stack, NEWTMGR_TASK_STACK_SIZE);
     imgmgr_module_init();

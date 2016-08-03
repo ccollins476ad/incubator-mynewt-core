@@ -30,6 +30,14 @@
 #include "transport/ram/ble_hci_ram.h"
 #include "ble_hs_test_util.h"
 
+/* Our global device address. */
+uint8_t g_dev_addr[BLE_DEV_ADDR_LEN];
+
+#define BLE_HS_TEST_UTIL_PUB_ADDR_VAL { 0x0a, 0x54, 0xab, 0x49, 0x7f, 0x06 }
+
+static const uint8_t ble_hs_test_util_pub_addr[BLE_DEV_ADDR_LEN] =
+    BLE_HS_TEST_UTIL_PUB_ADDR_VAL;
+
 /** Use lots of small mbufs to ensure correct mbuf usage. */
 #define BLE_HS_TEST_UTIL_NUM_MBUFS      (100)
 #define BLE_HS_TEST_UTIL_BUF_SIZE       OS_ALIGN(100, 4)
@@ -918,6 +926,12 @@ ble_hs_test_util_set_startup_acks(void)
             .evt_params_len = 8,
         },
         {
+            .opcode = host_hci_opcode_join(BLE_HCI_OGF_INFO_PARAMS,
+                                           BLE_HCI_OCF_IP_RD_BD_ADDR),
+            .evt_params = BLE_HS_TEST_UTIL_PUB_ADDR_VAL,
+            .evt_params_len = 6,
+        },
+        {
             .opcode = host_hci_opcode_join(BLE_HCI_OGF_LE,
                                            BLE_HCI_OCF_LE_SET_ADDR_RES_EN),
         },
@@ -1340,10 +1354,6 @@ ble_hs_test_util_init(void)
 
     ble_hci_set_phony_ack_cb(NULL);
 
-    ble_hs_test_util_prev_hci_tx_clear();
-
-    ble_hs_id_set_pub(g_dev_addr);
-
     /* Use a very low buffer size (16) to test fragmentation. */
     host_hci_set_buf_size(16, 64);
 
@@ -1352,4 +1362,11 @@ ble_hs_test_util_init(void)
 
     rc = ble_hci_ram_init(cfg.max_hci_bufs, 260);
     TEST_ASSERT_FATAL(rc == 0);
+
+    ble_hs_test_util_set_startup_acks();
+
+    rc = ble_hs_start();
+    TEST_ASSERT_FATAL(rc == 0);
+
+    ble_hs_test_util_prev_hci_tx_clear();
 }
