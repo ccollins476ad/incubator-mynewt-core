@@ -689,14 +689,6 @@ ble_hs_test_util_adv_start(uint8_t own_addr_type,
 
     if (adv_params->conn_mode != BLE_GAP_CONN_MODE_DIR) {
         acks[i] = (struct ble_hs_test_util_phony_ack) {
-            BLE_HS_TEST_UTIL_LE_OPCODE(BLE_HCI_OCF_LE_RD_ADV_CHAN_TXPWR),
-            ble_hs_test_util_exp_hci_status(i, fail_idx, fail_status),
-            { 0 },
-            1,
-        };
-        i++;
-
-        acks[i] = (struct ble_hs_test_util_phony_ack) {
             BLE_HS_TEST_UTIL_LE_OPCODE(BLE_HCI_OCF_LE_SET_ADV_DATA),
             ble_hs_test_util_exp_hci_status(i, fail_idx, fail_status),
         };
@@ -783,6 +775,35 @@ ble_hs_test_util_conn_update(uint16_t conn_handle,
         BLE_HS_TEST_UTIL_LE_OPCODE(BLE_HCI_OCF_LE_CONN_UPDATE), hci_status);
 
     rc = ble_gap_update_params(conn_handle, params);
+    return rc;
+}
+
+int
+ble_hs_test_util_set_our_irk(const uint8_t *irk, int fail_idx,
+                             uint8_t hci_status)
+{
+    int rc;
+
+    ble_hs_test_util_set_ack_seq(((struct ble_hs_test_util_phony_ack[]) {
+        {
+            BLE_HS_TEST_UTIL_LE_OPCODE(BLE_HCI_OCF_LE_SET_ADDR_RES_EN),
+            ble_hs_test_util_exp_hci_status(0, fail_idx, hci_status),
+        },
+        {
+            BLE_HS_TEST_UTIL_LE_OPCODE(BLE_HCI_OCF_LE_CLR_RESOLV_LIST),
+            ble_hs_test_util_exp_hci_status(1, fail_idx, hci_status),
+        },
+        {
+            BLE_HS_TEST_UTIL_LE_OPCODE(BLE_HCI_OCF_LE_SET_ADDR_RES_EN),
+            ble_hs_test_util_exp_hci_status(2, fail_idx, hci_status),
+        },
+        {
+            BLE_HS_TEST_UTIL_LE_OPCODE(BLE_HCI_OCF_LE_ADD_RESOLV_LIST),
+            ble_hs_test_util_exp_hci_status(3, fail_idx, hci_status),
+        },
+    }));
+
+    rc = ble_hs_pvcy_set_our_irk(irk);
     return rc;
 }
 
@@ -916,7 +937,8 @@ ble_hs_test_util_set_startup_acks(void)
         {
             .opcode = host_hci_opcode_join(BLE_HCI_OGF_LE,
                                            BLE_HCI_OCF_LE_RD_BUF_SIZE),
-            .evt_params = { 0xff, 0xff, 1 },
+            /* Use a very low buffer size (16) to test fragmentation. */
+            .evt_params = { 0x10, 0x00, 0x20 },
             .evt_params_len = 3,
         },
         {
@@ -1353,9 +1375,6 @@ ble_hs_test_util_init(void)
     TEST_ASSERT_FATAL(rc == 0);
 
     ble_hci_set_phony_ack_cb(NULL);
-
-    /* Use a very low buffer size (16) to test fragmentation. */
-    host_hci_set_buf_size(16, 64);
 
     ble_hci_trans_cfg_ll(ble_hs_test_util_hci_txed, NULL,
                                 ble_hs_test_util_pkt_txed, NULL);
