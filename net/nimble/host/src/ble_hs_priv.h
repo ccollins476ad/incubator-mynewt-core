@@ -53,6 +53,10 @@ struct os_event;
 #define BLE_HS_EVENT_TX_NOTIFICATIONS   (OS_EVENT_T_PERUSER + 1)
 #define BLE_HS_EVENT_RESET              (OS_EVENT_T_PERUSER + 2)
 
+#define BLE_HS_SYNC_STATE_BAD           0
+#define BLE_HS_SYNC_STATE_BRINGUP       1
+#define BLE_HS_SYNC_STATE_GOOD          2
+
 STATS_SECT_START(ble_hs_stats)
     STATS_SECT_ENTRY(conn_create)
     STATS_SECT_ENTRY(conn_delete)
@@ -68,6 +72,7 @@ extern STATS_SECT_DECL(ble_hs_stats) ble_hs_stats;
 
 extern struct ble_hs_cfg ble_hs_cfg;
 extern struct os_mbuf_pool ble_hs_mbuf_pool;
+extern uint8_t ble_hs_sync_state;
 
 extern const uint8_t ble_hs_misc_null_addr[6];
 

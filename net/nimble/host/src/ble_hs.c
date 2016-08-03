@@ -50,7 +50,7 @@ static struct os_event ble_hs_event_reset = {
     .ev_arg = NULL,
 };
 
-static uint8_t ble_hs_sync_state;
+uint8_t ble_hs_sync_state;
 static int ble_hs_reset_reason;
 
 #if MYNEWT_SELFTEST
@@ -224,7 +224,7 @@ ble_hs_heartbeat_sched(int32_t ticks_from_now)
 int
 ble_hs_synced(void)
 {
-    return ble_hs_sync_state;
+    return ble_hs_sync_state == BLE_HS_SYNC_STATE_GOOD;
 }
 
 static int
@@ -232,18 +232,20 @@ ble_hs_sync(void)
 {
     int rc;
 
-    /* Tentatively set the sync state to 1 to allow the startup sequence to go
-     * through.
+    /* Set the sync state to "bringup."  This allows the parent task to send
+     * the startup sequence to the controller.  No other tasks are allowed to
+     * send any commands.
      */
-    ble_hs_sync_state = 1;
+    ble_hs_sync_state = BLE_HS_SYNC_STATE_BRINGUP;
 
     rc = ble_hs_startup_go();
     if (rc == 0) {
+        ble_hs_sync_state = BLE_HS_SYNC_STATE_GOOD;
         if (ble_hs_cfg.sync_cb != NULL) {
             ble_hs_cfg.sync_cb();
         }
     } else {
-        ble_hs_sync_state = 0;
+        ble_hs_sync_state = BLE_HS_SYNC_STATE_BAD;
     }
 
     ble_hs_heartbeat_sched(BLE_HS_SYNC_RETRY_RATE);

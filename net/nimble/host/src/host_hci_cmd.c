@@ -98,8 +98,22 @@ host_hci_cmd_send_buf(void *buf)
     uint8_t len;
     int rc;
 
-    if (!ble_hs_synced()) {
+    switch (ble_hs_sync_state) {
+    case BLE_HS_SYNC_STATE_BAD:
         return BLE_HS_ENOTSYNCED;
+
+    case BLE_HS_SYNC_STATE_BRINGUP:
+        if (!ble_hs_is_parent_task()) {
+            return BLE_HS_ENOTSYNCED;
+        }
+        break;
+
+    case BLE_HS_SYNC_STATE_GOOD:
+        break;
+
+    default:
+        BLE_HS_DBG_ASSERT(0);
+        return BLE_HS_EUNKNOWN;
     }
 
     u8ptr = buf;
