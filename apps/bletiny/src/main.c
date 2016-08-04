@@ -1552,6 +1552,12 @@ bletiny_rssi(uint16_t conn_handle, int8_t *out_rssi)
     return 0;
 }
 
+static void
+bletiny_on_reset(int reason)
+{
+    console_PRIntf("Error: Resetting state; reason=%d\n", reason);
+}
+
 /**
  * BLE test task
  *
@@ -1594,6 +1600,7 @@ bletiny_task_handler(void *arg)
 int
 main(void)
 {
+    struct ble_hci_ram_cfg hci_cfg;
     struct ble_hs_cfg cfg;
     uint32_t seed;
     int rc;
@@ -1688,10 +1695,17 @@ main(void)
     rc = ble_ll_init(BLE_LL_TASK_PRI, MBUF_NUM_MBUFS, BLE_MBUF_PAYLOAD_SIZE);
     assert(rc == 0);
 
+    /* Initialize the RAM HCI transport. */
+    hci_cfg = ble_hci_ram_cfg_dflt;
+    hci_cfg.num_evt_bufs = 3;
+    rc = ble_hci_ram_init(&hci_cfg);
+    assert(rc == 0);
+
     /* Initialize the NimBLE host configuration. */
     cfg = ble_hs_cfg_dflt;
-    cfg.max_hci_bufs = 3;
+    cfg.max_hci_bufs = hci_cfg.num_evt_bufs;
     cfg.max_gattc_procs = 2;
+    cfg.reset_cb = bletiny_on_reset;
     cfg.store_read_cb = ble_store_ram_read;
     cfg.store_write_cb = ble_store_ram_write;
     cfg.gatts_register_cb = gatt_svr_register_cb;
@@ -1708,9 +1722,6 @@ main(void)
 
     /* Initialize NimBLE host. */
     rc = ble_hs_init(&bletiny_evq, &cfg);
-    assert(rc == 0);
-
-    rc = ble_hci_ram_init(cfg.max_hci_bufs, 260);
     assert(rc == 0);
 
     rc = cmd_init();
