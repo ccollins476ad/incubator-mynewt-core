@@ -302,7 +302,6 @@ main(void)
     cfg.sm_bonding = 1;
     cfg.sm_our_key_dist = BLE_SM_PAIR_KEY_DIST_ENC;
     cfg.sm_their_key_dist = BLE_SM_PAIR_KEY_DIST_ENC;
-    cfg.reset_cb = bleuart_on_reset;
     cfg.sync_cb = bleuart_on_sync;
     cfg.store_read_cb = ble_store_ram_read;
     cfg.store_write_cb = ble_store_ram_write;
