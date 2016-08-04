@@ -21,6 +21,7 @@
 #define H_BLE_HS_
 
 #include <inttypes.h>
+#include "nimble/hci_common.h"
 #include "host/ble_att.h"
 #include "host/ble_gap.h"
 #include "host/ble_gatt.h"

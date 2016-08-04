@@ -3,6 +3,13 @@
 #include <stddef.h>
 #include "os/os.h"
 #include "nimble/ble_hci_trans.h"
+#include "transport/ram/ble_hci_ram.h"
+
+/** Default configuration. */
+const struct ble_hci_ram_cfg ble_hci_ram_cfg_dflt = {
+    .num_evt_bufs = 3,
+    .evt_buf_sz = BLE_HCI_TRANS_CMD_SZ,
+};
 
 static ble_hci_trans_rx_cmd_fn *ble_hci_ram_rx_cmd_hs_cb;
 static void *ble_hci_ram_rx_cmd_hs_arg;
@@ -147,21 +154,22 @@ ble_hci_trans_reset(void)
 }
 
 int
-ble_hci_ram_init(int num_evt_bufs, int buf_size)
+ble_hci_ram_init(const struct ble_hci_ram_cfg *cfg)
 {
     int rc;
 
     ble_hci_ram_free_mem();
 
-    ble_hci_ram_evt_buf = malloc(OS_MEMPOOL_BYTES(num_evt_bufs, buf_size));
+    ble_hci_ram_evt_buf = malloc(OS_MEMPOOL_BYTES(cfg->num_evt_bufs,
+                                                  cfg->evt_buf_sz));
     if (ble_hci_ram_evt_buf == NULL) {
         rc = ENOMEM;
         goto err;
     }
 
     /* Create memory pool of command buffers */
-    rc = os_mempool_init(&ble_hci_ram_evt_pool, num_evt_bufs,
-                         buf_size, ble_hci_ram_evt_buf,
+    rc = os_mempool_init(&ble_hci_ram_evt_pool, cfg->num_evt_bufs,
+                         cfg->evt_buf_sz, ble_hci_ram_evt_buf,
                          "ble_hci_ram_evt_pool");
     if (rc != 0) {
         rc = EINVAL;
