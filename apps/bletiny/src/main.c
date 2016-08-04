@@ -1555,7 +1555,7 @@ bletiny_rssi(uint16_t conn_handle, int8_t *out_rssi)
 static void
 bletiny_on_reset(int reason)
 {
-    console_PRIntf("Error: Resetting state; reason=%d\n", reason);
+    console_printf("Error: Resetting state; reason=%d\n", reason);
 }
 
 /**
