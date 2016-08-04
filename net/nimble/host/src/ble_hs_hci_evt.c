@@ -47,17 +47,6 @@ static ble_hs_hci_evt_le_fn ble_hs_hci_evt_le_lt_key_req;
 static ble_hs_hci_evt_le_fn ble_hs_hci_evt_le_conn_parm_req;
 static ble_hs_hci_evt_le_fn ble_hs_hci_evt_le_dir_adv_rpt;
 
-/* Statistics */
-struct host_hci_stats
-{
-    uint32_t events_rxd;
-    uint32_t good_acks_rxd;
-    uint32_t bad_acks_rxd;
-    uint32_t unknown_events_rxd;
-};
-
-#define BLE_HS_HCI_EVT_TIMEOUT        50      /* Milliseconds. */
-
 /** Dispatch table for incoming HCI events.  Sorted by event code field. */
 struct ble_hs_hci_evt_dispatch_entry {
     uint8_t event_code;
