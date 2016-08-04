@@ -1336,6 +1336,7 @@ ble_hs_test_util_hci_txed(uint8_t *cmdbuf, void *arg)
 void
 ble_hs_test_util_init(void)
 {
+    struct ble_hci_ram_cfg hci_cfg;
     struct ble_hs_cfg cfg;
     int rc;
 
@@ -1380,7 +1381,9 @@ ble_hs_test_util_init(void)
     ble_hci_trans_cfg_ll(ble_hs_test_util_hci_txed, NULL,
                          ble_hs_test_util_pkt_txed, NULL);
 
-    rc = ble_hci_ram_init(cfg.max_hci_bufs, 260);
+    hci_cfg = ble_hci_ram_cfg_dflt;
+    hci_cfg.num_evt_bufs = cfg.max_hci_bufs;
+    rc = ble_hci_ram_init(&hci_cfg);
     TEST_ASSERT_FATAL(rc == 0);
 
     ble_hs_test_util_set_startup_acks();
