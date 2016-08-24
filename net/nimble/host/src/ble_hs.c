@@ -71,10 +71,6 @@ static struct os_callout_func ble_hs_event_co;
 /* Queue for host-specific OS events. */
 static struct os_eventq ble_hs_evq;
 
-/* Task structures for the host's parent task. */
-static struct os_eventq *ble_hs_parent_evq;
-static struct os_task *ble_hs_parent_task;
-
 static struct os_mqueue ble_hs_rx_q;
 static struct os_mqueue ble_hs_tx_q;
 
@@ -118,7 +114,8 @@ ble_hs_locked_by_cur_task(void)
 int
 ble_hs_is_parent_task(void)
 {
-    return !os_started() || os_sched_get_current_task() == ble_hs_parent_task;
+    return !os_started() ||
+           os_sched_get_current_task() == ble_hs_cfg.parent_task;
 }
 
 void
@@ -345,7 +342,7 @@ ble_hs_event_handle(void *unused)
          * task's eventq to indicate that more host events are enqueued.
          */
         if (i >= BLE_HS_MAX_EVS_IN_A_ROW) {
-            os_eventq_put(ble_hs_parent_evq, &ble_hs_event_co.cf_c.c_ev);
+            os_eventq_put(ble_hs_cfg.parent_evq, &ble_hs_event_co.cf_c.c_ev);
             break;
         }
         i++;
@@ -395,7 +392,7 @@ void
 ble_hs_event_enqueue(struct os_event *ev)
 {
     os_eventq_put(&ble_hs_evq, ev);
-    os_eventq_put(ble_hs_parent_evq, &ble_hs_event_co.cf_c.c_ev);
+    os_eventq_put(ble_hs_cfg.parent_evq, &ble_hs_event_co.cf_c.c_ev);
 }
 
 void
@@ -464,7 +461,9 @@ ble_hs_start(void)
 {
     int rc;
 
-    ble_hs_parent_task = os_sched_get_current_task();
+    if (ble_hs_cfg.parent_task == NULL || ble_hs_cfg.parent_evq == NULL) {
+        return BLE_HS_EINVAL;
+    }
 
     ble_gatts_start();
 
@@ -488,7 +487,7 @@ ble_hs_rx_data(struct os_mbuf *om, void *arg)
 
     rc = os_mqueue_put(&ble_hs_rx_q, &ble_hs_evq, om);
     if (rc == 0) {
-        os_eventq_put(ble_hs_parent_evq, &ble_hs_event_co.cf_c.c_ev);
+        os_eventq_put(ble_hs_cfg.parent_evq, &ble_hs_event_co.cf_c.c_ev);
     } else {
         os_mbuf_free_chain(om);
         rc = BLE_HS_EOS;
@@ -515,7 +514,7 @@ ble_hs_tx_data(struct os_mbuf *om)
         os_mbuf_free_chain(om);
         return BLE_HS_EOS;
     }
-    os_eventq_put(ble_hs_parent_evq, &ble_hs_event_co.cf_c.c_ev);
+    os_eventq_put(ble_hs_cfg.parent_evq, &ble_hs_event_co.cf_c.c_ev);
 
     return 0;
 }
@@ -545,19 +544,11 @@ ble_hs_free_mem(void)
  *                              Other nonzero on error.
  */
 int
-ble_hs_init(struct os_eventq *app_evq, struct ble_hs_cfg *cfg)
+ble_hs_init(void)
 {
     int rc;
 
     ble_hs_free_mem();
-
-    if (app_evq == NULL) {
-        rc = BLE_HS_EINVAL;
-        goto err;
-    }
-    ble_hs_parent_evq = app_evq;
-
-    ble_hs_cfg_init(cfg);
 
     log_init();
     log_console_handler_init(&ble_hs_log_console_handler);
@@ -634,7 +625,7 @@ ble_hs_init(struct os_eventq *app_evq, struct ble_hs_cfg *cfg)
         goto err;
     }
 
-    os_callout_func_init(&ble_hs_heartbeat_timer, ble_hs_parent_evq,
+    os_callout_func_init(&ble_hs_heartbeat_timer, ble_hs_cfg.parent_evq,
                          ble_hs_heartbeat, NULL);
     os_callout_func_init(&ble_hs_event_co, &ble_hs_evq,
                          ble_hs_event_handle, NULL);

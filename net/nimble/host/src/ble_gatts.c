@@ -1997,8 +1997,7 @@ ble_gatts_count_resources(const struct ble_gatt_svc_def *svcs,
  *                                  invalid resource definition.
  */
 int
-ble_gatts_count_cfg(const struct ble_gatt_svc_def *defs,
-                    struct ble_hs_cfg *cfg)
+ble_gatts_count_cfg(const struct ble_gatt_svc_def *defs)
 {
     struct ble_gatt_resources res = { 0 };
     int rc;
@@ -2008,11 +2007,12 @@ ble_gatts_count_cfg(const struct ble_gatt_svc_def *defs,
         return rc;
     }
 
-    cfg->max_services += res.svcs;
-    cfg->max_attrs += res.attrs;
+    ble_hs_cfg.max_services += res.svcs;
+    ble_hs_cfg.max_attrs += res.attrs;
 
     /* Reserve an extra CCCD for the cache. */
-    cfg->max_client_configs += res.cccds * (cfg->max_connections + 1);
+    ble_hs_cfg.max_client_configs += res.cccds *
+                                     (ble_hs_cfg.max_connections + 1);
 
     return 0;
 }

@@ -25,7 +25,10 @@
 #define BLE_HS_CFG_MAX_CONNECTIONS 0
 #endif
 
-const struct ble_hs_cfg ble_hs_cfg_dflt = {
+struct ble_hs_cfg ble_hs_cfg = {
+    .parent_evq = NULL,
+    .parent_task = NULL,
+
     /** HCI settings. */
     .max_hci_bufs = 3,
 
@@ -66,15 +69,3 @@ const struct ble_hs_cfg ble_hs_cfg_dflt = {
     /** Privacy settings. */
     .rpa_timeout = 300,
 };
-
-struct ble_hs_cfg ble_hs_cfg;
-
-void
-ble_hs_cfg_init(struct ble_hs_cfg *cfg)
-{
-    if (cfg == NULL) {
-        ble_hs_cfg = ble_hs_cfg_dflt;
-    } else {
-        ble_hs_cfg = *cfg;
-    }
-}

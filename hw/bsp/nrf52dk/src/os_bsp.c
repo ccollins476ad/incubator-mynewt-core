@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 #include <assert.h>
 #include <hal/flash_map.h>
 #include <hal/hal_bsp.h>
@@ -35,6 +36,44 @@
 #endif
 #include "nrf_drv_config.h"
 #include <app_util_platform.h>
+
+/* BLE */
+#include "nimble/ble.h"
+#include "controller/ble_ll.h"
+#include "host/ble_hs.h"
+
+/* RAM HCI transport. */
+#include "transport/ram/ble_hci_ram.h"
+
+/* RAM persistence layer. */
+#include "store/ram/ble_store_ram.h"
+
+/* Mandatory services. */
+#include "services/mandatory/ble_svc_gap.h"
+#include "services/mandatory/ble_svc_gatt.h"
+
+/* Newtmgr include */
+#include "newtmgr/newtmgr.h"
+#include "nmgrble/newtmgr_ble.h"
+
+#include "imgmgr/imgmgr.h"
+
+/** Priority of the nimble host and controller tasks. */
+#define BLE_LL_TASK_PRI             (OS_TASK_PRI_HIGHEST)
+
+#define NEWTMGR_TASK_PRIO (4)
+#define NEWTMGR_TASK_STACK_SIZE (OS_STACK_ALIGN(512))
+os_stack_t newtmgr_stack[NEWTMGR_TASK_STACK_SIZE];
+
+/** Mbuf settings. */
+#define MBUF_NUM_MBUFS      (12)
+#define MBUF_BUF_SIZE       OS_ALIGN(BLE_MBUF_PAYLOAD_SIZE, 4)
+#define MBUF_MEMBLOCK_SIZE  (MBUF_BUF_SIZE + BLE_MBUF_MEMBLOCK_OVERHEAD)
+#define MBUF_MEMPOOL_SIZE   OS_MEMPOOL_SIZE(MBUF_NUM_MBUFS, MBUF_MEMBLOCK_SIZE)
+
+static os_membuf_t bsp_mbuf_mpool_data[MBUF_MEMPOOL_SIZE];
+struct os_mbuf_pool bsp_mbuf_pool;
+struct os_mempool bsp_mbuf_mpool;
 
 static struct flash_area bsp_flash_areas[] = {
     [FLASH_AREA_BOOTLOADER] = {
@@ -85,7 +124,10 @@ bsp_imgr_current_slot(void)
 void
 bsp_init(void)
 {
+    uint32_t seed;
     int rc;
+    int i;
+
 #ifdef BSP_CFG_SPI_MASTER
     nrf_drv_spi_config_t spi_cfg = NRF_DRV_SPI_DEFAULT_CONFIG(0);
 #endif
@@ -118,4 +160,71 @@ bsp_init(void)
     rc = hal_spi_init(0, &spi_cfg, HAL_SPI_TYPE_SLAVE);
     assert(rc == 0);
 #endif
+
+    /* Set cputime to count at 1 usec increments */
+    rc = cputime_init(1000000);
+    assert(rc == 0);
+
+    /* Seed random number generator with least significant bytes of device
+     * address.
+     */
+    seed = 0;
+    for (i = 0; i < 4; ++i) {
+        seed |= g_dev_addr[i];
+        seed <<= 8;
+    }
+    srand(seed);
+
+    /* Initialize msys mbufs. */
+    rc = os_mempool_init(&bsp_mbuf_mpool, MBUF_NUM_MBUFS,
+                         MBUF_MEMBLOCK_SIZE, bsp_mbuf_mpool_data,
+                         "bsp_mbuf_data");
+    assert(rc == 0);
+
+    rc = os_mbuf_pool_init(&bsp_mbuf_pool, &bsp_mbuf_mpool,
+                           MBUF_MEMBLOCK_SIZE, MBUF_NUM_MBUFS);
+    assert(rc == 0);
+
+    rc = os_msys_register(&bsp_mbuf_pool);
+    assert(rc == 0);
+
+    /* Initialize the console (for log output). */
+    rc = console_init(NULL);
+    assert(rc == 0);
+
+    /* Initialize the logging system. */
+    log_init();
+
+    /* Initialize the BLE LL */
+    rc = ble_ll_init(BLE_LL_TASK_PRI, MBUF_NUM_MBUFS, BLE_MBUF_PAYLOAD_SIZE);
+    assert(rc == 0);
+
+    /* Initialize the RAM HCI transport. */
+    rc = ble_hci_ram_init(&ble_hci_ram_cfg_dflt);
+    assert(rc == 0);
+
+    /* Initialize the NimBLE host configuration. */
+    ble_hs_cfg.max_gattc_procs = 2;
+    ble_hs_cfg.sm_bonding = 1;
+    ble_hs_cfg.sm_our_key_dist = BLE_SM_PAIR_KEY_DIST_ENC;
+    ble_hs_cfg.sm_their_key_dist = BLE_SM_PAIR_KEY_DIST_ENC;
+    ble_hs_cfg.store_read_cb = ble_store_ram_read;
+    ble_hs_cfg.store_write_cb = ble_store_ram_write;
+
+    /* Initialize GATT services. */
+    rc = ble_svc_gap_init();
+    assert(rc == 0);
+
+    rc = ble_svc_gatt_init();
+    assert(rc == 0);
+
+    rc = nmgr_ble_gatt_svr_init();
+    assert(rc == 0);
+
+    /* Initialize NimBLE host. */
+    rc = ble_hs_init();
+    assert(rc == 0);
+
+    nmgr_task_init(NEWTMGR_TASK_PRIO, newtmgr_stack, NEWTMGR_TASK_STACK_SIZE);
+    imgmgr_module_init();
 }

@@ -28,6 +28,8 @@
 #include "controller/ble_hw.h"
 #include "bsp/cmsis_nvic.h"
 
+#include "nrf52_bitfields.h"
+
 /* Total number of resolving list elements */
 #define BLE_HW_RESOLV_LIST_SIZE     (16)
 

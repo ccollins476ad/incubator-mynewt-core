@@ -94,6 +94,9 @@ typedef void ble_hs_reset_fn(int reason);
 typedef void ble_hs_sync_fn(void);
 
 struct ble_hs_cfg {
+    struct os_task *parent_task;
+    struct os_eventq *parent_evq;
+
     /**
      * An HCI buffer is a "flat" 260-byte buffer.  HCI buffers are used by the
      * controller to send unsolicited events to the host.
@@ -252,10 +255,10 @@ struct ble_hs_cfg {
     uint16_t rpa_timeout;
 };
 
-extern const struct ble_hs_cfg ble_hs_cfg_dflt;
+extern struct ble_hs_cfg ble_hs_cfg;
 
 int ble_hs_synced(void);
 int ble_hs_start(void);
-int ble_hs_init(struct os_eventq *app_evq, struct ble_hs_cfg *cfg);
+int ble_hs_init(void);
 
 #endif
