@@ -872,7 +872,7 @@ ble_ll_task(void *arg)
     ble_phy_init();
 
     /* Set output power to 1mW (0 dBm) */
-    ble_phy_txpwr_set(NIMBLE_OPT_LL_TX_PWR_DBM);
+    ble_phy_txpwr_set(MYNEWT_BLE_LL_TX_PWR_DBM);
 
     /* Tell the host that we are ready to receive packets */
     ble_ll_hci_send_noop();

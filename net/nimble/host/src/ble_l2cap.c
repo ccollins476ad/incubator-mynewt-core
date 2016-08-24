@@ -307,14 +307,14 @@ ble_l2cap_init(void)
     ble_l2cap_free_mem();
 
     ble_l2cap_chan_mem = malloc(
-        OS_MEMPOOL_BYTES(NIMBLE_OPT(L2CAP_MAX_CHANS),
+        OS_MEMPOOL_BYTES(MYNEWT_BLE(L2CAP_MAX_CHANS),
                          sizeof (struct ble_l2cap_chan)));
     if (ble_l2cap_chan_mem == NULL) {
         rc = BLE_HS_ENOMEM;
         goto err;
     }
 
-    rc = os_mempool_init(&ble_l2cap_chan_pool, NIMBLE_OPT(L2CAP_MAX_CHANS),
+    rc = os_mempool_init(&ble_l2cap_chan_pool, MYNEWT_BLE(L2CAP_MAX_CHANS),
                          sizeof (struct ble_l2cap_chan),
                          ble_l2cap_chan_mem, "ble_l2cap_chan_pool");
     if (rc != 0) {

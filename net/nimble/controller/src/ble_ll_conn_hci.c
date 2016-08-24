@@ -228,7 +228,7 @@ ble_ll_conn_num_comp_pkts_event_send(void)
 
     /* Check rate limit */
     if ((uint32_t)(g_ble_ll_next_num_comp_pkt_evt - os_time_get()) <
-         NIMBLE_OPT_NUM_COMP_PKT_RATE) {
+         MYNEWT_BLE_NUM_COMP_PKT_RATE) {
         return;
     }
 
@@ -295,7 +295,7 @@ ble_ll_conn_num_comp_pkts_event_send(void)
 
     if (event_sent) {
         g_ble_ll_next_num_comp_pkt_evt = os_time_get() +
-            NIMBLE_OPT_NUM_COMP_PKT_RATE;
+            MYNEWT_BLE_NUM_COMP_PKT_RATE;
     }
 }
 

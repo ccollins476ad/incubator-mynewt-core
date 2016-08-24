@@ -135,7 +135,7 @@ ble_hs_pvcy_ensure_started(void)
     }
 
     /* Set up the periodic change of our RPA. */
-    rc = ble_hs_pvcy_set_addr_timeout(NIMBLE_OPT(RPA_TIMEOUT));
+    rc = ble_hs_pvcy_set_addr_timeout(MYNEWT_BLE(RPA_TIMEOUT));
     if (rc != 0) {
         return rc;
     }

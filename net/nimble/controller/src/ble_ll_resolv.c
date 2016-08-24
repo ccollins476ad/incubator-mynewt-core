@@ -38,7 +38,7 @@ uint8_t g_ble_ll_resolv_list_size;
 uint8_t g_ble_ll_resolv_list_cnt;
 uint32_t g_ble_ll_resolv_rpa_tmo;
 
-struct ble_ll_resolv_entry g_ble_ll_resolv_list[NIMBLE_OPT_LL_RESOLV_LIST_SIZE];
+struct ble_ll_resolv_entry g_ble_ll_resolv_list[MYNEWT_BLE_LL_RESOLV_LIST_SIZE];
 
 /**
  * Called to determine if a change is allowed to the resolving list at this
@@ -457,8 +457,8 @@ ble_ll_resolv_init(void)
     g_ble_ll_resolv_rpa_tmo = 15 * 60 * OS_TICKS_PER_SEC;
 
     hw_size = ble_hw_resolv_list_size();
-    if (hw_size > NIMBLE_OPT_LL_RESOLV_LIST_SIZE) {
-        hw_size = NIMBLE_OPT_LL_RESOLV_LIST_SIZE;
+    if (hw_size > MYNEWT_BLE_LL_RESOLV_LIST_SIZE) {
+        hw_size = MYNEWT_BLE_LL_RESOLV_LIST_SIZE;
     }
     g_ble_ll_resolv_list_size = hw_size;
 

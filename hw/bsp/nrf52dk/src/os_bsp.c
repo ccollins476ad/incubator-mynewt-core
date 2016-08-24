@@ -154,7 +154,7 @@ bsp_init(void)
 #endif
 
     /* Set cputime to count at 1 usec increments */
-    rc = cputime_init(MN_CFG_CLOCK_FREQ);
+    rc = cputime_init(MYNEWT_CLOCK_FREQ);
     assert(rc == 0);
 
     /* Seed random number generator with least significant bytes of device
@@ -186,9 +186,6 @@ bsp_init(void)
     assert(rc == 0);
 
     /* Initialize the NimBLE host configuration. */
-    ble_hs_cfg.sm_bonding = 1;
-    ble_hs_cfg.sm_our_key_dist = BLE_SM_PAIR_KEY_DIST_ENC;
-    ble_hs_cfg.sm_their_key_dist = BLE_SM_PAIR_KEY_DIST_ENC;
     ble_hs_cfg.store_read_cb = ble_store_ram_read;
     ble_hs_cfg.store_write_cb = ble_store_ram_write;
 

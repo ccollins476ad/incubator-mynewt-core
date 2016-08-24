@@ -50,10 +50,10 @@
  */
 
 /* Dont allow more than 255 of these entries */
-#if NIMBLE_OPT_LL_NUM_SCAN_DUP_ADVS > 255
+#if MYNEWT_BLE_LL_NUM_SCAN_DUP_ADVS > 255
     #error "Cannot have more than 255 duplicate entries!"
 #endif
-#if NIMBLE_OPT_LL_NUM_SCAN_RSP_ADVS > 255
+#if MYNEWT_BLE_LL_NUM_SCAN_RSP_ADVS > 255
     #error "Cannot have more than 255 scan response entries!"
 #endif
 
@@ -79,12 +79,12 @@ struct ble_ll_scan_advertisers
 /* Contains list of advertisers that we have heard scan responses from */
 static uint8_t g_ble_ll_scan_num_rsp_advs;
 struct ble_ll_scan_advertisers
-g_ble_ll_scan_rsp_advs[NIMBLE_OPT_LL_NUM_SCAN_RSP_ADVS];
+g_ble_ll_scan_rsp_advs[MYNEWT_BLE_LL_NUM_SCAN_RSP_ADVS];
 
 /* Used to filter duplicate advertising events to host */
 static uint8_t g_ble_ll_scan_num_dup_advs;
 struct ble_ll_scan_advertisers
-g_ble_ll_scan_dup_advs[NIMBLE_OPT_LL_NUM_SCAN_DUP_ADVS];
+g_ble_ll_scan_dup_advs[MYNEWT_BLE_LL_NUM_SCAN_DUP_ADVS];
 
 /* See Vol 6 Part B Section 4.4.3.2. Active scanning backoff */
 static void
@@ -280,7 +280,7 @@ ble_ll_scan_add_dup_adv(uint8_t *addr, uint8_t txadd, uint8_t subev)
     if (!adv) {
         /* XXX: for now, if we dont have room, just leave */
         num_advs = g_ble_ll_scan_num_dup_advs;
-        if (num_advs == NIMBLE_OPT_LL_NUM_SCAN_DUP_ADVS) {
+        if (num_advs == MYNEWT_BLE_LL_NUM_SCAN_DUP_ADVS) {
             return;
         }
 
@@ -347,7 +347,7 @@ ble_ll_scan_add_scan_rsp_adv(uint8_t *addr, uint8_t txadd)
 
     /* XXX: for now, if we dont have room, just leave */
     num_advs = g_ble_ll_scan_num_rsp_advs;
-    if (num_advs == NIMBLE_OPT_LL_NUM_SCAN_RSP_ADVS) {
+    if (num_advs == MYNEWT_BLE_LL_NUM_SCAN_RSP_ADVS) {
         return;
     }
 

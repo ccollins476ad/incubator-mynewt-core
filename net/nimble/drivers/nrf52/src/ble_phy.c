@@ -168,7 +168,7 @@ STATS_NAME_END(ble_phy_stats)
  * space for 267 bytes of scratch. I used 268 bytes since not sure if this
  * needs to be aligned and burning a byte is no big deal.
  */
-//#define NRF_ENC_SCRATCH_WORDS (((NIMBLE_OPT_LL_MAX_PKT_SIZE + 16) + 3) / 4)
+//#define NRF_ENC_SCRATCH_WORDS (((MYNEWT_BLE_LL_MAX_PKT_SIZE + 16) + 3) / 4)
 #define NRF_ENC_SCRATCH_WORDS   (67)
 
 uint32_t g_nrf_encrypt_scratchpad[NRF_ENC_SCRATCH_WORDS];

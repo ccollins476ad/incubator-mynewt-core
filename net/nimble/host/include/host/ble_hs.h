@@ -125,7 +125,7 @@ struct ble_hs_cfg {
     /**
      * The maximum number of concurrent connections.  This is set
      * automatically according to the build-time option
-     * NIMBLE_OPT_MAX_CONNECTIONS.
+     * MYNEWT_BLE_MAX_CONNECTIONS.
      */
     //uint8_t max_connections;
 

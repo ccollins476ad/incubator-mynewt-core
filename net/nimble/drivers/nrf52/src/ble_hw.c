@@ -43,8 +43,8 @@ ble_rng_isr_cb_t g_ble_rng_isr_cb;
 #if (BLE_LL_CFG_FEAT_LL_PRIVACY == 1)
 
 /* The NRF51 supports up to 16 IRK entries */
-#if (NIMBLE_OPT_LL_RESOLV_LIST_SIZE < 16)
-#define NRF_IRK_LIST_ENTRIES    (NIMBLE_OPT_LL_RESOLV_LIST_SIZE)
+#if (MYNEWT_BLE_LL_RESOLV_LIST_SIZE < 16)
+#define NRF_IRK_LIST_ENTRIES    (MYNEWT_BLE_LL_RESOLV_LIST_SIZE)
 #else
 #define NRF_IRK_LIST_ENTRIES    (16)
 #endif

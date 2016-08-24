@@ -759,7 +759,7 @@ ble_ll_adv_scheduled(uint32_t sch_start)
 int
 ble_ll_adv_read_txpwr(uint8_t *rspbuf, uint8_t *rsplen)
 {
-    rspbuf[0] = NIMBLE_OPT_LL_TX_PWR_DBM;
+    rspbuf[0] = MYNEWT_BLE_LL_TX_PWR_DBM;
     *rsplen = 1;
     return BLE_ERR_SUCCESS;
 }

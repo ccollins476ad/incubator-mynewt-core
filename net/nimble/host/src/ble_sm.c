@@ -49,7 +49,7 @@
 #include "host/ble_sm.h"
 #include "ble_hs_priv.h"
 
-#if NIMBLE_OPT(SM)
+#if MYNEWT_BLE(SM)
 
 /** Procedure timeout; 30 seconds. */
 #define BLE_SM_TIMEOUT_OS_TICKS             (30 * OS_TICKS_PER_SEC)
@@ -85,7 +85,7 @@ static ble_sm_rx_fn * const ble_sm_dispatch[] = {
    [BLE_SM_OP_SIGN_INFO] = ble_sm_sign_info_rx,
    [BLE_SM_OP_SEC_REQ] = ble_sm_sec_req_rx,
    [BLE_SM_OP_PAIR_KEYPRESS_NOTIFY] = ble_sm_rx_noop,
-#if NIMBLE_OPT_SM_SC
+#if MYNEWT_BLE_SM_SC
    [BLE_SM_OP_PAIR_PUBLIC_KEY] = ble_sm_sc_public_key_rx,
    [BLE_SM_OP_PAIR_DHKEY_CHECK] = ble_sm_sc_dhkey_check_rx,
 #else
@@ -118,7 +118,7 @@ ble_sm_state_dispatch[BLE_SM_PROC_STATE_CNT] = {
     [BLE_SM_PROC_STATE_ENC_RESTORE]   = ble_sm_enc_restore_exec,
     [BLE_SM_PROC_STATE_KEY_EXCH]      = ble_sm_key_exch_exec,
     [BLE_SM_PROC_STATE_SEC_REQ]       = ble_sm_sec_req_exec,
-#if NIMBLE_OPT_SM_SC
+#if MYNEWT_BLE_SM_SC
     [BLE_SM_PROC_STATE_PUBLIC_KEY]    = ble_sm_sc_public_key_exec,
     [BLE_SM_PROC_STATE_DHKEY_CHECK]   = ble_sm_sc_dhkey_check_exec,
 #else
@@ -212,7 +212,7 @@ ble_sm_dbg_num_procs(void)
 
     cnt = 0;
     STAILQ_FOREACH(proc, &ble_sm_procs, next) {
-        BLE_HS_DBG_ASSERT(cnt < NIMBLE_OPT(SM_MAX_PROCS));
+        BLE_HS_DBG_ASSERT(cnt < MYNEWT_BLE(SM_MAX_PROCS));
         cnt++;
     }
 
@@ -2386,16 +2386,16 @@ ble_sm_init(void)
 
     STAILQ_INIT(&ble_sm_procs);
 
-    if (NIMBLE_OPT(SM_MAX_PROCS) > 0) {
+    if (MYNEWT_BLE(SM_MAX_PROCS) > 0) {
         ble_sm_proc_mem = malloc(
-            OS_MEMPOOL_BYTES(NIMBLE_OPT(SM_MAX_PROCS),
+            OS_MEMPOOL_BYTES(MYNEWT_BLE(SM_MAX_PROCS),
                              sizeof (struct ble_sm_proc)));
         if (ble_sm_proc_mem == NULL) {
             rc = BLE_HS_ENOMEM;
             goto err;
         }
         rc = os_mempool_init(&ble_sm_proc_pool,
-                             NIMBLE_OPT(SM_MAX_PROCS),
+                             MYNEWT_BLE(SM_MAX_PROCS),
                              sizeof (struct ble_sm_proc),
                              ble_sm_proc_mem,
                              "ble_sm_proc_pool");

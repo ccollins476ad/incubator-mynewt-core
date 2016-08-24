@@ -876,7 +876,7 @@ done:
 int
 ble_att_svr_rx_find_info(uint16_t conn_handle, struct os_mbuf **rxom)
 {
-#if !NIMBLE_OPT(ATT_SVR_FIND_INFO)
+#if !MYNEWT_BLE(ATT_SVR_FIND_INFO)
     return BLE_HS_ENOTSUP;
 #endif
 
@@ -1193,7 +1193,7 @@ done:
 int
 ble_att_svr_rx_find_type_value(uint16_t conn_handle, struct os_mbuf **rxom)
 {
-#if !NIMBLE_OPT(ATT_SVR_FIND_TYPE)
+#if !MYNEWT_BLE(ATT_SVR_FIND_TYPE)
     return BLE_HS_ENOTSUP;
 #endif
 
@@ -1372,7 +1372,7 @@ done:
 int
 ble_att_svr_rx_read_type(uint16_t conn_handle, struct os_mbuf **rxom)
 {
-#if !NIMBLE_OPT(ATT_SVR_READ_TYPE)
+#if !MYNEWT_BLE(ATT_SVR_READ_TYPE)
     return BLE_HS_ENOTSUP;
 #endif
 
@@ -1456,7 +1456,7 @@ done:
 int
 ble_att_svr_rx_read(uint16_t conn_handle, struct os_mbuf **rxom)
 {
-#if !NIMBLE_OPT(ATT_SVR_READ)
+#if !MYNEWT_BLE(ATT_SVR_READ)
     return BLE_HS_ENOTSUP;
 #endif
 
@@ -1512,7 +1512,7 @@ done:
 int
 ble_att_svr_rx_read_blob(uint16_t conn_handle, struct os_mbuf **rxom)
 {
-#if !NIMBLE_OPT(ATT_SVR_READ_BLOB)
+#if !MYNEWT_BLE(ATT_SVR_READ_BLOB)
     return BLE_HS_ENOTSUP;
 #endif
 
@@ -1653,7 +1653,7 @@ done:
 int
 ble_att_svr_rx_read_mult(uint16_t conn_handle, struct os_mbuf **rxom)
 {
-#if !NIMBLE_OPT(ATT_SVR_READ_MULT)
+#if !MYNEWT_BLE(ATT_SVR_READ_MULT)
     return BLE_HS_ENOTSUP;
 #endif
 
@@ -1960,7 +1960,7 @@ done:
 int
 ble_att_svr_rx_read_group_type(uint16_t conn_handle, struct os_mbuf **rxom)
 {
-#if !NIMBLE_OPT(ATT_SVR_READ_GROUP_TYPE)
+#if !MYNEWT_BLE(ATT_SVR_READ_GROUP_TYPE)
     return BLE_HS_ENOTSUP;
 #endif
 
@@ -2066,7 +2066,7 @@ done:
 int
 ble_att_svr_rx_write(uint16_t conn_handle, struct os_mbuf **rxom)
 {
-#if !NIMBLE_OPT(ATT_SVR_WRITE)
+#if !MYNEWT_BLE(ATT_SVR_WRITE)
     return BLE_HS_ENOTSUP;
 #endif
 
@@ -2120,7 +2120,7 @@ done:
 int
 ble_att_svr_rx_write_no_rsp(uint16_t conn_handle, struct os_mbuf **rxom)
 {
-#if !NIMBLE_OPT(ATT_SVR_WRITE_NO_RSP)
+#if !MYNEWT_BLE(ATT_SVR_WRITE_NO_RSP)
     return BLE_HS_ENOTSUP;
 #endif
 
@@ -2415,7 +2415,7 @@ ble_att_svr_insert_prep_entry(uint16_t conn_handle,
 int
 ble_att_svr_rx_prep_write(uint16_t conn_handle, struct os_mbuf **rxom)
 {
-#if !NIMBLE_OPT(ATT_SVR_PREP_WRITE)
+#if !MYNEWT_BLE(ATT_SVR_PREP_WRITE)
     return BLE_HS_ENOTSUP;
 #endif
 
@@ -2529,7 +2529,7 @@ done:
 int
 ble_att_svr_rx_exec_write(uint16_t conn_handle, struct os_mbuf **rxom)
 {
-#if !NIMBLE_OPT(ATT_SVR_EXEC_WRITE)
+#if !MYNEWT_BLE(ATT_SVR_EXEC_WRITE)
     return BLE_HS_ENOTSUP;
 #endif
 
@@ -2603,7 +2603,7 @@ done:
 int
 ble_att_svr_rx_notify(uint16_t conn_handle, struct os_mbuf **rxom)
 {
-#if !NIMBLE_OPT(ATT_SVR_NOTIFY)
+#if !MYNEWT_BLE(ATT_SVR_NOTIFY)
     return BLE_HS_ENOTSUP;
 #endif
 
@@ -2670,7 +2670,7 @@ done:
 int
 ble_att_svr_rx_indicate(uint16_t conn_handle, struct os_mbuf **rxom)
 {
-#if !NIMBLE_OPT(ATT_SVR_INDICATE)
+#if !MYNEWT_BLE(ATT_SVR_INDICATE)
     return BLE_HS_ENOTSUP;
 #endif
 
@@ -2752,9 +2752,9 @@ ble_att_svr_init(void)
         }
     }
 
-    if (NIMBLE_OPT(ATT_MAX_PREP_ENTRIES) > 0) {
+    if (MYNEWT_BLE(ATT_MAX_PREP_ENTRIES) > 0) {
         ble_att_svr_prep_entry_mem = malloc(
-            OS_MEMPOOL_BYTES(NIMBLE_OPT(ATT_MAX_PREP_ENTRIES),
+            OS_MEMPOOL_BYTES(MYNEWT_BLE(ATT_MAX_PREP_ENTRIES),
                              sizeof (struct ble_att_prep_entry)));
         if (ble_att_svr_prep_entry_mem == NULL) {
             rc = BLE_HS_ENOMEM;
@@ -2762,7 +2762,7 @@ ble_att_svr_init(void)
         }
 
         rc = os_mempool_init(&ble_att_svr_prep_entry_pool,
-                             NIMBLE_OPT(ATT_MAX_PREP_ENTRIES),
+                             MYNEWT_BLE(ATT_MAX_PREP_ENTRIES),
                              sizeof (struct ble_att_prep_entry),
                              ble_att_svr_prep_entry_mem,
                              "ble_att_svr_prep_entry_pool");

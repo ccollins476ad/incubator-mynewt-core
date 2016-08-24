@@ -91,7 +91,7 @@ struct ble_sm_io {
     };
 };
 
-#if NIMBLE_OPT(SM)
+#if MYNEWT_BLE(SM)
 int ble_sm_inject_io(uint16_t conn_handle, struct ble_sm_io *pkey);
 #else
 #define ble_sm_inject_io(conn_handle, pkey) \

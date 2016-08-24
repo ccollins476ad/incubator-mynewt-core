@@ -777,7 +777,7 @@ ble_ll_ctrl_version_ind_make(struct ble_ll_conn_sm *connsm, uint8_t *pyld)
 
     /* Fill out response */
     pyld[0] = BLE_HCI_VER_BCS_4_2;
-    htole16(pyld + 1, NIMBLE_OPT_LL_MFRG_ID);
+    htole16(pyld + 1, MYNEWT_BLE_LL_MFRG_ID);
     htole16(pyld + 3, BLE_LL_SUB_VERS_NR);
 }
 

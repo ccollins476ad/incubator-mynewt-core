@@ -611,9 +611,9 @@ ble_l2cap_sig_init(void)
 
     STAILQ_INIT(&ble_l2cap_sig_procs);
 
-    if (NIMBLE_OPT(L2CAP_SIG_MAX_PROCS) > 0) {
+    if (MYNEWT_BLE(L2CAP_SIG_MAX_PROCS) > 0) {
         ble_l2cap_sig_proc_mem = malloc(
-            OS_MEMPOOL_BYTES(NIMBLE_OPT(L2CAP_SIG_MAX_PROCS),
+            OS_MEMPOOL_BYTES(MYNEWT_BLE(L2CAP_SIG_MAX_PROCS),
                              sizeof (struct ble_l2cap_sig_proc)));
         if (ble_l2cap_sig_proc_mem == NULL) {
             rc = BLE_HS_ENOMEM;
@@ -621,7 +621,7 @@ ble_l2cap_sig_init(void)
         }
 
         rc = os_mempool_init(&ble_l2cap_sig_proc_pool,
-                             NIMBLE_OPT(L2CAP_SIG_MAX_PROCS),
+                             MYNEWT_BLE(L2CAP_SIG_MAX_PROCS),
                              sizeof (struct ble_l2cap_sig_proc),
                              ble_l2cap_sig_proc_mem,
                              "ble_l2cap_sig_proc_pool");

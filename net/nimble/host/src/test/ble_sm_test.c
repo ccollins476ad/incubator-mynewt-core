@@ -28,7 +28,7 @@
 #include "ble_hs_test_util.h"
 #include "ble_sm_test_util.h"
 
-#if NIMBLE_OPT(SM)
+#if MYNEWT_BLE(SM)
 
 /*****************************************************************************
  * $misc                                                                     *
@@ -666,7 +666,7 @@ TEST_SUITE(ble_sm_gen_test_suite)
 int
 ble_sm_test_all(void)
 {
-#if !NIMBLE_OPT(SM)
+#if !MYNEWT_BLE(SM)
     return 0;
 #else
     ble_sm_gen_test_suite();

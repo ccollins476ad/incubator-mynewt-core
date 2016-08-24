@@ -171,7 +171,7 @@ ble_ll_hci_rd_local_version(uint8_t *rspbuf, uint8_t *rsplen)
 
     hci_rev = 0;
     lmp_subver = 0;
-    mfrg = NIMBLE_OPT_LL_MFRG_ID;
+    mfrg = MYNEWT_BLE_LL_MFRG_ID;
 
     /* Place the data packet length and number of packets in the buffer */
     rspbuf[0] = BLE_HCI_VER_BCS_4_2;
