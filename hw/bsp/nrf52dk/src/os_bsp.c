@@ -37,6 +37,8 @@
 #include "nrf_drv_config.h"
 #include <app_util_platform.h>
 
+#include "init/init.h"
+
 /* BLE */
 #include "nimble/ble.h"
 #include "controller/ble_ll.h"
@@ -64,16 +66,6 @@
 #define NEWTMGR_TASK_PRIO (4)
 #define NEWTMGR_TASK_STACK_SIZE (OS_STACK_ALIGN(512))
 os_stack_t newtmgr_stack[NEWTMGR_TASK_STACK_SIZE];
-
-/** Mbuf settings. */
-#define MBUF_NUM_MBUFS      (12)
-#define MBUF_BUF_SIZE       OS_ALIGN(BLE_MBUF_PAYLOAD_SIZE, 4)
-#define MBUF_MEMBLOCK_SIZE  (MBUF_BUF_SIZE + BLE_MBUF_MEMBLOCK_OVERHEAD)
-#define MBUF_MEMPOOL_SIZE   OS_MEMPOOL_SIZE(MBUF_NUM_MBUFS, MBUF_MEMBLOCK_SIZE)
-
-static os_membuf_t bsp_mbuf_mpool_data[MBUF_MEMPOOL_SIZE];
-struct os_mbuf_pool bsp_mbuf_pool;
-struct os_mempool bsp_mbuf_mpool;
 
 static struct flash_area bsp_flash_areas[] = {
     [FLASH_AREA_BOOTLOADER] = {
@@ -162,7 +154,7 @@ bsp_init(void)
 #endif
 
     /* Set cputime to count at 1 usec increments */
-    rc = cputime_init(1000000);
+    rc = cputime_init(MN_CFG_CLOCK_FREQ);
     assert(rc == 0);
 
     /* Seed random number generator with least significant bytes of device
@@ -175,18 +167,7 @@ bsp_init(void)
     }
     srand(seed);
 
-    /* Initialize msys mbufs. */
-    rc = os_mempool_init(&bsp_mbuf_mpool, MBUF_NUM_MBUFS,
-                         MBUF_MEMBLOCK_SIZE, bsp_mbuf_mpool_data,
-                         "bsp_mbuf_data");
-    assert(rc == 0);
-
-    rc = os_mbuf_pool_init(&bsp_mbuf_pool, &bsp_mbuf_mpool,
-                           MBUF_MEMBLOCK_SIZE, MBUF_NUM_MBUFS);
-    assert(rc == 0);
-
-    rc = os_msys_register(&bsp_mbuf_pool);
-    assert(rc == 0);
+    init_msys();
 
     /* Initialize the console (for log output). */
     rc = console_init(NULL);
@@ -196,7 +177,8 @@ bsp_init(void)
     log_init();
 
     /* Initialize the BLE LL */
-    rc = ble_ll_init(BLE_LL_TASK_PRI, MBUF_NUM_MBUFS, BLE_MBUF_PAYLOAD_SIZE);
+    rc = ble_ll_init(BLE_LL_TASK_PRI, BLE_LL_NUM_ACL_PKTS,
+                     BLE_LL_ACL_PKT_SIZE);
     assert(rc == 0);
 
     /* Initialize the RAM HCI transport. */
@@ -204,7 +186,6 @@ bsp_init(void)
     assert(rc == 0);
 
     /* Initialize the NimBLE host configuration. */
-    ble_hs_cfg.max_gattc_procs = 2;
     ble_hs_cfg.sm_bonding = 1;
     ble_hs_cfg.sm_our_key_dist = BLE_SM_PAIR_KEY_DIST_ENC;
     ble_hs_cfg.sm_their_key_dist = BLE_SM_PAIR_KEY_DIST_ENC;

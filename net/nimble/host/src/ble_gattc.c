@@ -4574,9 +4574,9 @@ ble_gattc_init(void)
 
     STAILQ_INIT(&ble_gattc_procs);
 
-    if (ble_hs_cfg.max_gattc_procs > 0) {
+    if (NIMBLE_OPT(GATT_MAX_PROCS) > 0) {
         ble_gattc_proc_mem = malloc(
-            OS_MEMPOOL_BYTES(ble_hs_cfg.max_gattc_procs,
+            OS_MEMPOOL_BYTES(NIMBLE_OPT(GATT_MAX_PROCS),
                              sizeof (struct ble_gattc_proc)));
         if (ble_gattc_proc_mem == NULL) {
             rc = BLE_HS_ENOMEM;
@@ -4584,7 +4584,7 @@ ble_gattc_init(void)
         }
 
         rc = os_mempool_init(&ble_gattc_proc_pool,
-                             ble_hs_cfg.max_gattc_procs,
+                             NIMBLE_OPT(GATT_MAX_PROCS),
                              sizeof (struct ble_gattc_proc),
                              ble_gattc_proc_mem,
                              "ble_gattc_proc_pool");

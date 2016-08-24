@@ -378,13 +378,13 @@ ble_hs_conn_init(void)
     ble_hs_conn_free_mem();
 
     ble_hs_conn_elem_mem = malloc(
-        OS_MEMPOOL_BYTES(ble_hs_cfg.max_connections,
+        OS_MEMPOOL_BYTES(NIMBLE_OPT(MAX_CONNECTIONS),
                          sizeof (struct ble_hs_conn)));
     if (ble_hs_conn_elem_mem == NULL) {
         rc = BLE_HS_ENOMEM;
         goto err;
     }
-    rc = os_mempool_init(&ble_hs_conn_pool, ble_hs_cfg.max_connections,
+    rc = os_mempool_init(&ble_hs_conn_pool, NIMBLE_OPT(MAX_CONNECTIONS),
                          sizeof (struct ble_hs_conn),
                          ble_hs_conn_elem_mem, "ble_hs_conn_pool");
     if (rc != 0) {

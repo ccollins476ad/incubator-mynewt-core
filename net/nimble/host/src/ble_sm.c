@@ -212,7 +212,7 @@ ble_sm_dbg_num_procs(void)
 
     cnt = 0;
     STAILQ_FOREACH(proc, &ble_sm_procs, next) {
-        BLE_HS_DBG_ASSERT(cnt < ble_hs_cfg.max_l2cap_sm_procs);
+        BLE_HS_DBG_ASSERT(cnt < NIMBLE_OPT(SM_MAX_PROCS));
         cnt++;
     }
 
@@ -2386,16 +2386,16 @@ ble_sm_init(void)
 
     STAILQ_INIT(&ble_sm_procs);
 
-    if (ble_hs_cfg.max_l2cap_sm_procs > 0) {
+    if (NIMBLE_OPT(SM_MAX_PROCS) > 0) {
         ble_sm_proc_mem = malloc(
-            OS_MEMPOOL_BYTES(ble_hs_cfg.max_l2cap_sm_procs,
+            OS_MEMPOOL_BYTES(NIMBLE_OPT(SM_MAX_PROCS),
                              sizeof (struct ble_sm_proc)));
         if (ble_sm_proc_mem == NULL) {
             rc = BLE_HS_ENOMEM;
             goto err;
         }
         rc = os_mempool_init(&ble_sm_proc_pool,
-                             ble_hs_cfg.max_l2cap_sm_procs,
+                             NIMBLE_OPT(SM_MAX_PROCS),
                              sizeof (struct ble_sm_proc),
                              ble_sm_proc_mem,
                              "ble_sm_proc_pool");

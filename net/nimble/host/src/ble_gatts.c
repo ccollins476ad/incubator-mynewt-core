@@ -2012,7 +2012,7 @@ ble_gatts_count_cfg(const struct ble_gatt_svc_def *defs)
 
     /* Reserve an extra CCCD for the cache. */
     ble_hs_cfg.max_client_configs += res.cccds *
-                                     (ble_hs_cfg.max_connections + 1);
+                                     (NIMBLE_OPT(MAX_CONNECTIONS) + 1);
 
     return 0;
 }

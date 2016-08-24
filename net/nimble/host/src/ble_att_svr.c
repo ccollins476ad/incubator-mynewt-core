@@ -2752,9 +2752,9 @@ ble_att_svr_init(void)
         }
     }
 
-    if (ble_hs_cfg.max_prep_entries > 0) {
+    if (NIMBLE_OPT(ATT_MAX_PREP_ENTRIES) > 0) {
         ble_att_svr_prep_entry_mem = malloc(
-            OS_MEMPOOL_BYTES(ble_hs_cfg.max_prep_entries,
+            OS_MEMPOOL_BYTES(NIMBLE_OPT(ATT_MAX_PREP_ENTRIES),
                              sizeof (struct ble_att_prep_entry)));
         if (ble_att_svr_prep_entry_mem == NULL) {
             rc = BLE_HS_ENOMEM;
@@ -2762,7 +2762,7 @@ ble_att_svr_init(void)
         }
 
         rc = os_mempool_init(&ble_att_svr_prep_entry_pool,
-                             ble_hs_cfg.max_prep_entries,
+                             NIMBLE_OPT(ATT_MAX_PREP_ENTRIES),
                              sizeof (struct ble_att_prep_entry),
                              ble_att_svr_prep_entry_mem,
                              "ble_att_svr_prep_entry_pool");

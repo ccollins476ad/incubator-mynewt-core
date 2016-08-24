@@ -127,7 +127,7 @@ struct ble_hs_cfg {
      * automatically according to the build-time option
      * NIMBLE_OPT_MAX_CONNECTIONS.
      */
-    uint8_t max_connections;
+    //uint8_t max_connections;
 
     /*** GATT server settings. */
     /**
@@ -167,7 +167,7 @@ struct ble_hs_cfg {
      * services, etc.), one of these is consumed.  The resource is freed when
      * the procedure completes.
      */
-    uint8_t max_gattc_procs;
+    //uint8_t max_gattc_procs;
 
     /*** ATT server settings. */
     /**
@@ -189,7 +189,7 @@ struct ble_hs_cfg {
      * procedure.  One of these resources is consumed each time a peer sends a
      * partial write.  These procedures are not used often.
      */
-    uint8_t max_prep_entries;
+    //uint8_t max_prep_entries;
 
     /*** L2CAP settings. */
     /**
@@ -199,7 +199,7 @@ struct ble_hs_cfg {
      * available at the moment, so a safe formula to use is:
      *     (max-connections * 3)
      */
-    uint8_t max_l2cap_chans;
+    //uint8_t max_l2cap_chans;
 
     /**
      * The maximum number of concurrent L2CAP signalling procedures.  Only one
@@ -207,13 +207,13 @@ struct ble_hs_cfg {
      * update.  You will never need more of these than the max number of
      * connections.
      */
-    uint8_t max_l2cap_sig_procs;
+    //uint8_t max_l2cap_sig_procs;
 
     /**
      * The maximum number of concurrent security manager procedures.  Security
      * manager procedures include pairing and restoration of a bonded link.
      */
-    uint8_t max_l2cap_sm_procs;
+    //uint8_t max_l2cap_sm_procs;
 
     /*** Security manager settings. */
     uint8_t sm_io_cap;
@@ -252,7 +252,7 @@ struct ble_hs_cfg {
      * The frequency at which new resovlable private addresses are generated.
      * Units are seconds.
      */
-    uint16_t rpa_timeout;
+    //uint16_t rpa_timeout;
 };
 
 extern struct ble_hs_cfg ble_hs_cfg;

@@ -58,6 +58,12 @@ struct os_event;
 #define BLE_HS_SYNC_STATE_BRINGUP       1
 #define BLE_HS_SYNC_STATE_GOOD          2
 
+#if NIMBLE_OPT(CONNECT)
+#define BLE_HS_MAX_CONNECTIONS NIMBLE_OPT(MAX_CONNECTIONS)
+#else
+#define BLE_HS_MAX_CONNECTIONS 0
+#endif
+
 STATS_SECT_START(ble_hs_stats)
     STATS_SECT_ENTRY(conn_create)
     STATS_SECT_ENTRY(conn_delete)

@@ -19,21 +19,12 @@
 
 #include "ble_hs_priv.h"
 
-#if NIMBLE_OPT(CONNECT)
-#define BLE_HS_CFG_MAX_CONNECTIONS NIMBLE_OPT(MAX_CONNECTIONS)
-#else
-#define BLE_HS_CFG_MAX_CONNECTIONS 0
-#endif
-
 struct ble_hs_cfg ble_hs_cfg = {
     .parent_evq = NULL,
     .parent_task = NULL,
 
     /** HCI settings. */
     .max_hci_bufs = 3,
-
-    /** Connection settings. */
-    .max_connections = BLE_HS_CFG_MAX_CONNECTIONS,
 
     /** GATT server settings. */
     /* These get set to zero with the expectation that they will be increased
@@ -43,18 +34,18 @@ struct ble_hs_cfg ble_hs_cfg = {
     .max_client_configs = 0,
 
     /** GATT client settings. */
-    .max_gattc_procs = 4,
+    //.max_gattc_procs = 4,
 
     /** ATT server settings. */
     /* This is set to 0; see note above re: GATT server settings. */
     .max_attrs = 0,
-    .max_prep_entries = 6,
+    //.max_prep_entries = 6,
 
     /** L2CAP settings. */
     /* Three channels per connection (sig, att, and sm). */
-    .max_l2cap_chans = 3 * BLE_HS_CFG_MAX_CONNECTIONS,
-    .max_l2cap_sig_procs = 1,
-    .max_l2cap_sm_procs = 1,
+    //.max_l2cap_chans = 3 * BLE_HS_CFG_MAX_CONNECTIONS,
+    //.max_l2cap_sig_procs = 1,
+    //.max_l2cap_sm_procs = 1,
 
     /** Security manager settings. */
     .sm_io_cap = BLE_HS_IO_NO_INPUT_OUTPUT,
@@ -67,5 +58,5 @@ struct ble_hs_cfg ble_hs_cfg = {
     .sm_their_key_dist = 0,
 
     /** Privacy settings. */
-    .rpa_timeout = 300,
+    //.rpa_timeout = 300,
 };
