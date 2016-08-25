@@ -30,7 +30,7 @@
 #include "nimble/nimble_opt.h"
 #include "ble_hs_priv.h"
 
-#if MYNEWT_BLE(SM)
+#if NIMBLE_BLE_SM
 
 static mbedtls_aes_context ble_sm_alg_ctxt;
 

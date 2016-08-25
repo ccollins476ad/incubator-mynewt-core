@@ -17,7 +17,7 @@
 # under the License.
 #
 
-pkg.name: sys/init
+pkg.name: sys/sysinit
 pkg.description: XXX
 pkg.author: "Apache Mynewt <dev@mynewt.incubator.apache.org>"
 pkg.homepage: "http://mynewt.apache.org/"
@@ -27,3 +27,8 @@ pkg.keywords:
 pkg.deps:
     - libs/os
     - libs/util
+
+pkg.syscfg_defs:
+    CLOCK_FREQ:
+        description: 'gaga'
+        value:  1000000

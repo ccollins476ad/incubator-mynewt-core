@@ -37,3 +37,15 @@ pkg.deps.BLE_HOST:
 
 pkg.features:
     - NEWTMGR
+
+pkg.init_function: nmgr_pkg_init
+pkg.init_stage: 5
+
+pkg.syscfg_defs:
+    NEWTMGR_TASK_PRIO:
+        description: 'gaga'
+        type: 'task_priority'
+        value: 'any'
+    NEWTMGR_STACK_SIZE:
+        description: 'gaga'
+        value: 512

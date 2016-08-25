@@ -19,10 +19,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <testutil/testutil.h>
+#include "syscfg/syscfg.h"
+#include "testutil/testutil.h"
 
 #include "mbedtls/mbedtls_test.h"
-
 #include "mbedtls/sha1.h"
 #include "mbedtls/sha256.h"
 #include "mbedtls/sha512.h"
@@ -212,7 +212,7 @@ TEST_SUITE(mbedtls_test_all)
     xtea_test();
 }
 
-#ifdef MYNEWT_SELFTEST
+#if MYNEWT_VAL(SELFTEST)
 int
 main(int argc, char **argv)
 {

@@ -25,11 +25,14 @@ pkg.keywords:
 pkg.deps:
     - "@apache-mynewt-core/libs/os"
     - "@apache-mynewt-core/libs/util"
-pkg.reqs:
-    - console
-pkg.cflags.SHELL:
-    - -DSHELL_PRESENT
+pkg.deps.WIFI_MGMT_SHELL:
+    - libs/shell
 
 pkg.deps.TEST:
    - libs/testutil
+
+pkg.syscfg_defs:
+    WIFI_MGMT_SHELL:
+        description: 'gaga'
+        value: 1
 

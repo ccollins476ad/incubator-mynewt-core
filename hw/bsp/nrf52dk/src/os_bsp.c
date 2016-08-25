@@ -18,15 +18,15 @@
  */
 
 #include <assert.h>
-#include <hal/flash_map.h>
-#include <hal/hal_bsp.h>
-#include <hal/hal_cputime.h>
-#include <mcu/nrf52_hal.h>
+#include "syscfg/syscfg.h"
+#include "hal/flash_map.h"
+#include "hal/hal_bsp.h"
+#include "hal/hal_cputime.h"
+#include "hal/hal_flash.h"
+#include "mcu/nrf52_hal.h"
 
-#include <os/os_dev.h>
+#include "os/os_dev.h"
 
-#include <uart/uart.h>
-#include <uart_hal/uart_hal.h>
 #include <hal/hal_spi.h>
 #ifdef BSP_CFG_SPI_MASTER
 #include "nrf_drv_spi.h"
@@ -36,36 +36,16 @@
 #endif
 #include "nrf_drv_config.h"
 #include <app_util_platform.h>
+#include "uart/uart.h"
+#include "uart_hal/uart_hal.h"
 
-#include "init/init.h"
+#include "sysinit/sysinit.h"
 
-/* BLE */
-#include "nimble/ble.h"
-#include "controller/ble_ll.h"
-#include "host/ble_hs.h"
-
-/* RAM HCI transport. */
-#include "transport/ram/ble_hci_ram.h"
-
-/* RAM persistence layer. */
-#include "store/ram/ble_store_ram.h"
-
-/* Mandatory services. */
-#include "services/mandatory/ble_svc_gap.h"
-#include "services/mandatory/ble_svc_gatt.h"
-
-/* Newtmgr include */
-#include "newtmgr/newtmgr.h"
-#include "nmgrble/newtmgr_ble.h"
-
-#include "imgmgr/imgmgr.h"
-
-/** Priority of the nimble host and controller tasks. */
-#define BLE_LL_TASK_PRI             (OS_TASK_PRI_HIGHEST)
-
-#define NEWTMGR_TASK_PRIO (4)
-#define NEWTMGR_TASK_STACK_SIZE (OS_STACK_ALIGN(512))
-os_stack_t newtmgr_stack[NEWTMGR_TASK_STACK_SIZE];
+#include "nrf.h"
+#include "app_util_platform.h"
+#include "app_error.h"
+#include "adc_nrf52/adc_nrf52.h"
+#include "nrf_drv_saadc.h"
 
 static struct flash_area bsp_flash_areas[] = {
     [FLASH_AREA_BOOTLOADER] = {
@@ -95,9 +75,21 @@ static struct flash_area bsp_flash_areas[] = {
         .fa_size = (12 * 1024)
     }
 };
-static struct uart_dev hal_uart0;
 
-void _close(int fd);
+#if MYNEWT_VAL(UART_0)
+static struct uart_dev os_bsp_uart0;
+#endif
+
+#if MYNEWT_VAL(ADC_0)
+static struct adc_dev os_bsp_adc0;
+static nrf_drv_saadc_config_t os_bsp_adc0_config = {
+    .resolution         = MYNEWT_VAL(ADC_0_RESOLUTION),
+    .oversample         = MYNEWT_VAL(ADC_0_OVERSAMPLE),
+    .interrupt_priority = MYNEWT_VAL(ADC_0_INTERRUPT_PRIORITY),
+};
+#endif
+
+//void _close(int fd);
 
 /*
  * Returns the flash map slot where the currently active image is located.
@@ -130,11 +122,8 @@ bsp_init(void)
     /*
      * XXX this reference is here to keep this function in.
      */
-    _sbrk(0);
-    _close(0);
-
-    flash_area_init(bsp_flash_areas,
-      sizeof(bsp_flash_areas) / sizeof(bsp_flash_areas[0]));
+    (void)_sbrk;
+    //(void)_close;
 
     rc = os_dev_create((struct os_dev *) &hal_uart0, "uart0",
       OS_DEV_INIT_PRIMARY, 0, uart_hal_init, (void *)bsp_uart_config());
@@ -154,55 +143,25 @@ bsp_init(void)
 #endif
 
     /* Set cputime to count at 1 usec increments */
-    rc = cputime_init(MYNEWT_CLOCK_FREQ);
+    rc = cputime_init(MYNEWT_VAL(CLOCK_FREQ));
     assert(rc == 0);
 
-    /* Seed random number generator with least significant bytes of device
-     * address.
-     */
-    seed = 0;
-    for (i = 0; i < 4; ++i) {
-        seed |= g_dev_addr[i];
-        seed <<= 8;
-    }
-    srand(seed);
+    flash_area_init(bsp_flash_areas,
+      sizeof(bsp_flash_areas) / sizeof(bsp_flash_areas[0]));
 
-    init_msys();
-
-    /* Initialize the console (for log output). */
-    rc = console_init(NULL);
+    rc = hal_flash_init();
     assert(rc == 0);
 
-    /* Initialize the logging system. */
-    log_init();
-
-    /* Initialize the BLE LL */
-    rc = ble_ll_init(BLE_LL_TASK_PRI, BLE_LL_NUM_ACL_PKTS,
-                     BLE_LL_ACL_PKT_SIZE);
+#if MYNEWT_VAL(UART_0)
+    rc = os_dev_create((struct os_dev *) &os_bsp_uart0, "uart0",
+      OS_DEV_INIT_PRIMARY, 0, uart_hal_init, (void *)bsp_uart_config());
     assert(rc == 0);
+#endif
 
-    /* Initialize the RAM HCI transport. */
-    rc = ble_hci_ram_init(&ble_hci_ram_cfg_dflt);
+#if MYNEWT_VAL(ADC_0)
+    rc = os_dev_create((struct os_dev *) &os_bsp_adc0, "adc0",
+            OS_DEV_INIT_KERNEL, OS_DEV_INIT_PRIO_DEFAULT,
+            nrf52_adc_dev_init, &os_bsp_adc0_config);
     assert(rc == 0);
-
-    /* Initialize the NimBLE host configuration. */
-    ble_hs_cfg.store_read_cb = ble_store_ram_read;
-    ble_hs_cfg.store_write_cb = ble_store_ram_write;
-
-    /* Initialize GATT services. */
-    rc = ble_svc_gap_init();
-    assert(rc == 0);
-
-    rc = ble_svc_gatt_init();
-    assert(rc == 0);
-
-    rc = nmgr_ble_gatt_svr_init();
-    assert(rc == 0);
-
-    /* Initialize NimBLE host. */
-    rc = ble_hs_init();
-    assert(rc == 0);
-
-    nmgr_task_init(NEWTMGR_TASK_PRIO, newtmgr_stack, NEWTMGR_TASK_STACK_SIZE);
-    imgmgr_module_init();
+#endif
 }

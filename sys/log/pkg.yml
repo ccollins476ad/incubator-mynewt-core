@@ -28,17 +28,32 @@ pkg.deps:
     - libs/os
     - libs/util
     - libs/testutil
-pkg.deps.SHELL:
-    - libs/shell
-pkg.deps.NEWTMGR:
+pkg.deps.LOG_NEWTMGR:
     - libs/newtmgr
-pkg.deps.FCB:
+pkg.deps.LOG_FCB:
     - hw/hal
     - sys/fcb
-pkg.deps.TEST:
-    - sys/fcb
-pkg.req_apis.SHELL:
-    - console
-pkg.cflags.SHELL: -DSHELL_PRESENT
-pkg.cflags.NEWTMGR: -DNEWTMGR_PRESENT
-pkg.cflags.FCB: -DFCB_PRESENT
+pkg.deps.LOG_SHELL:
+    - libs/shell
+pkg.deps.SELFTEST:
+    - libs/console/stub
+
+pkg.init_function: log_init
+pkg.init_stage: 1
+
+pkg.syscfg_defs:
+    LOG_LEVEL:
+        description: 'gaga'
+        value: 0
+
+    LOG_FCB:
+        description: 'gaga'
+        value: 1
+
+    LOG_SHELL:
+        description: 'gaga'
+        value: 1
+
+    LOG_NEWTMGR:
+        description: 'gaga'
+        value: 1

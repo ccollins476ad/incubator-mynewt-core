@@ -30,10 +30,7 @@
 #include <reboot/log_reboot.h>
 #include <bsp/bsp.h>
 #include <assert.h>
-
-#ifdef SHELL_PRESENT
-#include <shell/shell.h>
-#endif
+#include "syscfg/syscfg.h"
 
 static struct log_handler reboot_log_handler;
 static struct fcb fcb;
@@ -201,4 +198,13 @@ reboot_cnt_set(int argc, char **argv, char *val)
 
 err:
     return OS_ENOENT;
+}
+
+void
+log_reboot_pkg_init(void)
+{
+#if MYNEWT_VAL(REBOOT_LOG_0_TYPE)
+    reboot_init_handler(MYNEWT_VAL(REBOOT_LOG_0_TYPE),
+                        MYNEWT_VAL(REBOOT_LOG_0_ENTRY_COUNT));
+#endif
 }

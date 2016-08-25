@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-#include <testutil/testutil.h>
-#include <test_json.h>
+
+#include "syscfg/syscfg.h"
+#include "testutil/testutil.h"
+#include "test_json.h"
 
 
 TEST_SUITE(test_json_suite) {
@@ -25,7 +27,7 @@ TEST_SUITE(test_json_suite) {
     test_json_simple_decode();
 }
 
-#ifdef MYNEWT_SELFTEST
+#if MYNEWT_VAL(SELFTEST)
 
 int
 main(int argc, char **argv)

@@ -33,3 +33,6 @@ pkg.deps:
     - libs/util
 pkg.req_apis:
     - console
+
+pkg.deps.SELFTEST:
+    - libs/console/stub

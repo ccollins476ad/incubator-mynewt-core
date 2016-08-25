@@ -26,22 +26,49 @@ pkg.keywords:
 pkg.deps:
     - libs/util
     - libs/testutil
-pkg.deps.SHELL:
+pkg.deps.CONFIG_SHELL:
     - libs/shell
-pkg.req_apis.SHELL:
-    - console
-pkg.cflags.SHELL: -DSHELL_PRESENT
-pkg.deps.NEWTMGR:
+pkg.deps.CONFIG_NEWTMGR:
     - libs/newtmgr
     - libs/json
-pkg.cflags.NEWTMGR: -DNEWTMGR_PRESENT
-pkg.deps.FCB:
+pkg.deps.CONFIG_FCB:
     - sys/fcb
-pkg.cflags.FCB: -DFCB_PRESENT
-pkg.deps.FS:
-    - fs/fs
-pkg.cflags.FS: -DFS_PRESENT
+pkg.deps.CONFIG_FS:
+    - fs/nffs
 
-pkg.deps.TEST:
+pkg.deps.SELFTEST:
     - fs/nffs
     - sys/fcb
+    - libs/console/stub
+
+pkg.init_function: config_pkg_init
+pkg.init_stage: 5
+
+pkg.syscfg_defs:
+    CONFIG_FCB:
+        description: 'gaga'
+        value: 1
+    CONFIG_FCB_MAGIC:
+        description: 'gaga'
+        value: 0xc09f6e5e
+
+    CONFIG_FS:
+        description: 'gaga'
+        value: 1
+    CONFIG_FS_DIR:
+        description: 'gaga'
+        value: '"/cfg"'
+    CONFIG_FS_FILE:
+        description: 'gaga'
+        value: '"/cfg/run"'
+    CONFIG_FS_MAX_LINES:
+        description: 'gaga'
+        value: 32
+
+    CONFIG_NEWTMGR:
+        description: 'gaga'
+        value: 0
+
+    CONFIG_SHELL:
+        description: 'gaga'
+        value: 0

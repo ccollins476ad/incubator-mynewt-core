@@ -29,3 +29,6 @@ pkg.deps:
     - drivers/uart
 pkg.apis: console
 pkg.cflags.BASELIBC: -DBASELIBC_PRESENT
+
+pkg.init_function: console_pkg_init
+pkg.init_stage: 5

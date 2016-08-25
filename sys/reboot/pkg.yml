@@ -34,3 +34,14 @@ pkg.deps:
     - libs/imgmgr
 pkg.req_apis:
     - console
+
+pkg.init_function: log_reboot_pkg_init
+pkg.init_stage: 2
+
+pkg.syscfg_defs:
+    REBOOT_LOG_0_TYPE:
+        description: 'gaga'
+        value:  LOG_TYPE_STORAGE
+    REBOOT_LOG_0_ENTRY_COUNT:
+        description: 'gaga'
+        value:  10

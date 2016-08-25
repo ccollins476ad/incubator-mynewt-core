@@ -61,6 +61,9 @@ struct flash_area {
 #define FLASH_AREA_CORE                 2
 #define FLASH_AREA_REBOOT_LOG           5
 
+extern const struct flash_area *flash_map;
+extern int flash_map_entries;
+
 /*
  * Initializes flash map. Memory will be referenced by flash_map code
  * from this on.

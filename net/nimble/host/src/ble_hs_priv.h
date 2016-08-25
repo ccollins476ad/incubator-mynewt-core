@@ -58,8 +58,8 @@ struct os_event;
 #define BLE_HS_SYNC_STATE_BRINGUP       1
 #define BLE_HS_SYNC_STATE_GOOD          2
 
-#if MYNEWT_BLE(CONNECT)
-#define BLE_HS_MAX_CONNECTIONS MYNEWT_BLE(MAX_CONNECTIONS)
+#if NIMBLE_BLE_CONNECT
+#define BLE_HS_MAX_CONNECTIONS MYNEWT_VAL(BLE_MAX_CONNECTIONS)
 #else
 #define BLE_HS_MAX_CONNECTIONS 0
 #endif
@@ -82,6 +82,10 @@ extern uint8_t ble_hs_sync_state;
 
 extern const uint8_t ble_hs_misc_null_addr[6];
 
+extern uint16_t ble_hs_max_attrs;
+extern uint16_t ble_hs_max_services;
+extern uint16_t ble_hs_max_client_configs;
+
 void ble_hs_process_tx_data_queue(void);
 void ble_hs_process_rx_data_queue(void);
 int ble_hs_tx_data(struct os_mbuf *om);
@@ -91,8 +95,6 @@ void ble_hs_event_enqueue(struct os_event *ev);
 int ble_hs_hci_rx_evt(uint8_t *hci_ev, void *arg);
 int ble_hs_hci_evt_acl_process(struct os_mbuf *om);
 
-int ble_hs_misc_malloc_mempool(void **mem, struct os_mempool *pool,
-                               int num_entries, int entry_size, char *name);
 int ble_hs_misc_conn_chan_find(uint16_t conn_handle, uint16_t cid,
                                struct ble_hs_conn **out_conn,
                                struct ble_l2cap_chan **out_chan);
@@ -110,7 +112,7 @@ void ble_hs_hw_error(uint8_t hw_code);
 void ble_hs_heartbeat_sched(int32_t ticks);
 void ble_hs_notifications_sched(void);
 
-#if LOG_LEVEL <= LOG_LEVEL_DEBUG
+#if MYNEWT_VAL(LOG_LEVEL) <= LOG_LEVEL_DEBUG
 
 #define BLE_HS_LOG_CMD(is_tx, cmd_type, cmd_name, conn_handle,                \
                        log_cb, cmd) do                                        \

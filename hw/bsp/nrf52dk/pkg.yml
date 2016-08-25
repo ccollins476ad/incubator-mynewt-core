@@ -32,14 +32,60 @@ pkg.linkerscript: "nrf52dk.ld"
 pkg.linkerscript.bootloader.OVERWRITE: "boot-nrf52dk.ld"
 pkg.downloadscript: nrf52dk_download.sh
 pkg.debugscript: nrf52dk_debug.sh
-pkg.cflags: -DNRF52 -DBSP_HAS_32768_XTAL -DSPI_MASTER_0_ENABLE
+pkg.cflags: -DBSP_HAS_32768_XTAL -DSPI_MASTER_0_ENABLE -DNRF52
 pkg.deps:
+    - drivers/uart/uart_hal
+    - fs/nffs
     - hw/mcu/nordic
     - hw/mcu/nordic/nrf52xxx
     - libs/baselibc
     - drivers/uart/uart_hal
     - sys/init
+    - sys/sysinit
 pkg.deps.BLE_DEVICE:
     - net/nimble/drivers/nrf52
 pkg.features:
     - ADC_NRF52
+
+pkg.deps.BLE_DEVICE: net/nimble/drivers/nrf52
+pkg.deps.ADC_0: drivers/adc/adc_nrf52
+
+pkg.syscfg_defs:
+    NRF52:
+        description: 'gaga'
+        value: 1
+    ADC_NRF52:
+        description: 'gaga'
+        value: 1
+
+    UART_0:
+        description: 'gaga'
+        value:  1
+
+    ADC_0:
+        description: 'gaga'
+        value:  1
+    ADC_0_RESOLUTION:
+        description: 'gaga'
+        value: 'SAADC_CONFIG_RESOLUTION'
+    ADC_0_OVERSAMPLE:
+        description: 'gaga'
+        value: 'SAADC_CONFIG_OVERSAMPLE'
+    ADC_0_INTERRUPT_PRIORITY:
+        description: 'gaga'
+        value: 'SAADC_CONFIG_IRQ_PRIORITY'
+
+pkg.syscfg_vals:
+    MSYS_1_BLOCK_COUNT: 12
+    MSYS_1_BLOCK_SIZE: 260
+    CLOCK_FREQ: 1000000
+
+    # Reboot log
+    REBOOT_LOG_0_TYPE: 'LOG_TYPE_STORAGE'
+    REBOOT_LOG_0_ENTRY_COUNT: 10
+
+    # Config
+    CONFIG_FS: 1
+    CONFIG_FS_DIR: '"/cfg"'
+    CONFIG_FS_FILE: '"/cfg/run"'
+    CONFIG_FS_MAX_LINES: 32

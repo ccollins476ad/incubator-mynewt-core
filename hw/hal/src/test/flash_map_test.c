@@ -19,8 +19,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <os/os.h>
-#include <testutil/testutil.h>
+#include "syscfg/syscfg.h"
+#include "os/os.h"
+#include "testutil/testutil.h"
 #include "hal/flash_map.h"
 #include "hal/hal_bsp.h"
 #include "hal/hal_flash.h"
@@ -153,7 +154,7 @@ TEST_SUITE(flash_map_test_suite)
     flash_map_test_case_2();
 }
 
-#ifdef MYNEWT_SELFTEST
+#if MYNEWT_VAL(SELFTEST)
 
 int
 main(int argc, char **argv)

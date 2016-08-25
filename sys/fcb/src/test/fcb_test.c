@@ -20,8 +20,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <os/os.h>
-#include <testutil/testutil.h>
+#include "syscfg/syscfg.h"
+#include "os/os.h"
+#include "testutil/testutil.h"
 
 #include "fcb/fcb.h"
 #include "fcb/../../src/fcb_priv.h"
@@ -655,7 +656,7 @@ TEST_SUITE(fcb_test_all)
     fcb_test_multiple_scratch();
 }
 
-#ifdef MYNEWT_SELFTEST
+#if MYNEWT_VAL(SELFTEST)
 
 int
 main(int argc, char **argv)

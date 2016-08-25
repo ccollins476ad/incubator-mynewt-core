@@ -230,3 +230,12 @@ nmgr_ble_gatt_svr_init(void)
 err:
     return rc;
 }
+
+void
+newtmgr_ble_pkg_init(void)
+{
+    int rc;
+
+    rc = nmgr_ble_gatt_svr_init();
+    assert(rc == 0);
+}

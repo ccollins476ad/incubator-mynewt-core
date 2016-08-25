@@ -19,6 +19,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include <hal/hal_bsp.h>
 #include <os/os.h>
@@ -108,8 +109,11 @@ id_conf_export(void (*export_func)(char *name, char *val),
     return 0;
 }
 
-int
+void
 id_init(void)
 {
-    return conf_register(&id_conf);
+    int rc;
+
+    rc = conf_register(&id_conf);
+    assert(rc == 0);
 }

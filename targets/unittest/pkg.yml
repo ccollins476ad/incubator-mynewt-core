@@ -23,3 +23,12 @@ pkg.type: "target"
 pkg.description: "Used for unit tests by the \"newt test\" command."
 pkg.author: "Apache Mynewt <dev@mynewt.incubator.apache.org>"
 pkg.homepage: "http://mynewt.apache.org/"
+
+pkg.deps: sys/sysinit
+
+pkg.syscfg_vals:
+    MSYS_1_BLOCK_COUNT: 100
+    BLE_MAX_CONNECTIONS: 8
+    BLE_GATT_MAX_PROCS: 16
+    BLE_SM: 1
+    BLE_SM_SC: 1

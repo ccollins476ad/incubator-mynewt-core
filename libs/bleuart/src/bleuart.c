@@ -34,9 +34,6 @@ uint16_t g_bleuart_attr_write_handle;
 /* Pointer to a console buffer */
 char *console_buf;
 
-/* Console max input */
-uint16_t console_max_input;
-
 uint16_t g_console_conn_handle;
 /**
  * The vendor specific "bleuart" service consists of one write no-rsp characteristic
@@ -122,11 +119,11 @@ gatt_svr_chr_access_uart_write(uint16_t conn_handle, uint16_t attr_handle,
  * @return 0 on success; non-zero on failure
  */
 int
-bleuart_gatt_svr_init(struct ble_hs_cfg *cfg)
+bleuart_gatt_svr_init(void)
 {
     int rc;
 
-    rc = ble_gatts_count_cfg(gatt_svr_svcs, cfg);
+    rc = ble_gatts_count_cfg(gatt_svr_svcs);
     if (rc != 0) {
         goto err;
     }
@@ -154,7 +151,7 @@ bleuart_uart_read(void)
     off = 0;
     while (1) {
         rc = console_read(console_buf + off,
-                          console_max_input - off, &full_line);
+                          MYNEWT_VAL(BLEUART_MAX_INPUT) - off, &full_line);
         if (rc <= 0 && !full_line) {
             continue;
         }
@@ -189,16 +186,14 @@ bleuart_set_conn_handle(uint16_t conn_handle) {
  *
  * @param Maximum input
  */
-int
-bleuart_init(int max_input)
+void
+bleuart_init(void)
 {
     int rc;
 
     rc = console_init(bleuart_uart_read);
     assert(rc == 0);
 
-    console_buf = malloc(max_input);
-    console_max_input = max_input;
+    console_buf = malloc(MYNEWT_VAL(BLEUART_MAX_INPUT));
     assert(console_buf);
-    return 0;
 }

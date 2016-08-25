@@ -36,3 +36,6 @@ pkg.deps.SHELL:
 pkg.req_apis.SHELL:
     - console
 pkg.cflags.SHELL: -DSHELL_PRESENT
+
+pkg.init_function: id_init
+pkg.init_stage: 5

@@ -46,6 +46,9 @@ pkg.req_apis:
 pkg.features:
     - BLE_HOST
 
+pkg.init_function: "ble_hs_init"
+pkg.init_stage: 2
+
 # Satisfy capability dependencies for the self-contained test executable.
 pkg.deps.SELFTEST:
     - libs/console/stub
@@ -56,3 +59,173 @@ pkg.cflags.SELFTEST:
     - "-DNIMBLE_OPT_SM=1"
     - "-DNIMBLE_OPT_SM_SC=1"
 pkg.cflags.TEST: -DBLE_HS_DEBUG
+
+pkg.syscfg_defs:
+    # L2CAP settings.
+    BLE_L2CAP_MAX_CHANS:
+        description: 'gaga'
+        value: '3*MYNEWT_VAL_BLE_MAX_CONNECTIONS'
+    BLE_L2CAP_SIG_MAX_PROCS:
+        description: 'gaga'
+        value: 1
+
+    # Security manager settings.
+    BLE_SM:
+        description: 'Security manager legacy pairing.'
+        value: 1
+    BLE_SM_SC:
+        description: 'Security manager secure connections (4.2).'
+        value: 0
+
+    BLE_SM_MAX_PROCS:
+        description: 'gaga'
+        value: 1
+    BLE_SM_IO_CAP:
+        description: 'gaga'
+        value: BLE_HS_IO_NO_INPUT_OUTPUT
+    BLE_SM_OOB_DATA_FLAG:
+        description: 'gaga'
+        value: 0
+    BLE_SM_BONDING:
+        description: 'gaga'
+        value: 0
+    BLE_SM_MITM:
+        description: 'gaga'
+        value: 0
+    BLE_SM_KEYPRESS:
+        description: 'gaga'
+        value: 0
+    BLE_SM_OUR_KEY_DIST:
+        description: 'gaga'
+        value: 0
+    BLE_SM_THEIR_KEY_DIST:
+        description: 'gaga'
+        value: 0
+
+    # Supported GATT procedures.  By default:
+    #     o Notify and indicate are enabled;
+    #     o All other procedures are enabled for centrals.
+    BLE_GATT_DISC_ALL_SVCS:
+        description: 'gaga'
+        value: MYNEWT_VAL_BLE_ROLE_CENTRAL
+    BLE_GATT_DISC_SVC_UUID:
+        description: 'gaga'
+        value: MYNEWT_VAL_BLE_ROLE_CENTRAL
+    BLE_GATT_FIND_INC_SVCS:
+        description: 'gaga'
+        value: MYNEWT_VAL_BLE_ROLE_CENTRAL
+    BLE_GATT_DISC_ALL_CHRS:
+        description: 'gaga'
+        value: MYNEWT_VAL_BLE_ROLE_CENTRAL
+    BLE_GATT_DISC_CHR_UUID:
+        description: 'gaga'
+        value: MYNEWT_VAL_BLE_ROLE_CENTRAL
+    BLE_GATT_DISC_ALL_DSCS:
+        description: 'gaga'
+        value: MYNEWT_VAL_BLE_ROLE_CENTRAL
+    BLE_GATT_READ:
+        description: 'gaga'
+        value: MYNEWT_VAL_BLE_ROLE_CENTRAL
+    BLE_GATT_READ_UUID:
+        description: 'gaga'
+        value: MYNEWT_VAL_BLE_ROLE_CENTRAL
+    BLE_GATT_READ_LONG:
+        description: 'gaga'
+        value: MYNEWT_VAL_BLE_ROLE_CENTRAL
+    BLE_GATT_READ_MULT:
+        description: 'gaga'
+        value: MYNEWT_VAL_BLE_ROLE_CENTRAL
+    BLE_GATT_WRITE_NO_RSP:
+        description: 'gaga'
+        value: MYNEWT_VAL_BLE_ROLE_CENTRAL
+    BLE_GATT_SIGNED_WRITE:
+        description: 'gaga'
+        value: MYNEWT_VAL_BLE_ROLE_CENTRAL
+    BLE_GATT_WRITE:
+        description: 'gaga'
+        value: MYNEWT_VAL_BLE_ROLE_CENTRAL
+    BLE_GATT_WRITE_LONG:
+        description: 'gaga'
+        value: MYNEWT_VAL_BLE_ROLE_CENTRAL
+    BLE_GATT_WRITE_RELIABLE:
+        description: 'gaga'
+        value: MYNEWT_VAL_BLE_ROLE_CENTRAL
+    BLE_GATT_NOTIFY:
+        description: 'gaga'
+        value: 1
+    BLE_GATT_INDICATE:
+        description: 'gaga'
+        value: 1
+
+    # GATT options.
+    BLE_GATT_WRITE_MAX_ATTRS:
+        description: >
+            The maximum number of attributes that can be written with a single
+            GATT Reliable Write procedure.
+        value: 4
+    BLE_GATT_MAX_PROCS:
+        description: 'gaga'
+        value: 4
+
+    # Supported server ATT commands.
+    BLE_ATT_SVR_FIND_INFO:
+        description: 'gaga'
+        value: 1
+    BLE_ATT_SVR_FIND_TYPE:
+        description: 'gaga'
+        value: 1
+    BLE_ATT_SVR_READ_TYPE:
+        description: 'gaga'
+        value: 1
+    BLE_ATT_SVR_READ:
+        description: 'gaga'
+        value: 1
+    BLE_ATT_SVR_READ_BLOB:
+        description: 'gaga'
+        value: 1
+    BLE_ATT_SVR_READ_MULT:
+        description: 'gaga'
+        value: 1
+    BLE_ATT_SVR_READ_GROUP_TYPE:
+        description: 'gaga'
+        value: 1
+    BLE_ATT_SVR_WRITE:
+        description: 'gaga'
+        value: 1
+    BLE_ATT_SVR_WRITE_NO_RSP:
+        description: 'gaga'
+        value: 1
+    BLE_ATT_SVR_SIGNED_WRITE:
+        description: 'gaga'
+        value: 1
+    BLE_ATT_SVR_PREP_WRITE:
+        description: 'gaga'
+        value: 1
+    BLE_ATT_SVR_EXEC_WRITE:
+        description: 'gaga'
+        value: 1
+    BLE_ATT_SVR_NOTIFY:
+        description: 'gaga'
+        value: 1
+    BLE_ATT_SVR_INDICATE:
+        description: 'gaga'
+        value: 1
+
+    # ATT options.
+    BLE_ATT_MAX_PREP_ENTRIES:
+        description: >
+            A GATT server uses these when a peer performs a "write long
+            characteristic values" or "write long characteristic descriptors"
+            procedure.  One of these resources is consumed each time a peer
+            sends a partial write.
+        value: 64
+
+    # Privacy options.
+    BLE_RPA_TIMEOUT:
+        description: 'gaga'
+        value: 300
+
+    # Miscellaneous features.
+    BLE_EDDYSTONE:
+        description: 'gaga'
+        value: 1

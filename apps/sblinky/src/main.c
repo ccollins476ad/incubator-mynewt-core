@@ -255,7 +255,6 @@ adc_read_event(struct adc_dev *dev, void *arg, uint8_t etype,
         void *buffer, int buffer_len)
 {
     int i;
-    //int result;
     int rc;
 
     for (i = 0; i < ADC_NUMBER_SAMPLES; i++) {
@@ -373,12 +372,6 @@ task1_handler(void *arg)
     adc_event_handler_set(adc, adc_read_event, (void *) NULL);
 #endif
 
-#if 0
-    rc = adc_chan_read(adc, 0, &g_result);
-    assert(rc == 0);
-    g_result_mv = adc_result_mv(adc, 0, g_result);
-#endif
-
     while (1) {
         t = os_sched_get_current_task();
         assert(t->t_func == task1_handler);
@@ -410,6 +403,8 @@ task1_handler(void *arg)
 #if 0
         nrf_drv_saadc_sample();
 #endif
+        /* Release semaphore to task 2 */
+        os_sem_release(&g_test_sem);
     }
 
     os_dev_close((struct os_dev *) adc);
@@ -485,45 +480,8 @@ main(int argc, char **argv)
     mcu_sim_parse_args(argc, argv);
 #endif
 
-    conf_init();
-
     os_init();
 
-    rc = os_mempool_init(&default_mbuf_mpool, DEFAULT_MBUF_MPOOL_NBUFS,
-            DEFAULT_MBUF_MPOOL_BUF_LEN, default_mbuf_mpool_data,
-            "default_mbuf_data");
-    assert(rc == 0);
-
-    rc = os_mbuf_pool_init(&default_mbuf_pool, &default_mbuf_mpool,
-            DEFAULT_MBUF_MPOOL_BUF_LEN, DEFAULT_MBUF_MPOOL_NBUFS);
-    assert(rc == 0);
-
-    rc = os_msys_register(&default_mbuf_pool);
-    assert(rc == 0);
-
-    shell_task_init(SHELL_TASK_PRIO, shell_stack, SHELL_TASK_STACK_SIZE,
-                    SHELL_MAX_INPUT_LEN);
-
-    (void) console_init(shell_console_rx_cb);
-
-    stats_module_init();
-
-#ifdef NRF52
-    rc = os_dev_create((struct os_dev *) &my_dev, "adc0",
-            OS_DEV_INIT_KERNEL, OS_DEV_INIT_PRIO_DEFAULT,
-            nrf52_adc_dev_init, &adc_config);
-    assert(rc == 0);
-#endif
-#ifdef NRF51
-    rc = os_dev_create((struct os_dev *) &my_dev, "adc0",
-            OS_DEV_INIT_KERNEL, OS_DEV_INIT_PRIO_DEFAULT,
-            nrf51_adc_dev_init, &adc_config);
-    assert(rc == 0);
-#endif
-
-#if 0
-    saadc_test();
-#endif
     rc = init_tasks();
     os_start();
 

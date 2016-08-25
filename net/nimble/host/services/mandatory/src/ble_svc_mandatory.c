@@ -17,9 +17,19 @@
  * under the License.
  */
 
-#ifndef H_INIT_
-#define H_INIT_
+#include <assert.h>
 
-int init_msys(void);
+#include "services/mandatory/ble_svc_gap.h"
+#include "services/mandatory/ble_svc_gatt.h"
 
-#endif
+void
+ble_svc_mandatory_pkg_init(void)
+{
+    int rc;
+
+    rc = ble_svc_gap_init();
+    assert(rc == 0);
+
+    rc = ble_svc_gatt_init();
+    assert(rc == 0);
+}

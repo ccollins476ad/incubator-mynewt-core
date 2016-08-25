@@ -23,12 +23,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include "syscfg/syscfg.h"
 #include "testutil/testutil.h"
 #include "hal/hal_flash.h"
 #include "hal/flash_map.h"
 #include "fs/fs.h"
 #include "nffs/nffs.h"
-#include <config/config_file.h>
+#include "config/config_file.h"
 #include "bootutil/image.h"
 #include "bootutil/loader.h"
 #include "bootutil/bootutil_misc.h"
@@ -1153,7 +1154,7 @@ boot_test_all(void)
     return tu_any_failed;
 }
 
-#ifdef MYNEWT_SELFTEST
+#if MYNEWT_VAL(SELFTEST)
 
 int
 main(void)

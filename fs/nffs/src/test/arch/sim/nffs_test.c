@@ -22,6 +22,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <errno.h>
+#include "syscfg/syscfg.h"
 #include "hal/hal_flash.h"
 #include "testutil/testutil.h"
 #include "fs/fs.h"
@@ -3232,7 +3233,7 @@ nffs_assert_handler(const char *file, int line, const char *func, const char *e)
 }
 #endif
 
-#ifdef MYNEWT_SELFTEST
+#if MYNEWT_VAL(SELFTEST)
 
 int
 main(void)

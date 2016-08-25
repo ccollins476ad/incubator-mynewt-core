@@ -21,6 +21,7 @@
 #define H_BLE_SM_PRIV_
 
 #include <inttypes.h>
+#include "syscfg/syscfg.h"
 #include "os/queue.h"
 #include "nimble/nimble_opt.h"
 
@@ -196,7 +197,7 @@ struct ble_sm_dhkey_check {
     uint8_t value[16];
 };
 
-#if MYNEWT_BLE(SM)
+#if NIMBLE_BLE_SM
 
 #define BLE_SM_PROC_STATE_NONE              ((uint8_t)-1)
     
@@ -263,7 +264,7 @@ struct ble_sm_proc {
     struct ble_sm_keys our_keys;
     struct ble_sm_keys peer_keys;
 
-#if MYNEWT_BLE(SM_SC)
+#if MYNEWT_VAL(BLE_SM_SC)
     /* Secure connections. */
     uint8_t passkey_bits_exchanged;
     uint8_t ri;
@@ -406,7 +407,7 @@ void ble_sm_lgcy_random_exec(struct ble_sm_proc *proc,
 void ble_sm_lgcy_random_rx(struct ble_sm_proc *proc,
                            struct ble_sm_result *res);
 
-#if MYNEWT_BLE(SM_SC)
+#if MYNEWT_VAL(BLE_SM_SC)
 int ble_sm_sc_io_action(struct ble_sm_proc *proc);
 void ble_sm_sc_confirm_exec(struct ble_sm_proc *proc,
                             struct ble_sm_result *res);

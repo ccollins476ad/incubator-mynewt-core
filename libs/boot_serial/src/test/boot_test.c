@@ -23,11 +23,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
-#include <util/base64.h>
-#include <util/crc16.h>
-#include <testutil/testutil.h>
-#include <hal/hal_flash.h>
-#include <hal/flash_map.h>
+#include "syscfg/syscfg.h"
+#include "util/base64.h"
+#include "util/crc16.h"
+#include "testutil/testutil.h"
+#include "hal/hal_flash.h"
+#include "hal/flash_map.h"
 
 #include "../boot_serial_priv.h"
 
@@ -215,7 +216,7 @@ boot_serial_test(void)
     return tu_any_failed;
 }
 
-#ifdef MYNEWT_SELFTEST
+#if MYNEWT_VAL(SELFTEST)
 int
 main(void)
 {

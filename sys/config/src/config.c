@@ -20,13 +20,14 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <os/os.h>
-#include <util/base64.h>
+#include "syscfg/syscfg.h"
+#include "os/os.h"
+#include "util/base64.h"
 
 #include "config/config.h"
 #include "config_priv.h"
 
-struct conf_handler_head conf_handlers = SLIST_HEAD_INITIALIZER(&conf_handlers);
+struct conf_handler_head conf_handlers;
 
 static uint8_t conf_cmd_inited;
 
@@ -35,14 +36,17 @@ conf_init(void)
 {
     int rc;
 
+    SLIST_INIT(&conf_handlers);
+    conf_store_init();
+
     rc = 0;
     if (conf_cmd_inited) {
         goto done;
     }
-#ifdef SHELL_PRESENT
+#if MYNEWT_VAL(CONFIG_SHELL)
     rc = conf_cli_register();
 #endif
-#ifdef NEWTMGR_PRESENT
+#if MYNEWT_VAL(CONFIG_NEWTMGR)
     rc = conf_nmgr_register();
 #endif
     if (!rc) {

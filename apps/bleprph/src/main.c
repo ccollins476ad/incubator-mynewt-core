@@ -301,7 +301,7 @@ main(void)
     /* Initialize OS */
     os_init();
 
-    /* Initialize the logging system. */
+    /* Initialize the bleprph log. */
     log_console_handler_init(&bleprph_log_console_handler);
     log_register("bleprph", &bleprph_log, &bleprph_log_console_handler);
 
@@ -316,6 +316,8 @@ main(void)
                  bleprph_stack, BLEPRPH_STACK_SIZE);
 
     /* Initialize the NimBLE host configuration. */
+    ble_hs_cfg.parent_task = &bleprph_task;
+    ble_hs_cfg.parent_evq = &bleprph_evq;
     ble_hs_cfg.reset_cb = bleprph_on_reset;
     ble_hs_cfg.sync_cb = bleprph_on_sync;
     ble_hs_cfg.gatts_register_cb = gatt_svr_register_cb;

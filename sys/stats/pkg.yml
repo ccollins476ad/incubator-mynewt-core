@@ -36,3 +36,6 @@ pkg.req_apis.SHELL:
     - console
 pkg.cflags.SHELL: -DSHELL_PRESENT
 pkg.cflags.NEWTMGR: -DNEWTMGR_PRESENT 
+
+pkg.init_function: stats_module_init
+pkg.init_stage: 0

@@ -18,6 +18,7 @@
  */
 
 #include <inttypes.h>
+#include <assert.h>
 #include <os/os.h>
 #include <uart/uart.h>
 #include <bsp/bsp.h>
@@ -401,4 +402,13 @@ console_init(console_rx_cb rx_cb)
     }
 
     return 0;
+}
+
+void
+console_pkg_init(void)
+{
+    int rc;
+
+    rc = console_init(NULL);
+    assert(rc == 0);
 }

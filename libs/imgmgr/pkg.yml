@@ -34,3 +34,6 @@ pkg.cflags.FS: -DFS_PRESENT
 pkg.deps.COREDUMP:
     - sys/coredump
 pkg.cflags.COREDUMP: -DCOREDUMP_PRESENT
+
+pkg.init_function: imgmgr_module_init
+pkg.init_stage: 5

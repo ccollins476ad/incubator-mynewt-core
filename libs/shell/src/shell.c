@@ -17,6 +17,7 @@
  * under the License.
  */
 
+#include "syscfg/syscfg.h"
 #include <os/os.h>
 
 #include <console/console.h>
@@ -41,6 +42,8 @@ static struct os_mqueue g_shell_nlip_mq;
 #define OS_EVENT_T_CONSOLE_RDY  (OS_EVENT_T_PERUSER)
 #define SHELL_HELP_PER_LINE     6
 #define SHELL_MAX_ARGS          20
+
+static os_stack_t shell_stack[OS_STACK_ALIGN(MYNEWT_VAL(SHELL_STACK_SIZE))];
 
 static int shell_echo_cmd(int argc, char **argv);
 static int shell_help_cmd(int argc, char **argv);
@@ -73,7 +76,6 @@ static struct os_event console_rdy_ev;
 static struct os_mutex g_shell_cmd_list_lock;
 
 static char *shell_line;
-static int shell_line_capacity;
 static int shell_line_len;
 static char *argv[SHELL_MAX_ARGS];
 
@@ -417,7 +419,7 @@ shell_read_console(void)
 
     while (1) {
         rc = console_read(shell_line + shell_line_len,
-          shell_line_capacity - shell_line_len, &full_line);
+          MYNEWT_VAL(SHELL_MAX_INPUT_LEN) - shell_line_len, &full_line);
         if (rc <= 0 && !full_line) {
             break;
         }
@@ -524,21 +526,20 @@ shell_help_cmd(int argc, char **argv)
 }
 
 int
-shell_task_init(uint8_t prio, os_stack_t *stack, uint16_t stack_size,
-                int max_input_length)
+shell_task_init(void)
 {
     int rc;
 
     free(shell_line);
+    shell_line = NULL;
 
-    if (max_input_length > 0) {
-        shell_line = malloc(max_input_length);
-        if (shell_line == NULL) {
-            rc = ENOMEM;
-            goto err;
-        }
+#if MYNEWT_VAL(SHELL_MAX_INPUT_LEN) > 0
+    shell_line = malloc(MYNEWT_VAL(SHELL_MAX_INPUT_LEN));
+    if (shell_line == NULL) {
+        rc = OS_ENOMEM;
+        goto err;
     }
-    shell_line_capacity = max_input_length;
+#endif
 
     rc = os_mutex_init(&g_shell_cmd_list_lock);
     if (rc != 0) {
@@ -576,14 +577,25 @@ shell_task_init(uint8_t prio, os_stack_t *stack, uint16_t stack_size,
     console_init(shell_console_rx_cb);
 
     rc = os_task_init(&shell_task, "shell", shell_task_func,
-            NULL, prio, OS_WAIT_FOREVER, stack, stack_size);
+            NULL, MYNEWT_VAL(SHELL_TASK_PRIO), OS_WAIT_FOREVER, shell_stack,
+            MYNEWT_VAL(SHELL_STACK_SIZE));
     if (rc != 0) {
         goto err;
     }
 
-    return (0);
+    return 0;
+
 err:
     free(shell_line);
     shell_line = NULL;
-    return (rc);
+    return rc;
+}
+
+void
+shell_pkg_init(void)
+{
+    int rc;
+
+    rc = shell_task_init();
+    assert(rc == 0);
 }

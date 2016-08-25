@@ -487,12 +487,11 @@ err:
     return 0;
 }
 
-int
+void
 imgmgr_module_init(void)
 {
     int rc;
 
     rc = nmgr_group_register(&imgr_nmgr_group);
     assert(rc == 0);
-    return rc;
 }

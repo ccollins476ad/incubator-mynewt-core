@@ -20,8 +20,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <os/os.h>
-#include <testutil/testutil.h>
+#include "syscfg/syscfg.h"
+#include "os/os.h"
+#include "testutil/testutil.h"
 
 #include "mn_socket/mn_socket.h"
 
@@ -66,7 +67,7 @@ TEST_SUITE(mn_socket_test_all)
     inet_pton_test();
 }
 
-#ifdef MYNEWT_SELFTEST
+#if MYNEWT_VAL(SELFTEST)
 
 int
 main(int argc, char **argv)

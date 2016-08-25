@@ -26,8 +26,9 @@ pkg.features:
     - ADC_NRF52
 pkg.apis: 
     - ADC_HW_IMPL
+pkg.deps:
+   - drivers/adc
 pkg.deps.TEST:
    - hw/hal
    - hw/mcu/nordic
-   - drivers/adc
    - libs/testutil

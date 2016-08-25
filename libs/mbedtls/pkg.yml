@@ -25,7 +25,10 @@ pkg.keywords:
     - ssl
     - tls
 
-pkg.cflags: -DMBEDTLS_USER_CONFIG_FILE=\"mbedtls/config_mynewt.h\"
+pkg.cflags: '-DMBEDTLS_USER_CONFIG_FILE=\"mbedtls/config_mynewt.h\"'
 pkg.deps:
     - libs/testutil
 pkg.cflags.TEST: -DTEST
+
+pkg.deps.SELFTEST:
+    - libs/console/stub

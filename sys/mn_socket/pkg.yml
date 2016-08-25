@@ -29,3 +29,6 @@ pkg.deps:
     - libs/os
     - libs/util
     - libs/testutil
+
+pkg.deps.SELFTEST:
+    - libs/console/stub

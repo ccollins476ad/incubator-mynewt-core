@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include <stddef.h>
+#include "syscfg/syscfg.h"
 #include "testutil/testutil.h"
 #include "util_test_priv.h"
 
@@ -29,7 +30,7 @@ util_test_all(void)
     return tu_case_failed;
 }
 
-#ifdef MYNEWT_SELFTEST
+#if MYNEWT_VAL(SELFTEST)
 
 int
 main(int argc, char **argv)

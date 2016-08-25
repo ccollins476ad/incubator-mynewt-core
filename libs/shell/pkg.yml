@@ -30,3 +30,18 @@ pkg.req_apis:
     - console
 pkg.features:
     - SHELL 
+
+pkg.init_function: shell_pkg_init
+pkg.init_stage: 5
+
+pkg.syscfg_defs:
+    SHELL_TASK_PRIO:
+        description: 'gaga'
+        type: 'task_priority'
+        value: 'any'
+    SHELL_STACK_SIZE:
+        description: 'gaga'
+        value:     512
+    SHELL_MAX_INPUT_LEN:
+        description: 'gaga'
+        value:  256

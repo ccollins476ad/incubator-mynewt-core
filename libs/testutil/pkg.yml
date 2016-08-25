@@ -29,4 +29,4 @@ pkg.deps:
     - hw/hal
     - libs/os
 
-pkg.cflags.TEST: "-DMYNEWT_UNIT_TEST"
+pkg.cflags.TEST: "-DUNIT_TEST"

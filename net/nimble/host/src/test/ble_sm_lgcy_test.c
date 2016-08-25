@@ -28,7 +28,7 @@
 #include "ble_hs_test_util.h"
 #include "ble_sm_test_util.h"
 
-#if MYNEWT_BLE(SM)
+#if NIMBLE_BLE_SM
 
 /**
  * Legacy pairing

@@ -64,6 +64,8 @@ int conf_load(void);
 int conf_save(void);
 int conf_save_one(const char *name, char *var);
 
+void conf_store_init(void);
+
 /*
   XXXX for later
   int conf_save_lib(char *name);

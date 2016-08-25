@@ -17,13 +17,13 @@
  * under the License.
  */
 
-#include <os/os.h>
-
+#include <assert.h>
 #include <string.h>
-
-#include "stats/stats.h"
-
 #include <stdio.h>
+
+#include "syscfg/syscfg.h"
+#include "os/os.h"
+#include "stats/stats.h"
 
 STATS_SECT_START(stats)
     STATS_SECT_ENTRY(num_registered)
@@ -37,8 +37,6 @@ STATS_NAME_END(stats)
 
 STAILQ_HEAD(, stats_hdr) g_stats_registry =
     STAILQ_HEAD_INITIALIZER(g_stats_registry);
-
-static uint8_t stats_module_inited;
 
 int
 stats_walk(struct stats_hdr *hdr, stats_walk_func_t walk_func, void *arg)
@@ -92,27 +90,24 @@ err:
 }
 
 
-int
+void
 stats_module_init(void)
 {
     int rc;
 
-    if (stats_module_inited) {
-        return 0;
-    }
-    stats_module_inited = 1;
+    STAILQ_INIT(&g_stats_registry);
 
-#ifdef SHELL_PRESENT
+#if MYNEWT_VAL(STATS_SHELL)
     rc = stats_shell_register();
     if (rc != 0) {
-        goto err;
+        assert(0);
     }
 #endif
 
-#ifdef NEWTMGR_PRESENT
+#if MYNEWT_VAL(STATS_NEWTMGR)
     rc = stats_nmgr_register_group();
     if (rc != 0) {
-        goto err;
+        assert(0);
     }
 #endif
 
@@ -120,29 +115,13 @@ stats_module_init(void)
                     STATS_SIZE_INIT_PARMS(g_stats_stats, STATS_SIZE_32),
                     STATS_NAME_INIT_PARMS(stats));
     if (rc != 0) {
-        goto err;
+        assert(0);
     }
 
     rc = stats_register("stat", STATS_HDR(g_stats_stats));
     if (rc != 0) {
-        goto err;
+        assert(0);
     }
-
-    return (0);
-err:
-    return (rc);
-}
-
-/**
- * Uninitializes all statistic sections.  This is likely only useful for unit
- * tests that need to run in sequence.
- */
-void
-stats_module_reset(void)
-{
-    stats_module_inited = 0;
-
-    STAILQ_INIT(&g_stats_registry);
 }
 
 int

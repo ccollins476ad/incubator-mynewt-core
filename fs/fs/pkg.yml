@@ -26,10 +26,10 @@ pkg.keywords:
     - filesystem
     - ffs
 
-pkg.deps.SHELL:
+pkg.deps.FS_SHELL:
     - libs/shell
-pkg.req_apis.SHELL:
-    - console
-pkg.cflags.SHELL: -DSHELL_PRESENT
-pkg.features:
-    - FS
+
+pkg.syscfg_defs:
+    FS_CLI:
+        description: 'gaga'
+        value: 1

@@ -23,6 +23,9 @@ pkg.author: "Apache Mynewt <dev@mynewt.incubator.apache.org>"
 pkg.homepage: "http://mynewt.apache.org/"
 pkg.keywords:
 pkg.deps.TEST:
-   - libs/testutil
+    - libs/testutil
+pkg.deps.SELFTEST:
+    - libs/console/stub
 
 pkg.cflags.float_user: -DFLOAT_SUPPORT
+

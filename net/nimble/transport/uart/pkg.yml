@@ -32,3 +32,35 @@ pkg.deps:
 
 pkg.apis:
     - ble_transport
+
+pkg.syscfg_defs:
+    BLE_HCI_EVT_HI_BUF_COUNT:
+        description: 'gaga'
+        value:     8
+    BLE_HCI_EVT_LO_BUF_COUNT:
+        description: 'gaga'
+        value:     0
+
+    BLE_HCI_UART_BUF_SIZE:
+        description: 'gaga'
+        value: 260
+
+    BLE_HCI_UART_PORT:
+        description: 'gaga'
+        value:            0
+    BLE_HCI_UART_BAUD:
+        description: 'gaga'
+        value:            1000000
+    BLE_HCI_UART_DATA_BITS:
+        description: 'gaga'
+        value:       8
+    BLE_HCI_UART_STOP_BITS:
+        description: 'gaga'
+        value:       1
+    BLE_HCI_UART_PARITY:
+        description: 'gaga'
+        value:          HAL_UART_PARITY_NONE
+    BLE_HCI_UART_FLOW_CTRL:
+        description: 'gaga'
+        value:       HAL_UART_FLOW_CTL_RTS_CTS
+

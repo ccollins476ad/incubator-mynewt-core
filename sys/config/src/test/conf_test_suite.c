@@ -17,12 +17,13 @@
  * under the License.
  */
 
-#include <os/os.h>
-#include <testutil/testutil.h>
+#include "syscfg/syscfg.h"
+#include "os/os.h"
+#include "testutil/testutil.h"
 #include "config/config.h"
 #include "test/config_test.h"
 
-#ifdef MYNEWT_SELFTEST
+#if MYNEWT_VAL(SELFTEST)
 
 int
 main(int argc, char **argv)

@@ -18,9 +18,10 @@
  */
 #include <string.h>
 
-#include <os/os.h>
-#include <testutil/testutil.h>
-#include <fcb/fcb.h>
+#include "syscfg/syscfg.h"
+#include "os/os.h"
+#include "testutil/testutil.h"
+#include "fcb/fcb.h"
 #include "log/log.h"
 
 static struct flash_area fcb_areas[] = {
@@ -145,7 +146,7 @@ TEST_SUITE(log_test_all)
     log_flush_fcb();
 }
 
-#ifdef MYNEWT_SELFTEST
+#if MYNEWT_VAL(SELFTEST)
 
 int
 main(int argc, char **argv)

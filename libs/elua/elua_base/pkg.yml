@@ -36,3 +36,12 @@ pkg.deps:
 pkg.deps.SHELL:
     - libs/shell
 pkg.cflags.SHELL: -DSHELL_PRESENT
+
+pkg.init_function: lua_init
+pkg.init_stage: 5
+
+pkg.syscfg_defs:
+    ELUA_SHELL:
+        description: 'gaga'
+        type: 'task_priority'
+        value: 'any'
