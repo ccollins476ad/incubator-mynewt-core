@@ -255,6 +255,7 @@ adc_read_event(struct adc_dev *dev, void *arg, uint8_t etype,
         void *buffer, int buffer_len)
 {
     int i;
+    //int result;
     int rc;
 
     for (i = 0; i < ADC_NUMBER_SAMPLES; i++) {
@@ -372,6 +373,12 @@ task1_handler(void *arg)
     adc_event_handler_set(adc, adc_read_event, (void *) NULL);
 #endif
 
+#if 0
+    rc = adc_chan_read(adc, 0, &g_result);
+    assert(rc == 0);
+    g_result_mv = adc_result_mv(adc, 0, g_result);
+#endif
+
     while (1) {
         t = os_sched_get_current_task();
         assert(t->t_func == task1_handler);
@@ -482,6 +489,9 @@ main(int argc, char **argv)
 
     os_init();
 
+#if 0
+    saadc_test();
+#endif
     rc = init_tasks();
     os_start();
 
