@@ -78,7 +78,7 @@ setup_for_nffs(void)
      * be readable.
      */
     cnt = NFFS_AREA_MAX;
-    rc = flash_area_to_nffs_desc(FLASH_AREA_NFFS, &cnt, nffs_descs);
+    rc = nffs_misc_desc_from_flash_area(FLASH_AREA_NFFS, &cnt, nffs_descs);
     assert(rc == 0);
 
     /*

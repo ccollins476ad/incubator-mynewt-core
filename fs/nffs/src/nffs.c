@@ -717,7 +717,7 @@ nffs_pkg_init(void)
      * of nffs area descriptors.
      */
     cnt = NFFS_AREA_MAX;
-    rc = flash_area_to_nffs_desc(FLASH_AREA_NFFS, &cnt, descs);
+    rc = nffs_misc_desc_from_flash_area(FLASH_AREA_NFFS, &cnt, descs);
     SYSINIT_PANIC_ASSERT(rc == 0);
 
     /* Attempt to restore an existing nffs file system from flash. */

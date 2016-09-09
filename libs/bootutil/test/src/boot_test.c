@@ -111,7 +111,7 @@ boot_test_util_init_flash(void)
     }
     cnt = 32;
 
-    rc = flash_area_to_nffs_desc(FLASH_AREA_NFFS, &cnt, nffs_descs);
+    rc = nffs_misc_desc_from_flash_area(FLASH_AREA_NFFS, &cnt, nffs_descs);
     TEST_ASSERT(rc == 0);
 
     rc = nffs_init();

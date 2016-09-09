@@ -100,7 +100,7 @@ int flash_area_to_sectors(int idx, int *cnt, struct flash_area *ret);
  * Given flash map index, return sector info in NFFS area desc format.
  */
 struct nffs_area_desc;
-int flash_area_to_nffs_desc(int idx, int *cnt, struct nffs_area_desc *nad);
+int nffs_misc_desc_from_flash_area(int idx, int *cnt, struct nffs_area_desc *nad);
 
 #ifdef __cplusplus
 }

@@ -687,7 +687,7 @@ main(int argc, char **argv)
         return 0;
     }
 
-    rc = flash_area_to_nffs_desc(FLASH_AREA_NFFS, &cnt, area_descs);
+    rc = nffs_misc_desc_from_flash_area(FLASH_AREA_NFFS, &cnt, area_descs);
     assert(rc == 0);
 
     if (copy_in_dir) {

@@ -59,6 +59,6 @@ int nffs_init(void);
 int nffs_detect(const struct nffs_area_desc *area_descs);
 int nffs_format(const struct nffs_area_desc *area_descs);
 
-int flash_area_to_nffs_desc(int idx, int *cnt, struct nffs_area_desc *nad);
+int nffs_misc_desc_from_flash_area(int idx, int *cnt, struct nffs_area_desc *nad);
 
 #endif

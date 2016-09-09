@@ -450,7 +450,7 @@ nffs_misc_ready(void)
  * to a region.
  */
 int
-flash_area_to_nffs_desc(int idx, int *cnt, struct nffs_area_desc *nad)
+nffs_misc_desc_from_flash_area(int idx, int *cnt, struct nffs_area_desc *nad)
 {
     int i, j;
     const struct hal_flash *hf;
