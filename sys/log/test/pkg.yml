@@ -17,7 +17,7 @@
 #
 pkg.name: sys/log/test
 pkg.type: unittest
-pkg.description: Simple BLE peripheral application.
+pkg.description: "Log unit tests."
 pkg.author: "Apache Mynewt <dev@mynewt.incubator.apache.org>"
 pkg.homepage: "http://mynewt.apache.org/"
 pkg.keywords:
