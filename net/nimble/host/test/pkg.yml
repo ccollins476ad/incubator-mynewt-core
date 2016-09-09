@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -6,7 +5,7 @@
 # to you under the Apache License, Version 2.0 (the
 # "License"); you may not use this file except in compliance
 # with the License.  You may obtain a copy of the License at
-#
+# 
 #  http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing,
@@ -16,12 +15,32 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-
-### Package: targets/unittest
-pkg.name: "targets/unittest"
-pkg.type: "target"
-pkg.description: "Used for unit tests by the \"newt test\" command."
+pkg.name: net/nimble/host/test
+pkg.type: unittest
+pkg.description: Simple BLE peripheral application.
 pkg.author: "Apache Mynewt <dev@mynewt.incubator.apache.org>"
 pkg.homepage: "http://mynewt.apache.org/"
+pkg.keywords:
 
-pkg.deps: sys/sysinit
+pkg.deps:
+    - net/nimble/host
+
+# Satisfy capability dependencies for the self-contained test executable.
+pkg.deps.SELFTEST:
+    - libs/console/stub
+    - net/nimble/transport/ram
+
+pkg.cflags.TEST:
+    # XXX: This should be a syscfg setting.
+    - "-DBLE_HS_DEBUG=1"
+
+pkg.cflags.SELFTEST:
+    # XXX: This should be a syscfg setting.
+    - "-DPHONY_HCI_ACKS=1"
+
+pkg.syscfg_vals.SELFTEST:
+    MSYS_1_BLOCK_COUNT: 100
+    BLE_MAX_CONNECTIONS: 8
+    BLE_GATT_MAX_PROCS: 16
+    BLE_SM: 1
+    BLE_SM_SC: 1

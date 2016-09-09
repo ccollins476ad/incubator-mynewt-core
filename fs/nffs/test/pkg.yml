@@ -25,6 +25,3 @@ pkg.keywords:
 pkg.deps: 
     - fs/nffs
     - libs/console/stub
-
-pkg.cflags:
-    - "-I../../../../src"
