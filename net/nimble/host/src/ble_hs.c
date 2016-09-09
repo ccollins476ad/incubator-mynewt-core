@@ -59,12 +59,8 @@ static struct os_event ble_hs_event_reset = {
 uint8_t ble_hs_sync_state;
 static int ble_hs_reset_reason;
 
-#if MYNEWT_VAL(SELFTEST)
-/** Use a higher frequency timer to allow tests to run faster. */
-#define BLE_HS_HEARTBEAT_OS_TICKS       (OS_TICKS_PER_SEC / 10)
-#else
-#define BLE_HS_HEARTBEAT_OS_TICKS       OS_TICKS_PER_SEC
-#endif
+#define BLE_HS_HEARTBEAT_OS_TICKS       \
+    (MYNEWT_VAL(BLE_HS_HEARTBEAT_FREQ) * OS_TICKS_PER_SEC / 1000)
 
 #define BLE_HS_SYNC_RETRY_RATE          (OS_TICKS_PER_SEC / 10)    
 
@@ -93,7 +89,7 @@ uint16_t ble_hs_max_attrs;
 uint16_t ble_hs_max_services;
 uint16_t ble_hs_max_client_configs;
 
-#if BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
 static uint8_t ble_hs_dbg_mutex_locked;
 #endif
 
@@ -115,7 +111,7 @@ ble_hs_locked_by_cur_task(void)
 {
     struct os_task *owner;
 
-#if BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
     if (!os_started()) {
         return ble_hs_dbg_mutex_locked;
     }
@@ -142,7 +138,7 @@ ble_hs_lock(void)
 
     BLE_HS_DBG_ASSERT(!ble_hs_locked_by_cur_task());
 
-#if BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
     if (!os_started()) {
         ble_hs_dbg_mutex_locked = 1;
         return;
@@ -158,7 +154,7 @@ ble_hs_unlock(void)
 {
     int rc;
 
-#if BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
     if (!os_started()) {
         BLE_HS_DBG_ASSERT(ble_hs_dbg_mutex_locked);
         ble_hs_dbg_mutex_locked = 0;
@@ -435,7 +431,7 @@ ble_hs_enqueue_hci_event(uint8_t *hci_evt)
 void
 ble_hs_notifications_sched(void)
 {
-#if MYNEWT_VAL(SELFTEST)
+#if !MYNEWT_VAL(BLE_HS_REQUIRE_OS)
     if (!os_started()) {
         ble_gatts_tx_notifications();
         return;
@@ -642,7 +638,7 @@ ble_hs_init(void)
     if (rc != 0) {
         return BLE_HS_EOS;
     }
-#if BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
     ble_hs_dbg_mutex_locked = 0;
 #endif
 

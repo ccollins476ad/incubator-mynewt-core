@@ -116,7 +116,7 @@ static struct os_mempool ble_l2cap_sig_proc_pool;
 static void
 ble_l2cap_sig_dbg_assert_proc_not_inserted(struct ble_l2cap_sig_proc *proc)
 {
-#if BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
     struct ble_l2cap_sig_proc *cur;
 
     STAILQ_FOREACH(cur, &ble_l2cap_sig_procs, next) {

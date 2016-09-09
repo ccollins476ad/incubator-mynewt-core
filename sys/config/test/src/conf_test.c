@@ -28,8 +28,8 @@
 #include "config/config.h"
 #include "config/config_file.h"
 #include "config/config_fcb.h"
-#include "test/config_test.h"
-#include "config/../../src/config_priv.h"
+#include "config_test.h"
+#include "config_priv.h"
 
 static uint8_t val8;
 int c2_var_count = 1;

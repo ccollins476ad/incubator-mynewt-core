@@ -21,7 +21,7 @@
 #include "os/os.h"
 #include "testutil/testutil.h"
 #include "config/config.h"
-#include "test/config_test.h"
+#include "config_test.h"
 
 #if MYNEWT_VAL(SELFTEST)
 

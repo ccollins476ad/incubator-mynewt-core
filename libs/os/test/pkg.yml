@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-pkg.name: fs/nffs/test
+pkg.name: libs/os/test
 pkg.type: unittest
 pkg.description: Simple BLE peripheral application.
 pkg.author: "Apache Mynewt <dev@mynewt.incubator.apache.org>"
@@ -23,7 +23,7 @@ pkg.homepage: "http://mynewt.apache.org/"
 pkg.keywords:
 
 pkg.deps: 
-    - fs/nffs
+    - libs/os
 
 pkg.deps.SELFTEST:
     - libs/console/stub

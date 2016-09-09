@@ -137,7 +137,7 @@ void ble_hs_notifications_sched(void);
 
 #endif
 
-#if BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
     #define BLE_HS_DBG_ASSERT(x) assert(x)
     #define BLE_HS_DBG_ASSERT_EVAL(x) assert(x)
 #else

@@ -30,7 +30,7 @@
 #include "hal/hal_flash.h"
 #include "hal/flash_map.h"
 
-#include "../boot_serial_priv.h"
+#include "boot_serial_priv.h"
 
 void
 tx_msg(void *src, int len)

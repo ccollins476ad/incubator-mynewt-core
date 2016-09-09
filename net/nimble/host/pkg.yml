@@ -30,13 +30,12 @@ pkg.deps:
     - sys/stats
     - libs/os
     - libs/util
-    - libs/mbedtls
     - net/nimble
 
-    # Tinycrypt is only required when secure connections (NIMBPLE_OPT_SM_SC)
-    # is enabled.  It always gets built as a dependency, but not is not
-    # included by the linker unless SC is enabled.  XXX: We should not build
-    # this library if it is not required.
+pkg.deps.BLE_SM:
+    - libs/mbedtls
+
+pkg.deps.BLE_SM_SC:
     - libs/tinycrypt
 
 pkg.req_apis:
@@ -52,6 +51,22 @@ pkg.init_stage: 2
 pkg.cflags.TEST: -DBLE_HS_DEBUG
 
 pkg.syscfg_defs:
+    # Debug settings.
+    BLE_HS_DEBUG:
+        description: 'gaga'
+        value: 0
+    BLE_HS_PHONY_HCI_ACKS:
+        description: 'gaga'
+        value: 0
+    BLE_HS_REQUIRE_OS:
+        description: 'gaga'
+        value: 1
+
+    # Misc settings.
+    BLE_HS_HEARTBEAT_FREQ:
+        description: 'Milliseconds.'
+        value: 1000
+
     # L2CAP settings.
     BLE_L2CAP_MAX_CHANS:
         description: 'gaga'

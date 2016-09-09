@@ -24,6 +24,7 @@ pkg.homepage: "http://mynewt.apache.org/"
 pkg.keywords:
 
 pkg.deps:
+    - sys/sysinit
     - libs/testutil
     - libs/util
 pkg.req_apis:

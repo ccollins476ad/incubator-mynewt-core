@@ -285,7 +285,7 @@ struct ble_sm_result {
     unsigned restore:1;
 };
 
-#ifdef BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
 void ble_sm_dbg_set_next_pair_rand(uint8_t *next_pair_rand);
 void ble_sm_dbg_set_next_ediv(uint16_t next_ediv);
 void ble_sm_dbg_set_next_master_id_rand(uint64_t next_master_id_rand);

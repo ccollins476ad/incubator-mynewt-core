@@ -372,7 +372,7 @@ STATS_NAME_END(ble_gattc_stats)
 static void
 ble_gattc_dbg_assert_proc_not_inserted(struct ble_gattc_proc *proc)
 {
-#if BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
     struct ble_gattc_proc *cur;
 
     ble_hs_lock();

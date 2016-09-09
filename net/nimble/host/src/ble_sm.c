@@ -144,7 +144,7 @@ static void ble_sm_pair_cfg(struct ble_sm_proc *proc);
  * $debug                                                                    *
  *****************************************************************************/
 
-#ifdef BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
 
 static uint8_t ble_sm_dbg_next_pair_rand[16];
 static uint8_t ble_sm_dbg_next_pair_rand_set;
@@ -228,7 +228,7 @@ ble_sm_dbg_num_procs(void)
 static void
 ble_sm_dbg_assert_no_cycles(void)
 {
-#if BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
     ble_sm_dbg_num_procs();
 #endif
 }
@@ -236,7 +236,7 @@ ble_sm_dbg_assert_no_cycles(void)
 static void
 ble_sm_dbg_assert_not_inserted(struct ble_sm_proc *proc)
 {
-#if BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
     struct ble_sm_proc *cur;
 
     STAILQ_FOREACH(cur, &ble_sm_procs, next) {
@@ -254,7 +254,7 @@ ble_sm_gen_pair_rand(uint8_t *pair_rand)
 {
     int rc;
 
-#ifdef BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
     if (ble_sm_dbg_next_pair_rand_set) {
         ble_sm_dbg_next_pair_rand_set = 0;
         memcpy(pair_rand, ble_sm_dbg_next_pair_rand,
@@ -276,7 +276,7 @@ ble_sm_gen_ediv(uint16_t *ediv)
 {
     int rc;
 
-#ifdef BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
     if (ble_sm_dbg_next_ediv_set) {
         ble_sm_dbg_next_ediv_set = 0;
         *ediv = ble_sm_dbg_next_ediv;
@@ -297,7 +297,7 @@ ble_sm_gen_master_id_rand(uint64_t *master_id_rand)
 {
     int rc;
 
-#ifdef BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
     if (ble_sm_dbg_next_master_id_rand_set) {
         ble_sm_dbg_next_master_id_rand_set = 0;
         *master_id_rand = ble_sm_dbg_next_master_id_rand;
@@ -318,7 +318,7 @@ ble_sm_gen_ltk(struct ble_sm_proc *proc, uint8_t *ltk)
 {
     int rc;
 
-#ifdef BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
     if (ble_sm_dbg_next_ltk_set) {
         ble_sm_dbg_next_ltk_set = 0;
         memcpy(ltk, ble_sm_dbg_next_ltk,
@@ -340,7 +340,7 @@ ble_sm_gen_csrk(struct ble_sm_proc *proc, uint8_t *csrk)
 {
     int rc;
 
-#ifdef BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
     if (ble_sm_dbg_next_csrk_set) {
         ble_sm_dbg_next_csrk_set = 0;
         memcpy(csrk, ble_sm_dbg_next_csrk,
@@ -362,7 +362,7 @@ ble_sm_gen_pub_priv(void *pub, uint32_t *priv)
 {
     int rc;
 
-#ifdef BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
     if (ble_sm_dbg_sc_keys_set) {
         ble_sm_dbg_sc_keys_set = 0;
         memcpy(pub, ble_sm_dbg_sc_pub_key, sizeof ble_sm_dbg_sc_pub_key);
@@ -648,7 +648,7 @@ ble_sm_proc_find(uint16_t conn_handle, uint8_t state, int is_initiator,
 static void
 ble_sm_insert(struct ble_sm_proc *proc)
 {
-#ifdef BLE_HS_DEBUG
+#if MYNEWT_VAL(BLE_HS_DEBUG)
     struct ble_sm_proc *cur;
 
     STAILQ_FOREACH(cur, &ble_sm_procs, next) {
