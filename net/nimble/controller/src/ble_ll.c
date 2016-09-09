@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <assert.h>
 #include <string.h>
+#include "sysinit/sysinit.h"
 #include "syscfg/syscfg.h"
 #include "os/os.h"
 #include "stats/stats.h"
@@ -1136,13 +1137,13 @@ ble_ll_init(void)
 
     ble_ll_hci_os_event_buf = malloc(
         OS_MEMPOOL_BYTES(16, sizeof (struct os_event)));
-    assert(ble_ll_hci_os_event_buf != NULL);
+    SYSINIT_PANIC_ASSERT(ble_ll_hci_os_event_buf != NULL);
 
     /* Create memory pool of OS events */
     rc = os_mempool_init(&g_ble_ll_hci_ev_pool, 16,
                          sizeof (struct os_event), ble_ll_hci_os_event_buf,
                          "g_ble_ll_hci_ev_pool");
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
 
     /* Initialize LL HCI */
     ble_ll_hci_init();
@@ -1198,9 +1199,9 @@ ble_ll_init(void)
                             STATS_SIZE_INIT_PARMS(ble_ll_stats, STATS_SIZE_32),
                             STATS_NAME_INIT_PARMS(ble_ll_stats),
                             "ble_ll");
+    SYSINIT_PANIC_ASSERT(rc == 0);
 
     ble_hci_trans_cfg_ll(ble_ll_hci_cmd_rx, NULL, ble_ll_hci_acl_rx, NULL);
-    //return rc;
 }
 
 #ifdef BLE_LL_LOG

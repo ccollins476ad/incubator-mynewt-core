@@ -31,7 +31,7 @@ pkg.req_apis:
 pkg.features:
     - SHELL 
 
-pkg.init_function: shell_pkg_init
+pkg.init_function: shell_init
 pkg.init_stage: 5
 
 pkg.syscfg_defs:

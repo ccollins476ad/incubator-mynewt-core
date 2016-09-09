@@ -17,20 +17,21 @@
  * under the License.
  */
 
-#include <os/os.h>
-#include <fcb/fcb.h>
-#include <console/console.h>
-#include "log/log.h"
-#include <bootutil/image.h>
-#include <bootutil/bootutil_misc.h>
-#include <imgmgr/imgmgr.h>
 #include <string.h>
-#include <config/config.h>
-#include <config/config_file.h>
-#include <reboot/log_reboot.h>
-#include <bsp/bsp.h>
 #include <assert.h>
+#include "sysinit/sysinit.h"
 #include "syscfg/syscfg.h"
+#include "os/os.h"
+#include "fcb/fcb.h"
+#include "console/console.h"
+#include "log/log.h"
+#include "bootutil/image.h"
+#include "bootutil/bootutil_misc.h"
+#include "imgmgr/imgmgr.h"
+#include "config/config.h"
+#include "config/config_file.h"
+#include "reboot/log_reboot.h"
+#include "bsp/bsp.h"
 
 static struct log_handler reboot_log_handler;
 static struct fcb fcb;
@@ -203,8 +204,13 @@ err:
 void
 log_reboot_pkg_init(void)
 {
+    int rc;
+
+    (void)rc;
+
 #if MYNEWT_VAL(REBOOT_LOG_0_TYPE)
-    reboot_init_handler(MYNEWT_VAL(REBOOT_LOG_0_TYPE),
-                        MYNEWT_VAL(REBOOT_LOG_0_ENTRY_COUNT));
+    rc = reboot_init_handler(MYNEWT_VAL(REBOOT_LOG_0_TYPE),
+                             MYNEWT_VAL(REBOOT_LOG_0_ENTRY_COUNT));
+    SYSINIT_PANIC_ASSERT(rc == 0);
 #endif
 }

@@ -18,6 +18,8 @@
  */
 
 #include <assert.h>
+
+#include "sysinit/sysinit.h"
 #include "syscfg/syscfg.h"
 #include "sysinit/sysinit.h"
 #include "bsp/bsp.h"
@@ -40,9 +42,9 @@ config_init_fs(void)
 
     fs_mkdir(MYNEWT_VAL(CONFIG_FS_DIR));
     rc = conf_file_src(&config_init_conf_file);
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
     rc = conf_file_dst(&config_init_conf_file);
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
 }
 
 #elif MYNEWT_VAL(CONFIG_FCB)
@@ -63,8 +65,9 @@ config_init_fcb(void)
     int rc;
 
     rc = flash_area_to_sectors(FLASH_AREA_NFFS, &cnt, NULL);
-    assert(rc == 0);
-    assert(cnt <= sizeof(conf_fcb_area) / sizeof(conf_fcb_area[0]));
+    SYSINIT_PANIC_ASSERT(rc == 0);
+    SYSINIT_PANIC_ASSERT(
+        cnt <= sizeof(conf_fcb_area) / sizeof(conf_fcb_area[0]));
     flash_area_to_sectors(FLASH_AREA_NFFS, &cnt, conf_fcb_area);
 
     config_init_conf_fcb.cf_fcb.f_sector_cnt = cnt;
@@ -80,9 +83,9 @@ config_init_fcb(void)
         }
         rc = conf_fcb_src(&config_init_conf_fcb);
     }
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
     rc = conf_fcb_dst(&config_init_conf_fcb);
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
 }
 
 #else

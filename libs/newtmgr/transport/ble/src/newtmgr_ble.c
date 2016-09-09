@@ -20,9 +20,10 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include "sysinit/sysinit.h"
 #include "host/ble_hs.h"
-#include <newtmgr/newtmgr.h>
-#include <os/endian.h>
+#include "newtmgr/newtmgr.h"
+#include "os/endian.h"
 
 /* nmgr ble mqueue */
 struct os_mqueue ble_nmgr_mq;
@@ -237,5 +238,5 @@ newtmgr_ble_pkg_init(void)
     int rc;
 
     rc = nmgr_ble_gatt_svr_init();
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
 }

@@ -19,9 +19,10 @@
 
 #include <inttypes.h>
 #include <assert.h>
-#include <os/os.h>
-#include <uart/uart.h>
-#include <bsp/bsp.h>
+#include "sysinit/sysinit.h"
+#include "os/os.h"
+#include "uart/uart.h"
+#include "bsp/bsp.h"
 #include "console/console.h"
 
 /** Indicates whether the previous line of output was completed. */
@@ -410,5 +411,5 @@ console_pkg_init(void)
     int rc;
 
     rc = console_init(NULL);
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
 }

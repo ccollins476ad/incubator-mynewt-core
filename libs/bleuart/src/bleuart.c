@@ -20,10 +20,12 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "sysinit/sysinit.h"
 #include "host/ble_hs.h"
-#include <bleuart/bleuart.h>
-#include <os/endian.h>
-#include <console/console.h>
+#include "bleuart/bleuart.h"
+#include "os/endian.h"
+#include "console/console.h"
 
 /* ble uart attr read handle */
 uint16_t g_bleuart_attr_read_handle;
@@ -192,8 +194,8 @@ bleuart_init(void)
     int rc;
 
     rc = console_init(bleuart_uart_read);
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
 
     console_buf = malloc(MYNEWT_VAL(BLEUART_MAX_INPUT));
-    assert(console_buf);
+    SYSINIT_PANIC_ASSERT(console_buf != NULL);
 }

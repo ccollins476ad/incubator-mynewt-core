@@ -57,7 +57,7 @@ struct conf_handler {
       enum conf_export_tgt tgt);
 };
 
-int conf_init(void);
+void conf_init(void);
 int conf_register(struct conf_handler *);
 int conf_load(void);
 

@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <stddef.h>
+#include "sysinit/sysinit.h"
 #include "syscfg/syscfg.h"
 #include "os/os.h"
 #include "util/mem.h"
@@ -224,6 +225,7 @@ void
 ble_hci_ram_pkg_init(void)
 {
     int rc;
+
     rc = ble_hci_ram_init();
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
 }

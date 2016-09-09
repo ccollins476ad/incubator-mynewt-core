@@ -29,6 +29,10 @@ pkg.deps:
     - libs/util
 
 pkg.syscfg_defs:
+    SYSINIT_PANIC_FN:
+        description: 'gaga'
+        value:
+
     CLOCK_FREQ:
         description: 'gaga'
         value:  1000000

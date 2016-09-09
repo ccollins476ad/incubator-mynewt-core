@@ -21,10 +21,11 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include <hal/hal_bsp.h>
-#include <os/os.h>
-#include <config/config.h>
-#include <util/base64.h>
+#include "sysinit/sysinit.h"
+#include "hal/hal_bsp.h"
+#include "os/os.h"
+#include "config/config.h"
+#include "util/base64.h"
 
 #include "id/id.h"
 
@@ -115,5 +116,5 @@ id_init(void)
     int rc;
 
     rc = conf_register(&id_conf);
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
 }

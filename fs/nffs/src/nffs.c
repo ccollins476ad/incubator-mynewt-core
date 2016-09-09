@@ -21,6 +21,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+
+#include "sysinit/sysinit.h"
 #include "bsp/bsp.h"
 #include "hal/hal_flash.h"
 #include "hal/flash_map.h"
@@ -709,14 +711,14 @@ nffs_pkg_init(void)
 
     /* Initialize nffs's internal state. */
     rc = nffs_init();
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
 
     /* Convert the set of flash blocks we intend to use for nffs into an array
      * of nffs area descriptors.
      */
     cnt = NFFS_AREA_MAX;
     rc = flash_area_to_nffs_desc(FLASH_AREA_NFFS, &cnt, descs);
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
 
     /* Attempt to restore an existing nffs file system from flash. */
     rc = nffs_detect(descs);
@@ -734,17 +736,17 @@ nffs_pkg_init(void)
 
         case NFFS_DETECT_FAIL_FORMAT:
             rc = nffs_format(descs);
-            assert(rc == 0);
+            SYSINIT_PANIC_ASSERT(rc == 0);
             break;
 
         default:
-            assert(0);
+            SYSINIT_PANIC();
             break;
         }
         break;
 
     default:
-        assert(0);
+        SYSINIT_PANIC();
         break;
     }
 }

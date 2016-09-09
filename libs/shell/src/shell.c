@@ -17,22 +17,21 @@
  * under the License.
  */
 
-#include "syscfg/syscfg.h"
-#include <os/os.h>
-
-#include <console/console.h>
-
-#include "shell/shell.h"
-#include "shell_priv.h"
-
-#include <os/endian.h>
-#include <util/base64.h>
-#include <util/crc16.h>
 
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+
+#include "sysinit/sysinit.h"
+#include "syscfg/syscfg.h"
+#include "console/console.h"
+#include "os/os.h"
+#include "os/endian.h"
+#include "util/base64.h"
+#include "util/crc16.h"
+#include "shell/shell.h"
+#include "shell_priv.h"
 
 static shell_nlip_input_func_t g_shell_nlip_in_func;
 static void *g_shell_nlip_in_arg;
@@ -525,8 +524,8 @@ shell_help_cmd(int argc, char **argv)
     return (0);
 }
 
-int
-shell_task_init(void)
+void
+shell_init(void)
 {
     int rc;
 
@@ -535,41 +534,26 @@ shell_task_init(void)
 
 #if MYNEWT_VAL(SHELL_MAX_INPUT_LEN) > 0
     shell_line = malloc(MYNEWT_VAL(SHELL_MAX_INPUT_LEN));
-    if (shell_line == NULL) {
-        rc = OS_ENOMEM;
-        goto err;
-    }
+    SYSINIT_PANIC_ASSERT(shell_line != NULL);
 #endif
 
     rc = os_mutex_init(&g_shell_cmd_list_lock);
-    if (rc != 0) {
-        goto err;
-    }
+    SYSINIT_PANIC_ASSERT(rc == 0);
 
     rc = shell_cmd_register(&g_shell_echo_cmd);
-    if (rc != 0) {
-        goto err;
-    }
+    SYSINIT_PANIC_ASSERT(rc == 0);
 
     rc = shell_cmd_register(&g_shell_help_cmd);
-    if (rc != 0) {
-        goto err;
-    }
+    SYSINIT_PANIC_ASSERT(rc == 0);
 
     rc = shell_cmd_register(&g_shell_os_tasks_display_cmd);
-    if (rc != 0) {
-        goto err;
-    }
+    SYSINIT_PANIC_ASSERT(rc == 0);
 
     rc = shell_cmd_register(&g_shell_os_mpool_display_cmd);
-    if (rc != 0) {
-        goto err;
-    }
+    SYSINIT_PANIC_ASSERT(rc == 0);
 
     rc = shell_cmd_register(&g_shell_os_date_cmd);
-    if (rc != 0) {
-        goto err;
-    }
+    SYSINIT_PANIC_ASSERT(rc == 0);
 
     os_eventq_init(&shell_evq);
     os_mqueue_init(&g_shell_nlip_mq, NULL);
@@ -579,23 +563,5 @@ shell_task_init(void)
     rc = os_task_init(&shell_task, "shell", shell_task_func,
             NULL, MYNEWT_VAL(SHELL_TASK_PRIO), OS_WAIT_FOREVER, shell_stack,
             MYNEWT_VAL(SHELL_STACK_SIZE));
-    if (rc != 0) {
-        goto err;
-    }
-
-    return 0;
-
-err:
-    free(shell_line);
-    shell_line = NULL;
-    return rc;
-}
-
-void
-shell_pkg_init(void)
-{
-    int rc;
-
-    rc = shell_task_init();
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
 }

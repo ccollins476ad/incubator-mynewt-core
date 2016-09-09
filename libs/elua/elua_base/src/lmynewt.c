@@ -18,6 +18,7 @@
  */
 
 #include <assert.h>
+#include "sysinit/sysinit.h"
 #include "syscfg/syscfg.h"
 #include "shell/shell.h"
 #include "elua_base/elua.h"
@@ -45,9 +46,11 @@ lua_init(void)
 {
     int rc;
 
+    (void)rc;
+
 #if MYNEWT_VAL(ELUA_SHELL)
     rc = shell_cmd_register(&lua_shell_cmd);
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
 #endif
 }
 #endif

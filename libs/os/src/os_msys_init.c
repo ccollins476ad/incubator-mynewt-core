@@ -18,6 +18,7 @@
  */
 
 #include <assert.h>
+#include "sysinit/sysinit.h"
 #include "syscfg/syscfg.h"
 #include "os/os_mempool.h"
 #include "util/mem.h"
@@ -88,10 +89,10 @@ os_msys_init_once(void *data, struct os_mempool *mempool,
 
     rc = mem_init_mbuf_pool(data, mempool, mbuf_pool, block_count, block_size,
                             name);
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
 
     rc = os_msys_register(mbuf_pool);
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
 }
 
 void

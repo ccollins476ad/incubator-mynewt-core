@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "sysinit/sysinit.h"
 #include "syscfg/syscfg.h"
 #include "os/os.h"
 #include "stats/stats.h"
@@ -99,29 +100,21 @@ stats_module_init(void)
 
 #if MYNEWT_VAL(STATS_SHELL)
     rc = stats_shell_register();
-    if (rc != 0) {
-        assert(0);
-    }
+    SYSINIT_PANIC_ASSERT(rc == 0);
 #endif
 
 #if MYNEWT_VAL(STATS_NEWTMGR)
     rc = stats_nmgr_register_group();
-    if (rc != 0) {
-        assert(0);
-    }
+    SYSINIT_PANIC_ASSERT(rc == 0);
 #endif
 
     rc = stats_init(STATS_HDR(g_stats_stats),
                     STATS_SIZE_INIT_PARMS(g_stats_stats, STATS_SIZE_32),
                     STATS_NAME_INIT_PARMS(stats));
-    if (rc != 0) {
-        assert(0);
-    }
+    SYSINIT_PANIC_ASSERT(rc == 0);
 
     rc = stats_register("stat", STATS_HDR(g_stats_stats));
-    if (rc != 0) {
-        assert(0);
-    }
+    SYSINIT_PANIC_ASSERT(rc == 0);
 }
 
 int

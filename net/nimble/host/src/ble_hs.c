@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include "sysinit/sysinit.h"
 #include "syscfg/syscfg.h"
 #include "bsp/bsp.h"
 #include "stats/stats.h"
@@ -579,7 +580,7 @@ ble_hs_init(void)
     rc = os_mempool_init(&ble_hs_hci_ev_pool, BLE_HS_HCI_EVT_COUNT,
                          sizeof (struct os_event), ble_hs_hci_os_event_buf,
                          "ble_hs_hci_ev_pool");
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
 
     /* Initialize eventq */
     os_eventq_init(&ble_hs_evq);

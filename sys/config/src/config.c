@@ -20,6 +20,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "sysinit/sysinit.h"
 #include "syscfg/syscfg.h"
 #include "os/os.h"
 #include "util/base64.h"
@@ -31,7 +32,7 @@ struct conf_handler_head conf_handlers;
 
 static uint8_t conf_cmd_inited;
 
-int
+void
 conf_init(void)
 {
     int rc;
@@ -39,22 +40,22 @@ conf_init(void)
     SLIST_INIT(&conf_handlers);
     conf_store_init();
 
-    rc = 0;
     if (conf_cmd_inited) {
-        goto done;
+        return;
     }
+
+    (void)rc;
+
 #if MYNEWT_VAL(CONFIG_SHELL)
     rc = conf_cli_register();
+    SYSINIT_PANIC_ASSERT(rc == 0);
 #endif
 #if MYNEWT_VAL(CONFIG_NEWTMGR)
     rc = conf_nmgr_register();
+    SYSINIT_PANIC_ASSERT(rc == 0);
 #endif
-    if (!rc) {
-        conf_cmd_inited = 1;
-    }
 
-done:
-    return rc;
+    conf_cmd_inited = 1;
 }
 
 int

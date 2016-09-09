@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#include "sysinit/sysinit.h"
 #include "syscfg/syscfg.h"
 #include "os/os.h"
 #include "util/cbmem.h"
@@ -45,9 +46,9 @@ struct shell_cmd g_shell_log_cmd = {
 void
 log_init(void)
 {
-#if MYNEWT_VAL(LOG_NEWTMGR)
     int rc;
-#endif
+
+    (void)rc;
 
     if (log_inited) {
         return;
@@ -60,9 +61,7 @@ log_init(void)
 
 #if MYNEWT_VAL(LOG_NEWTMGR)
     rc = log_nmgr_register_group();
-    if (rc != 0) {
-        assert(0);
-    }
+    SYSINIT_PANIC_ASSERT(rc == 0);
 #endif
 }
 

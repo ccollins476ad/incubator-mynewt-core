@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "syscfg/syscfg.h"
+#include "sysinit/sysinit.h"
 #include "os/os.h"
 #include "os/endian.h"
 
@@ -667,5 +668,5 @@ nmgr_pkg_init(void)
     int rc;
 
     rc = nmgr_task_init();
-    assert(rc == 0);
+    SYSINIT_PANIC_ASSERT(rc == 0);
 }

@@ -20,6 +20,23 @@
 #ifndef H_SYSINIT_
 #define H_SYSINIT_
 
+#include "syscfg/syscfg.h"
+
+typedef void sysinit_panic_fn(const char *file, int line);
+
+#if !MYNEWT_VAL(SYSINIT_PANIC_FN)
+#define SYSINIT_PANIC() assert(0)
+#else
+#define SYSINIT_PANIC() MYNEWT_VAL(SYSINIT_PANIC_FN)(__FILE__, __LINE__)
+#endif
+
+#define SYSINIT_PANIC_ASSERT(rc) do \
+{                                   \
+    if (!(rc)) {                    \
+        SYSINIT_PANIC();            \
+    }                               \
+} while (0)
+
 void sysinit(void);
 
 #endif
