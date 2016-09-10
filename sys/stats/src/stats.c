@@ -49,7 +49,7 @@ stats_walk(struct stats_hdr *hdr, stats_walk_func_t walk_func, void *arg)
     int ent_n;
     int len;
     int rc;
-#ifdef STATS_NAME_ENABLE
+#if MYNEWT_VAL(STATS_NAMES)
     int i;
 #endif
 
@@ -62,7 +62,7 @@ stats_walk(struct stats_hdr *hdr, stats_walk_func_t walk_func, void *arg)
          * walk function
          */
         name = NULL;
-#ifdef STATS_NAME_ENABLE
+#if MYNEWT_VAL(STATS_NAMES)
         for (i = 0; i < hdr->s_map_cnt; ++i) {
             if (hdr->s_map[i].snm_off == cur) {
                 name = hdr->s_map[i].snm_name;
@@ -125,7 +125,7 @@ stats_init(struct stats_hdr *shdr, uint8_t size, uint8_t cnt,
 
     shdr->s_size = size;
     shdr->s_cnt = cnt;
-#ifdef STATS_NAME_ENABLE
+#if MYNEWT_VAL(STATS_NAMES)
     shdr->s_map = map;
     shdr->s_map_cnt = map_cnt;
 #endif
