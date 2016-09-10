@@ -52,7 +52,7 @@ static const struct nmgr_handler imgr_nmgr_handlers[] = {
         .nh_write = imgr_boot_write
     },
     [IMGMGR_NMGR_OP_FILE] = {
-#ifdef FS_PRESENT
+#if MYNEWT_VAL(IMGMGR_FS)
         .nh_read = imgr_file_download,
         .nh_write = imgr_file_upload
 #else
@@ -69,7 +69,7 @@ static const struct nmgr_handler imgr_nmgr_handlers[] = {
         .nh_write = imgr_boot2_write
     },
     [IMGMGR_NMGR_OP_CORELIST] = {
-#ifdef COREDUMP_PRESENT
+#if MYNEWT_VAL(IMGMGR_COREDUMP)
         .nh_read = imgr_core_list,
         .nh_write = imgr_noop,
 #else
@@ -78,7 +78,7 @@ static const struct nmgr_handler imgr_nmgr_handlers[] = {
 #endif
     },
     [IMGMGR_NMGR_OP_CORELOAD] = {
-#ifdef COREDUMP_PRESENT
+#if MYNEWT_VAL(IMGMGR_COREDUMP)
         .nh_read = imgr_core_load,
         .nh_write = imgr_core_erase,
 #else

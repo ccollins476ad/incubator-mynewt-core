@@ -28,14 +28,23 @@ pkg.deps:
     - libs/os
     - libs/util
     - libs/testutil
-pkg.deps.SHELL:
+pkg.deps.STATS_SHELL:
     - libs/shell
-pkg.deps.NEWTMGR:
-    - libs/newtmgr
-pkg.req_apis.SHELL:
+pkg.req_apis.STATS_SHELL:
     - console
-pkg.cflags.SHELL: -DSHELL_PRESENT
-pkg.cflags.NEWTMGR: -DNEWTMGR_PRESENT 
+pkg.deps.STATS_NEWTMGR:
+    - libs/newtmgr
 
 pkg.init_function: stats_module_init
 pkg.init_stage: 0
+
+pkg.syscfg_defs:
+    STATS_NAMES:
+        description: 'gaga'
+        value: 1
+    STATS_SHELL:
+        description: 'gaga'
+        value: 1
+    STATS_NEWTMGR:
+        description: 'gaga'
+        value: 1

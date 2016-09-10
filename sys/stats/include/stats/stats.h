@@ -19,8 +19,9 @@
 #ifndef __UTIL_STATS_H__ 
 #define __UTIL_STATS_H__ 
 
-#include <os/queue.h>
 #include <stdint.h>
+#include "syscfg/syscfg.h"
+#include "os/queue.h"
 
 struct stats_name_map {
     uint16_t snm_off;
@@ -117,10 +118,10 @@ int stats_group_walk(stats_group_walk_func_t, void *);
 struct stats_hdr *stats_group_find(char *name);
 
 /* Private */
-#ifdef NEWTMGR_PRESENT 
+#if MYNEWT_VAL(STATS_NEWTMGR)
 int stats_nmgr_register_group(void);
 #endif 
-#ifdef SHELL_PRESENT
+#if MYNEWT_VAL(STATS_SHELL)
 int stats_shell_register(void);
 #endif
 
