@@ -34,26 +34,28 @@ pkg.downloadscript: nrf52dk_download.sh
 pkg.debugscript: nrf52dk_debug.sh
 pkg.cflags: -DBSP_HAS_32768_XTAL -DSPI_MASTER_0_ENABLE -DNRF52
 pkg.deps:
-    - drivers/uart/uart_hal
-    - fs/nffs
-    - hw/mcu/nordic
     - hw/mcu/nordic/nrf52xxx
     - libs/baselibc
-    - drivers/uart/uart_hal
-    - sys/sysinit
+
 pkg.deps.BLE_DEVICE:
     - net/nimble/drivers/nrf52
-pkg.features:
-    - ADC_NRF52
 
-pkg.deps.BLE_DEVICE: net/nimble/drivers/nrf52
-pkg.deps.ADC_0: drivers/adc/adc_nrf52
+pkg.deps.ADC_0:
+    - drivers/adc/adc_nrf52
+
+pkg.deps.UART_0:
+    - drivers/uart/uart_hal
 
 pkg.syscfg_defs:
-    NRF52:
+    BSP_NRF52:
         description: 'gaga'
         value: 1
-    ADC_NRF52:
+
+    CLOCK_FREQ:
+        description: 'gaga'
+        value:  1000000
+
+    32768_XTAL:
         description: 'gaga'
         value: 1
 
@@ -80,16 +82,3 @@ pkg.syscfg_defs:
     SPI_SLAVE:
         description: 'gaga'
         value:  0
-
-pkg.syscfg_vals:
-    CLOCK_FREQ: 1000000
-
-    # Reboot log
-    REBOOT_LOG_0_TYPE: 'LOG_TYPE_STORAGE'
-    REBOOT_LOG_0_ENTRY_COUNT: 10
-
-    # Config
-    CONFIG_FS: 1
-    CONFIG_FS_DIR: '"/cfg"'
-    CONFIG_FS_FILE: '"/cfg/run"'
-    CONFIG_FS_MAX_LINES: 32

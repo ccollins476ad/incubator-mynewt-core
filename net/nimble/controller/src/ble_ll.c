@@ -1107,6 +1107,23 @@ ble_ll_reset(void)
     return rc;
 }
 
+static void
+ble_ll_seed_prng(void)
+{
+    uint32_t seed;
+    int i;
+
+    /* Seed random number generator with least significant bytes of device
+     * address.
+     */
+    seed = 0;
+    for (i = 0; i < 4; ++i) {
+        seed |= g_dev_addr[i];
+        seed <<= 8;
+    }
+    srand(seed);
+}
+
 /**
  * Initialize the Link Layer. Should be called only once
  *
@@ -1193,6 +1210,11 @@ ble_ll_init(void)
 
     /* Initialize random number generation */
     ble_ll_rand_init();
+
+    /* XXX: This really doesn't belong here, as the address probably has not
+     * been set yet.
+     */
+    ble_ll_seed_prng();
 
     lldata->ll_supp_features = features;
 

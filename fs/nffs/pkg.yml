@@ -26,7 +26,6 @@ pkg.keywords:
     - filesystem
     - ffs
 
-pkg.features: NFFS
 pkg.deps:
     - fs/fs
     - hw/hal

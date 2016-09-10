@@ -35,9 +35,6 @@ pkg.deps:
 pkg.deps.BLE_HOST:
     - libs/newtmgr/transport/ble
 
-pkg.features:
-    - NEWTMGR
-
 pkg.init_function: nmgr_pkg_init
 pkg.init_stage: 5
 

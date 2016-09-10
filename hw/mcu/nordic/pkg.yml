@@ -26,7 +26,7 @@ pkg.keywords:
 
 pkg.type: sdk
 
-pkg.ign_files.NRF52: 
+pkg.ign_files.BSP_NRF52: 
     - "nrf_drv_adc.c"
     - "pstorage*"
     - "sdk_mapped_flags.c"

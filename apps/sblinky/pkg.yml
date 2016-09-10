@@ -33,12 +33,6 @@ pkg.feature_blacklist:
 pkg.feature_whitelist:
     ".*newtmgr.*": SHELL
 
-pkg.deps.ADC_NRF51:
-    - drivers/adc/adc_nrf51
-
-pkg.deps.ADC_NRF52:
-    - drivers/adc/adc_nrf52
-
 pkg.deps:
     - libs/newtmgr
     - hw/mcu/nordic

@@ -28,8 +28,6 @@ pkg.deps:
     - libs/util
 pkg.req_apis:
     - console
-pkg.features:
-    - SHELL 
 
 pkg.init_function: shell_init
 pkg.init_stage: 5

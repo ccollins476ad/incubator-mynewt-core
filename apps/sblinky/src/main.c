@@ -82,11 +82,6 @@ static volatile int g_task1_loops;
 struct os_task task2;
 os_stack_t stack2[TASK2_STACK_SIZE];
 
-#define SHELL_TASK_PRIO (3)
-#define SHELL_MAX_INPUT_LEN     (256)
-#define SHELL_TASK_STACK_SIZE (OS_STACK_ALIGN(1024))
-os_stack_t shell_stack[SHELL_TASK_STACK_SIZE];
-
 struct log_handler log_console_handler;
 struct log my_log;
 
@@ -98,16 +93,7 @@ struct os_sem g_test_sem;
 /* For LED toggling */
 int g_led_pin;
 
-#define DEFAULT_MBUF_MPOOL_BUF_LEN (256)
-#define DEFAULT_MBUF_MPOOL_NBUFS (5)
-
-uint8_t default_mbuf_mpool_data[DEFAULT_MBUF_MPOOL_BUF_LEN *
-    DEFAULT_MBUF_MPOOL_NBUFS];
-
-struct os_mbuf_pool default_mbuf_pool;
-struct os_mempool default_mbuf_mpool;
-
-#ifdef BSP_CFG_SPI_MASTER
+#if MYNEWT_VAL(SPI_MASTER)
 uint8_t g_spi_tx_buf[32];
 uint8_t g_spi_rx_buf[32];
 
@@ -145,7 +131,7 @@ sblinky_spi_tx_vals(int spi_num, uint8_t *buf, int len)
 #endif
 #endif
 
-#ifdef BSP_CFG_SPI_SLAVE
+#if MYNEWT_VAL(SPI_SLAVE)
 uint8_t g_spi_tx_buf[32];
 uint8_t g_spi_rx_buf[32];
 
@@ -179,7 +165,7 @@ sblinky_spi_cfg(int spi_num)
     int spi_id;
     struct hal_spi_settings my_spi;
 
-#ifdef BSP_CFG_SPI_MASTER
+#if MYNEWT_VAL(SPI_MASTER)
     my_spi.spi_type = HAL_SPI_TYPE_MASTER;
     my_spi.data_order = HAL_SPI_MSB_FIRST;
     my_spi.data_mode = HAL_SPI_MODE0;
@@ -190,7 +176,7 @@ sblinky_spi_cfg(int spi_num)
     spi_id = 0;
 #endif
 
-#ifdef BSP_CFG_SPI_SLAVE
+#if MYNEWT_VAL(SPI_SLAVE)
     my_spi.spi_type = HAL_SPI_TYPE_SLAVE;
     my_spi.data_order = HAL_SPI_MSB_FIRST;
     my_spi.data_mode = HAL_SPI_MODE0;
@@ -279,7 +265,7 @@ task1_handler(void *arg)
     int rc;
     struct os_task *t;
     struct adc_dev *adc;
-#ifdef BSP_CFG_SPI_MASTER
+#if MYNEWT_VAL(SPI_MASTER)
     int i;
     uint8_t last_val;
 #endif
@@ -305,7 +291,7 @@ task1_handler(void *arg)
     adc_chan_config(adc, 0, &cc);
 #endif
 
-#ifdef BSP_CFG_SPI_MASTER
+#if MYNEWT_VAL(SPI_MASTER)
     /* Use SS pin for testing */
     hal_gpio_init_out(SPI0_CONFIG_CSN_PIN, 1);
     sblinky_spi_cfg(0);
@@ -349,7 +335,7 @@ task1_handler(void *arg)
     hal_spi_enable(0);
 #endif
 
-#ifdef BSP_CFG_SPI_SLAVE
+#if MYNEWT_VAL(SPI_SLAVE)
     sblinky_spi_cfg(SPI_SLAVE_ID);
     hal_spi_enable(SPI_SLAVE_ID);
 
@@ -387,7 +373,7 @@ task1_handler(void *arg)
 
         ++g_task1_loops;
 
-#ifdef BSP_CFG_SPI_MASTER
+#if MYNEWT_VAL(SPI_MASTER)
         /*
          * Send a spi buffer using non-blocking callbacks.
          * Every other transfer should use a NULL rxbuf
@@ -420,7 +406,7 @@ task1_handler(void *arg)
 void
 task2_handler(void *arg)
 {
-#ifdef BSP_CFG_SPI_SLAVE
+#if MYNEWT_VAL(SPI_SLAVE)
     int rc;
 #endif
     struct os_task *t;
@@ -436,7 +422,7 @@ task2_handler(void *arg)
         /* Wait for semaphore from ISR */
         os_sem_pend(&g_test_sem, OS_TIMEOUT_NEVER);
 
-#ifdef BSP_CFG_SPI_SLAVE
+#if MYNEWT_VAL(SPI_SLAVE)
         /* transmit back what we just received */
         memcpy(g_spi_tx_buf, g_spi_rx_buf, 32);
         rc = hal_spi_txrx(SPI_SLAVE_ID, g_spi_tx_buf, g_spi_rx_buf, 32);
@@ -488,6 +474,10 @@ main(int argc, char **argv)
 #endif
 
     os_init();
+
+    /* Initialize the sblinky log. */
+    log_console_handler_init(&log_console_handler);
+    log_register("sblinky", &my_log, &log_console_handler);
 
 #if 0
     saadc_test();

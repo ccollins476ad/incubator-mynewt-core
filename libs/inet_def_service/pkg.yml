@@ -34,5 +34,3 @@ pkg.deps:
 
 pkg.reqs:
     - console
-
-pkg.features:

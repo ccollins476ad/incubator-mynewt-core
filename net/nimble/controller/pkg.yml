@@ -34,9 +34,6 @@ pkg.deps:
     - sys/stats
     - net/nimble
 
-pkg.features:
-    - BLE_DEVICE
-
 pkg.init_function: ble_ll_init
 pkg.init_stage: 2
 

@@ -42,9 +42,6 @@ pkg.req_apis:
     - ble_transport
     - console
 
-pkg.features:
-    - BLE_HOST
-
 pkg.init_function: "ble_hs_init"
 pkg.init_stage: 2
 
