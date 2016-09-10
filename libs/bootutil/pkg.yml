@@ -38,11 +38,6 @@ pkg.deps.BOOTUTIL_NFFS:
 pkg.deps.SELFTEST:
     - libs/console/stub
 
-pkg.cflags.BOOTUTIL_NFFS: -DUSE_STATUS_FILE
-
-pkg.cflags.IMAGE_KEYS_RSA: -DIMAGE_SIGNATURES_RSA
-pkg.cflags.IMAGE_KEYS_EC: -DIMAGE_SIGNATURES_EC
-
 pkg.init_function: bootutil_pkg_init
 pkg.init_stage: 5
 
@@ -50,3 +45,9 @@ pkg.syscfg_defs:
     BOOTUTIL_NFFS:
         description: 'gaga'
         value: '1'
+    BOOTUTIL_SIGN_RSA:
+        description: 'gaga'
+        value: '0'
+    BOOTUTIL_SIGN_EC:
+        description: 'gaga'
+        value: '0'
