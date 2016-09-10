@@ -28,7 +28,12 @@ pkg.keywords:
     - scripting
     - interpreter
 
-pkg.cflags: -DLUA_OPTIMIZE_MEMORY=2 -DLUA_CROSS_COMPILER -DLUA_USE_MKSTEMP -DLUA_NUMBER_INTEGRAL -DMYNEWT
+pkg.cflags:
+    - "-DLUA_OPTIMIZE_MEMORY=2"
+    - "-DLUA_CROSS_COMPILER"
+    - "-DLUA_USE_MKSTEMP"
+    - "-DLUA_NUMBER_INTEGRAL"
+    - "-DMYNEWT"
 pkg.req_apis:
     - console
 pkg.deps:

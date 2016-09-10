@@ -75,8 +75,6 @@ pkg.syscfg_defs:
         value: 'SAADC_CONFIG_IRQ_PRIORITY'
 
 pkg.syscfg_vals:
-    MSYS_1_BLOCK_COUNT: 12
-    MSYS_1_BLOCK_SIZE: 260
     CLOCK_FREQ: 1000000
 
     # Reboot log
