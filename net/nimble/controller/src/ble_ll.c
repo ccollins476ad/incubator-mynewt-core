@@ -188,6 +188,12 @@ os_stack_t g_ble_ll_stack[BLE_LL_STACK_SIZE];
 struct os_mempool g_ble_ll_hci_ev_pool;
 static void *ble_ll_hci_os_event_buf;
 
+/** Our global device address (public) */
+uint8_t g_dev_addr[BLE_DEV_ADDR_LEN];
+
+/** Our random address */
+uint8_t g_random_addr[BLE_DEV_ADDR_LEN];
+
 /* XXX: temporary logging until we transition to real logging */
 #ifdef BLE_LL_LOG
 struct ble_ll_log

@@ -18,31 +18,27 @@
  */
 
 #include <assert.h>
+
 #include "syscfg/syscfg.h"
 #include "hal/flash_map.h"
 #include "hal/hal_bsp.h"
 #include "hal/hal_cputime.h"
 #include "hal/hal_flash.h"
+#include "hal/hal_spi.h"
 #include "mcu/nrf52_hal.h"
-
+#include "uart/uart.h"
+#include "uart_hal/uart_hal.h"
 #include "os/os_dev.h"
 
-#include <hal/hal_spi.h>
-#ifdef BSP_CFG_SPI_MASTER
+#if MYNEWT_VAL(SPI_MASTER)
 #include "nrf_drv_spi.h"
 #endif
-#ifdef BSP_CFG_SPI_SLAVE
+#if MYNEWT_VAL(SPI_SLAVE)
 #include "nrf_drv_spis.h"
 #endif
 #include "nrf_drv_config.h"
-#include <app_util_platform.h>
-#include "uart/uart.h"
-#include "uart_hal/uart_hal.h"
-
-#include "sysinit/sysinit.h"
-
-#include "nrf.h"
 #include "app_util_platform.h"
+#include "nrf.h"
 #include "app_error.h"
 #include "adc_nrf52/adc_nrf52.h"
 #include "nrf_drv_saadc.h"
@@ -108,14 +104,12 @@ bsp_imgr_current_slot(void)
 void
 bsp_init(void)
 {
-    uint32_t seed;
     int rc;
-    int i;
 
-#ifdef BSP_CFG_SPI_MASTER
+#if MYNEWT_VAL(SPI_MASTER)
     nrf_drv_spi_config_t spi_cfg = NRF_DRV_SPI_DEFAULT_CONFIG(0);
 #endif
-#ifdef BSP_CFG_SPI_SLAVE
+#if MYNEWT_VAL(SPI_SLAVE)
     nrf_drv_spis_config_t spi_cfg = NRF_DRV_SPIS_DEFAULT_CONFIG(0);
 #endif
 
@@ -124,23 +118,6 @@ bsp_init(void)
      */
     (void)_sbrk;
     //(void)_close;
-
-    rc = os_dev_create((struct os_dev *) &hal_uart0, "uart0",
-      OS_DEV_INIT_PRIMARY, 0, uart_hal_init, (void *)bsp_uart_config());
-    assert(rc == 0);
-
-#ifdef BSP_CFG_SPI_MASTER
-    /*  We initialize one SPI interface as a master. */
-    rc = hal_spi_init(0, &spi_cfg, HAL_SPI_TYPE_MASTER);
-    assert(rc == 0);
-#endif
-
-#ifdef BSP_CFG_SPI_SLAVE
-    /*  We initialize one SPI interface as a master. */
-    spi_cfg.csn_pin = SPIS0_CONFIG_CSN_PIN;
-    rc = hal_spi_init(0, &spi_cfg, HAL_SPI_TYPE_SLAVE);
-    assert(rc == 0);
-#endif
 
     /* Set cputime to count at 1 usec increments */
     rc = cputime_init(MYNEWT_VAL(CLOCK_FREQ));
@@ -151,6 +128,19 @@ bsp_init(void)
 
     rc = hal_flash_init();
     assert(rc == 0);
+
+#if MYNEWT_VAL(SPI_MASTER)
+    /*  We initialize one SPI interface as a master. */
+    rc = hal_spi_init(0, &spi_cfg, HAL_SPI_TYPE_MASTER);
+    assert(rc == 0);
+#endif
+
+#if MYNEWT_VAL(SPI_SLAVE)
+    /*  We initialize one SPI interface as a master. */
+    spi_cfg.csn_pin = SPIS0_CONFIG_CSN_PIN;
+    rc = hal_spi_init(0, &spi_cfg, HAL_SPI_TYPE_SLAVE);
+    assert(rc == 0);
+#endif
 
 #if MYNEWT_VAL(UART_0)
     rc = os_dev_create((struct os_dev *) &os_bsp_uart0, "uart0",

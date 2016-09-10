@@ -18,6 +18,7 @@
  */
 #include <stdarg.h>
 #include <stdio.h>
+#include "syscfg/syscfg.h"
 #include "console/console.h"
 #include "os/os_time.h"
 

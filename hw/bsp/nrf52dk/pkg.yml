@@ -57,10 +57,6 @@ pkg.syscfg_defs:
         description: 'gaga'
         value: 1
 
-    UART_0:
-        description: 'gaga'
-        value:  1
-
     ADC_0:
         description: 'gaga'
         value:  1
@@ -73,6 +69,17 @@ pkg.syscfg_defs:
     ADC_0_INTERRUPT_PRIORITY:
         description: 'gaga'
         value: 'SAADC_CONFIG_IRQ_PRIORITY'
+
+    UART_0:
+        description: 'gaga'
+        value:  1
+
+    SPI_MASTER:
+        description: 'gaga'
+        value:  1
+    SPI_SLAVE:
+        description: 'gaga'
+        value:  0
 
 pkg.syscfg_vals:
     CLOCK_FREQ: 1000000

@@ -51,12 +51,6 @@ struct os_eventq bleprph_evq;
 struct os_task bleprph_task;
 bssnz_t os_stack_t bleprph_stack[BLEPRPH_STACK_SIZE];
 
-/** Our global device address (public) */
-uint8_t g_dev_addr[BLE_DEV_ADDR_LEN] = {0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a};
-
-/** Our random address (in case we need it) */
-uint8_t g_random_addr[BLE_DEV_ADDR_LEN];
-
 static int bleprph_gap_event(struct ble_gap_event *event, void *arg);
 
 /**
@@ -298,6 +292,9 @@ main(void)
 {
     int rc;
 
+    /* Set initial BLE device address. */
+    memcpy(g_dev_addr, (uint8_t[6]){0x0a, 0x0a, 0x0a, 0x0a, 0x0a, 0x0a}, 6);
+
     /* Initialize OS */
     os_init();
 
@@ -316,7 +313,6 @@ main(void)
                  bleprph_stack, BLEPRPH_STACK_SIZE);
 
     /* Initialize the NimBLE host configuration. */
-    ble_hs_cfg.parent_task = &bleprph_task;
     ble_hs_cfg.parent_evq = &bleprph_evq;
     ble_hs_cfg.reset_cb = bleprph_on_reset;
     ble_hs_cfg.sync_cb = bleprph_on_sync;
