@@ -239,7 +239,7 @@ bootutil_cfg_register(void)
     conf_register(&boot_conf_handler);
 }
 
-#if MYNEWT_VAL(BOOTUTIL_NFFS)
+#if !MYNEWT_VAL(BOOTUTIL_NFFS)
 int
 boot_read_status(struct boot_status *bs)
 {
