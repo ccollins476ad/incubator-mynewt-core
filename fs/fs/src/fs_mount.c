@@ -32,7 +32,7 @@ fs_register(const struct fs_ops *fops)
     }
     fs_root_ops = fops;
 
-#if MYNEWT_VAL(FS_SHELL)
+#if MYNEWT_VAL(FS_CLI)
     fs_cli_init();
 #endif
 

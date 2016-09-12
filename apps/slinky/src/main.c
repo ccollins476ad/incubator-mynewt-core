@@ -73,15 +73,6 @@ static volatile int g_task1_loops;
 struct os_task task2;
 os_stack_t stack2[TASK2_STACK_SIZE];
 
-#define SHELL_TASK_PRIO (3)
-#define SHELL_MAX_INPUT_LEN     (256)
-#define SHELL_TASK_STACK_SIZE (OS_STACK_ALIGN(384))
-os_stack_t shell_stack[SHELL_TASK_STACK_SIZE];
-
-#define NEWTMGR_TASK_PRIO (4)
-#define NEWTMGR_TASK_STACK_SIZE (OS_STACK_ALIGN(896))
-os_stack_t newtmgr_stack[NEWTMGR_TASK_STACK_SIZE];
-
 struct log_handler log_cbmem_handler;
 struct log my_log;
 

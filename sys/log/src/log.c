@@ -28,14 +28,14 @@
 #include "util/cbmem.h"
 #include "log/log.h"
 
-#if MYNEWT_VAL(LOG_SHELL)
+#if MYNEWT_VAL(LOG_CLI)
 #include "shell/shell.h"
 #endif
 
 static STAILQ_HEAD(, log) g_log_list = STAILQ_HEAD_INITIALIZER(g_log_list);
 static uint8_t log_inited;
 
-#if MYNEWT_VAL(LOG_SHELL)
+#if MYNEWT_VAL(LOG_CLI)
 int shell_log_dump_all_cmd(int, char **);
 struct shell_cmd g_shell_log_cmd = {
     .sc_cmd = "log",
@@ -55,7 +55,7 @@ log_init(void)
     }
     log_inited = 1;
 
-#if MYNEWT_VAL(LOG_SHELL)
+#if MYNEWT_VAL(LOG_CLI)
     shell_cmd_register(&g_shell_log_cmd);
 #endif
 

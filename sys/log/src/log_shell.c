@@ -20,10 +20,10 @@
 #include "syscfg/syscfg.h"
 
 /* This whole file is conditionally compiled based on whether the 
- * log package is configured to use the shell (MYNEWT_VAL(LOG_SHELL)).
+ * log package is configured to use the shell (MYNEWT_VAL(LOG_CLI)).
  */
 
-#if MYNEWT_VAL(LOG_SHELL)
+#if MYNEWT_VAL(LOG_CLI)
 
 #include <stdio.h>
 #include <string.h>

@@ -98,7 +98,7 @@ stats_module_init(void)
 
     STAILQ_INIT(&g_stats_registry);
 
-#if MYNEWT_VAL(STATS_SHELL)
+#if MYNEWT_VAL(STATS_CLI)
     rc = stats_shell_register();
     SYSINIT_PANIC_ASSERT(rc == 0);
 #endif

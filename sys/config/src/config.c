@@ -46,7 +46,7 @@ conf_init(void)
 
     (void)rc;
 
-#if MYNEWT_VAL(CONFIG_SHELL)
+#if MYNEWT_VAL(CONFIG_CLI)
     rc = conf_cli_register();
     SYSINIT_PANIC_ASSERT(rc == 0);
 #endif

@@ -24,7 +24,7 @@
 struct fs_ops;
 extern const struct fs_ops *fs_root_ops;
 
-#if MYNEWT_VAL(NFFS_SHELL)
+#if MYNEWT_VAL(NFFS_CLI)
 void fs_cli_init(void);
 #endif
 

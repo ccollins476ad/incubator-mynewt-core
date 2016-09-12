@@ -19,7 +19,7 @@
 
 #include "syscfg/syscfg.h"
 
-#if MYNEWT_VAL(WIFI_MGMT_SHELL)
+#if MYNEWT_VAL(WIFI_MGMT_CLI)
 
 #include <stddef.h>
 #include <string.h>

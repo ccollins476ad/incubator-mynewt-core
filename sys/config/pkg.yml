@@ -26,7 +26,7 @@ pkg.keywords:
 pkg.deps:
     - libs/util
     - libs/testutil
-pkg.deps.CONFIG_SHELL:
+pkg.deps.CONFIG_CLI:
     - libs/shell
 pkg.deps.CONFIG_NEWTMGR:
     - libs/newtmgr
@@ -69,6 +69,6 @@ pkg.syscfg_defs:
         description: 'gaga'
         value: 0
 
-    CONFIG_SHELL:
+    CONFIG_CLI:
         description: 'gaga'
         value: 0

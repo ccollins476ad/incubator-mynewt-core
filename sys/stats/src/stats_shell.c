@@ -22,7 +22,7 @@
 /* Source code is only included if the shell library is enabled.  Otherwise
  * this file is compiled out for code size.
  */
-#if MYNEWT_VAL(STATS_SHELL)
+#if MYNEWT_VAL(STATS_CLI)
 
 #include <string.h>
 #include "shell/shell.h"

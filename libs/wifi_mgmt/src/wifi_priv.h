@@ -22,7 +22,7 @@
 
 #include "syscfg/syscfg.h"
 
-#if MYNEWT_VAL(WIFI_MGMT_SHELL)
+#if MYNEWT_VAL(WIFI_MGMT_CLI)
 extern struct shell_cmd wifi_cli_cmd;
 #endif
 

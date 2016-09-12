@@ -33,7 +33,7 @@ pkg.deps.LOG_NEWTMGR:
 pkg.deps.LOG_FCB:
     - hw/hal
     - sys/fcb
-pkg.deps.LOG_SHELL:
+pkg.deps.LOG_CLI:
     - libs/shell
 pkg.deps.SELFTEST:
     - libs/console/stub
@@ -50,7 +50,7 @@ pkg.syscfg_defs:
         description: 'gaga'
         value: 'MYNEWT_PKG_SYS_FCB'
 
-    LOG_SHELL:
+    LOG_CLI:
         description: 'gaga'
         value: 'MYNEWT_PKG_LIBS_SHELL'
 

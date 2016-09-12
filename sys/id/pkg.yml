@@ -31,15 +31,15 @@ pkg.deps:
     - libs/os
     - libs/util
     - sys/config
-pkg.deps.ID_SHELL:
+pkg.deps.ID_CLI:
     - libs/shell
-pkg.req_apis.ID_SHELL:
+pkg.req_apis.ID_CLI:
     - console
 
 pkg.init_function: id_init
 pkg.init_stage: 5
 
 pkg.syscfg_defs:
-    ID_SHELL:
+    ID_CLI:
         description: 'gaga'
         value: 1

@@ -33,8 +33,9 @@ pkg.linkerscript.bootloader.OVERWRITE: "boot-nrf52dk.ld"
 pkg.downloadscript: nrf52dk_download.sh
 pkg.debugscript: nrf52dk_debug.sh
 pkg.cflags:
-    # Nordic SDK files require this define.
+    # Nordic SDK files require these defines.
     - '-DNRF52'
+    - '-DSPI_MASTER_0_ENABLE'
 
 pkg.deps:
     - hw/mcu/nordic/nrf52xxx

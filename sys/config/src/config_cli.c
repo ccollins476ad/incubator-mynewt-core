@@ -23,7 +23,7 @@
 #include "config/config.h"
 #include "config_priv.h"
 
-#if MYNEWT_VAL(CONFIG_SHELL)
+#if MYNEWT_VAL(CONFIG_CLI)
 #include <string.h>
 
 #include <shell/shell.h>

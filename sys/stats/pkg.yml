@@ -28,10 +28,8 @@ pkg.deps:
     - libs/os
     - libs/util
     - libs/testutil
-pkg.deps.STATS_SHELL:
+pkg.deps.STATS_CLI:
     - libs/shell
-pkg.req_apis.STATS_SHELL:
-    - console
 pkg.deps.STATS_NEWTMGR:
     - libs/newtmgr
 
@@ -42,7 +40,7 @@ pkg.syscfg_defs:
     STATS_NAMES:
         description: 'gaga'
         value: 1
-    STATS_SHELL:
+    STATS_CLI:
         description: 'gaga'
         value: 'MYNEWT_PKG_LIBS_SHELL'
     STATS_NEWTMGR:

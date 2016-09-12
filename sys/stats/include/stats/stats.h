@@ -121,7 +121,7 @@ struct stats_hdr *stats_group_find(char *name);
 #if MYNEWT_VAL(STATS_NEWTMGR)
 int stats_nmgr_register_group(void);
 #endif 
-#if MYNEWT_VAL(STATS_SHELL)
+#if MYNEWT_VAL(STATS_CLI)
 int stats_shell_register(void);
 #endif
 
