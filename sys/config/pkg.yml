@@ -54,7 +54,7 @@ pkg.syscfg_defs:
 
     CONFIG_NFFS:
         description: 'gaga'
-        value: 1
+        value: 'MYNEWT_PKG_FS_NFFS'
     CONFIG_FS_DIR:
         description: 'gaga'
         value: '"/cfg"'

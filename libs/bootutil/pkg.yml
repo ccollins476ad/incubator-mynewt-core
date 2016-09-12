@@ -44,7 +44,7 @@ pkg.init_stage: 5
 pkg.syscfg_defs:
     BOOTUTIL_NFFS:
         description: 'gaga'
-        value: '1'
+        value: 'MYNEWT_PKG_FS_NFFS'
     BOOTUTIL_SIGN_RSA:
         description: 'gaga'
         value: '0'

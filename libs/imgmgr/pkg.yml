@@ -39,7 +39,7 @@ pkg.init_stage: 5
 pkg.syscfg_defs:
     IMGMGR_FS:
         description: 'gaga'
-        value: 1
+        value: 'MYNEWT_PKG_FS_FS'
     IMGMGR_COREDUMP:
         description: 'gaga'
-        value: 'MYNEWT_PKG_SYST_COREDUMP'
+        value: 'MYNEWT_PKG_SYS_COREDUMP'
