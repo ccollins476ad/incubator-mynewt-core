@@ -71,7 +71,7 @@ boot_conf_set(int argc, char **argv, char *val)
                 memset(&boot_test, 0, len);
                 rc = 0;
             }
-#if MYNEWT_VAL(BOOTUTIL_NFFS)
+#if !MYNEWT_VAL(BOOTUTIL_NFFS)
         } else if (!strcmp(argv[0], "status")) {
             if (!val) {
                 boot_saved.state = 0;

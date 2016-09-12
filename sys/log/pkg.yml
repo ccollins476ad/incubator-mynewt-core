@@ -48,12 +48,12 @@ pkg.syscfg_defs:
 
     LOG_FCB:
         description: 'gaga'
-        value: 1
+        value: 'MYNEWT_PKG_SYS_FCB'
 
     LOG_SHELL:
         description: 'gaga'
-        value: 1
+        value: 'MYNEWT_PKG_LIBS_SHELL'
 
     LOG_NEWTMGR:
         description: 'gaga'
-        value: 1
+        value: 'MYNEWT_PKG_LIBS_NEWTMGR'

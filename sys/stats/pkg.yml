@@ -44,7 +44,7 @@ pkg.syscfg_defs:
         value: 1
     STATS_SHELL:
         description: 'gaga'
-        value: 1
+        value: 'MYNEWT_PKG_LIBS_SHELL'
     STATS_NEWTMGR:
         description: 'gaga'
-        value: 1
+        value: 'MYNEWT_PKG_LIBS_NEWTMGR'

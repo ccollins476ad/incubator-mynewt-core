@@ -55,13 +55,13 @@ pkg.syscfg_defs:
     CONFIG_NFFS:
         description: 'gaga'
         value: 'MYNEWT_PKG_FS_NFFS'
-    CONFIG_FS_DIR:
+    CONFIG_NFFS_DIR:
         description: 'gaga'
         value: '"/cfg"'
-    CONFIG_FS_FILE:
+    CONFIG_NFFS_FILE:
         description: 'gaga'
         value: '"/cfg/run"'
-    CONFIG_FS_MAX_LINES:
+    CONFIG_NFFS_MAX_LINES:
         description: 'gaga'
         value: 32
 

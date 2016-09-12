@@ -25,7 +25,7 @@
 
 #ifdef MYNEWT
 
-#if MYNEWT_VAL(ELUA_SHELL)
+#if MYNEWT_VAL(ELUA_CLI)
 static int lua_cmd(int argc, char **argv);
 
 static struct shell_cmd lua_shell_cmd = {
@@ -48,7 +48,7 @@ lua_init(void)
 
     (void)rc;
 
-#if MYNEWT_VAL(ELUA_SHELL)
+#if MYNEWT_VAL(ELUA_CLI)
     rc = shell_cmd_register(&lua_shell_cmd);
     SYSINIT_PANIC_ASSERT(rc == 0);
 #endif

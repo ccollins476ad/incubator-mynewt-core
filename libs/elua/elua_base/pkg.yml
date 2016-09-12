@@ -38,13 +38,13 @@ pkg.req_apis:
     - console
 pkg.deps:
     - fs/fs
-pkg.deps.ELUA_SHELL:
+pkg.deps.ELUA_CLI:
     - libs/shell
 
 pkg.init_function: lua_init
 pkg.init_stage: 5
 
 pkg.syscfg_defs:
-    ELUA_SHELL:
+    ELUA_CLI:
         description: 'gaga'
-        value: 1
+        value: 'MYNEWT_PKG_LIBS_SHELL'

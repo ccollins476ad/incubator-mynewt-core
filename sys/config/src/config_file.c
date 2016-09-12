@@ -17,18 +17,19 @@
  * under the License.
  */
 
+#include "syscfg/syscfg.h"
+
+#if MYNEWT_VAL(CONFIG_NFFS)
+
 #include <string.h>
 #include <assert.h>
 
 #include <os/os.h>
 #include <fs/fs.h>
 
-#include "syscfg/syscfg.h"
 #include "config/config.h"
 #include "config/config_file.h"
 #include "config_priv.h"
-
-#if MYNEWT_VAL(CONFIG_NFFS)
 
 static int conf_file_load(struct conf_store *, load_cb cb, void *cb_arg);
 static int conf_file_save(struct conf_store *, const char *name,

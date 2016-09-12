@@ -30,7 +30,7 @@ pkg.deps:
 pkg.req_apis:
     - console
 
-pkg.deps.OS_SHELL:
+pkg.deps.OS_CLI:
     - libs/shell 
 
 pkg.deps.OS_COREDUMP:
@@ -43,12 +43,12 @@ pkg.init_stage: 0
 pkg.deps.SELFTEST: libs/console/stub
 
 pkg.syscfg_defs:
-    OS_SHELL:
+    OS_CLI:
         description: 'gaga'
-        value: 1
+        value: 'MYNEWT_PKG_LIBS_SHELL'
     OS_COREDUMP:
         description: 'gaga'
-        value: 1
+        value: 'MYNEWT_PKG_SYS_COREDUMP'
 
     MSYS_1_BLOCK_COUNT:
         description: 'gaga'
