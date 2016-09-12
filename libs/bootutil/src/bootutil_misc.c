@@ -36,7 +36,7 @@ static int boot_conf_set(int argc, char **argv, char *val);
 
 static struct image_version boot_main;
 static struct image_version boot_test;
-#if MYNEWT_VAL(BOOTUTIL_NFFS)
+#if !MYNEWT_VAL(BOOTUTIL_NFFS)
 static struct boot_status boot_saved;
 #endif
 

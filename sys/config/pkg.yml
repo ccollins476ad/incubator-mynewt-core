@@ -33,7 +33,7 @@ pkg.deps.CONFIG_NEWTMGR:
     - libs/json
 pkg.deps.CONFIG_FCB:
     - sys/fcb
-pkg.deps.CONFIG_FS:
+pkg.deps.CONFIG_NFFS:
     - fs/nffs
 
 pkg.deps.SELFTEST:
@@ -52,7 +52,7 @@ pkg.syscfg_defs:
         description: 'gaga'
         value: 0xc09f6e5e
 
-    CONFIG_FS:
+    CONFIG_NFFS:
         description: 'gaga'
         value: 1
     CONFIG_FS_DIR:

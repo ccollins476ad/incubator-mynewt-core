@@ -42,4 +42,4 @@ pkg.syscfg_defs:
         value: 1
     IMGMGR_COREDUMP:
         description: 'gaga'
-        value: 1
+        value: 'MYNEWT_PKG_SYST_COREDUMP'

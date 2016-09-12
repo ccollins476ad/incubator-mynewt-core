@@ -28,7 +28,7 @@
 #include "config/config_file.h"
 #include "config_priv.h"
 
-#if MYNEWT_VAL(CONFIG_FS)
+#if MYNEWT_VAL(CONFIG_NFFS)
 
 static int conf_file_load(struct conf_store *, load_cb cb, void *cb_arg);
 static int conf_file_save(struct conf_store *, const char *name,

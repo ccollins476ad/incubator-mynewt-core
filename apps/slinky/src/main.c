@@ -250,7 +250,7 @@ init_tasks(void)
     return 0;
 }
 
-#if !MYNEWT_VAL(CONFIG_FS)
+#if !MYNEWT_VAL(CONFIG_NFFS)
 
 static void
 setup_for_fcb(void)
@@ -307,7 +307,7 @@ main(int argc, char **argv)
     log_cbmem_handler_init(&log_cbmem_handler, &cbmem);
     log_register("log", &my_log, &log_cbmem_handler);
 
-#if !MYNEWT_VAL(CONFIG_FS)
+#if !MYNEWT_VAL(CONFIG_NFFS)
     setup_for_fcb();
 #endif
 

@@ -27,12 +27,12 @@
 #include "config/config.h"
 #include "config/config_file.h"
 
-#if MYNEWT_VAL(CONFIG_FS)
+#if MYNEWT_VAL(CONFIG_NFFS)
 #include "fs/fs.h"
 
 static struct conf_file config_init_conf_file = {
-    .cf_name = MYNEWT_VAL(CONFIG_FS_FILE),
-    .cf_maxlines = MYNEWT_VAL(CONFIG_FS_MAX_LINES)
+    .cf_name = MYNEWT_VAL(CONFIG_NFFS_FILE),
+    .cf_maxlines = MYNEWT_VAL(CONFIG_NFFS_MAX_LINES)
 };
 
 static void
@@ -40,7 +40,7 @@ config_init_fs(void)
 {
     int rc;
 
-    fs_mkdir(MYNEWT_VAL(CONFIG_FS_DIR));
+    fs_mkdir(MYNEWT_VAL(CONFIG_NFFS_DIR));
     rc = conf_file_src(&config_init_conf_file);
     SYSINIT_PANIC_ASSERT(rc == 0);
     rc = conf_file_dst(&config_init_conf_file);
@@ -97,7 +97,7 @@ config_pkg_init(void)
 {
     conf_init();
 
-#if MYNEWT_VAL(CONFIG_FS)
+#if MYNEWT_VAL(CONFIG_NFFS)
     config_init_fs();
 #elif MYNEWT_VAL(CONFIG_FCB)
     config_init_fcb();
