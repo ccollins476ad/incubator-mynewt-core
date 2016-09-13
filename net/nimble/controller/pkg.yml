@@ -39,11 +39,11 @@ pkg.init_stage: 2
 
 pkg.syscfg_defs:
     BLE_DEVICE:
-        description: 'gaga'
+        description: 'TBD'
         value: 1
 
     BLE_LL_PRIO:
-        description: 'gaga'
+        description: 'TBD'
         type: 'task_priority'
         value: 0
 
@@ -70,11 +70,11 @@ pkg.syscfg_defs:
     #  The values provided below are merely meant to be an example and should
     #  be replaced by values appropriate for your platform.
     BLE_LL_OUR_SCA:
-        description: 'gaga'
+        description: 'TBD'
         value: '60'    # in ppm
 
     BLE_LL_MASTER_SCA:
-        description: 'gaga'
+        description: 'TBD'
         value: '4'
 
     BLE_LL_TX_PWR_DBM:
@@ -96,10 +96,10 @@ pkg.syscfg_defs:
     # Configuration items for the number of duplicate advertisers and the
     # number of advertisers from which we have heard a scan response.
     BLE_LL_NUM_SCAN_DUP_ADVS:
-        description: 'gaga'
+        description: 'TBD'
         value: '8'
     BLE_LL_NUM_SCAN_RSP_ADVS:
-        description: 'gaga'
+        description: 'TBD'
         value: '8'
 
     BLE_LL_WHITELIST_SIZE:
@@ -114,26 +114,26 @@ pkg.syscfg_defs:
     # maximum size of the PDU's that will be sent and/or received in a
     # connection.
     BLE_LL_MAX_PKT_SIZE:
-        description: 'gaga'
+        description: 'TBD'
         value: '251'
     BLE_LL_SUPP_MAX_RX_BYTES:
-        description: 'gaga'
+        description: 'TBD'
         value: 'MYNEWT_VAL_BLE_LL_MAX_PKT_SIZE'
     BLE_LL_SUPP_MAX_TX_BYTES:
-        description: 'gaga'
+        description: 'TBD'
         value: 'MYNEWT_VAL_BLE_LL_MAX_PKT_SIZE'
     BLE_LL_CONN_INIT_MAX_TX_BYTES:
-        description: 'gaga'
+        description: 'TBD'
         value: '27'
 
     # The number of slots that will be allocated to each connection
     BLE_LL_CONN_INIT_SLOTS:
-        description: 'gaga'
+        description: 'TBD'
         value: '2'
 
     # The number of random bytes to store
     BLE_LL_RNG_BUFSIZE:
-        description: 'gaga'
+        description: 'TBD'
         value: '32'
 
     # Configuration for LL supported features.
@@ -197,8 +197,8 @@ pkg.syscfg_defs:
         value: '0'
 
     BLE_LL_ACL_PKT_COUNT:
-        description: 'gaga'
+        description: 'TBD'
         value: 12
     BLE_LL_ACL_PKT_SIZE:
-        description: 'gaga'
+        description: 'TBD'
         value: 260

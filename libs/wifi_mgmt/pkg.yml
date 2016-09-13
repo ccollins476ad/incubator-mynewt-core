@@ -33,5 +33,5 @@ pkg.deps.TEST:
 
 pkg.syscfg_defs:
     WIFI_MGMT_CLI:
-        description: 'gaga'
+        description: 'TBD'
         value: 'MYNEWT_PKG_LIBS_SHELL'

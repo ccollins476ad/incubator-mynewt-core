@@ -46,5 +46,5 @@ pkg.init_stage: 5
 
 pkg.syscfg_defs:
     ELUA_CLI:
-        description: 'gaga'
+        description: 'TBD'
         value: 'MYNEWT_PKG_LIBS_SHELL'

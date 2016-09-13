@@ -48,14 +48,14 @@ pkg.syscfg_vals:
 
 pkg.syscfg_defs:
     BOOT_LOADER:
-        description: 'gaga'
+        description: 'TBD'
         value: 1
     BOOT_NFFS:
-        description: 'gaga'
+        description: 'TBD'
         value: 1
     BOOT_FCB:
-        description: 'gaga'
+        description: 'TBD'
         value: 0
     BOOT_SERIAL:
-        description: 'gaga'
+        description: 'TBD'
         value: 0

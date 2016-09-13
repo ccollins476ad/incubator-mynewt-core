@@ -38,5 +38,5 @@ pkg.init_stage: 5
 
 pkg.syscfg_defs:
     BLEUART_MAX_INPUT:
-        description: 'gaga'
+        description: 'TBD'
         value: 120

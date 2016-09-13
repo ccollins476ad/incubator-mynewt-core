@@ -34,12 +34,12 @@ pkg.init_stage: 5
 
 pkg.syscfg_defs:
     SHELL_TASK_PRIO:
-        description: 'gaga'
+        description: 'TBD'
         type: 'task_priority'
         value: 'any'
     SHELL_STACK_SIZE:
-        description: 'gaga'
+        description: 'TBD'
         value:     512
     SHELL_MAX_INPUT_LEN:
-        description: 'gaga'
+        description: 'TBD'
         value:  256

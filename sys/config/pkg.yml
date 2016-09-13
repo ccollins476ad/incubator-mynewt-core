@@ -46,29 +46,29 @@ pkg.init_stage: 5
 
 pkg.syscfg_defs:
     CONFIG_FCB:
-        description: 'gaga'
+        description: 'TBD'
         value: 1
     CONFIG_FCB_MAGIC:
-        description: 'gaga'
+        description: 'TBD'
         value: 0xc09f6e5e
 
     CONFIG_NFFS:
-        description: 'gaga'
+        description: 'TBD'
         value: 'MYNEWT_PKG_FS_NFFS'
     CONFIG_NFFS_DIR:
-        description: 'gaga'
+        description: 'TBD'
         value: '"/cfg"'
     CONFIG_NFFS_FILE:
-        description: 'gaga'
+        description: 'TBD'
         value: '"/cfg/run"'
     CONFIG_NFFS_MAX_LINES:
-        description: 'gaga'
+        description: 'TBD'
         value: 32
 
     CONFIG_NEWTMGR:
-        description: 'gaga'
+        description: 'TBD'
         value: 0
 
     CONFIG_CLI:
-        description: 'gaga'
+        description: 'TBD'
         value: 0

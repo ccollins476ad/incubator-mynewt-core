@@ -44,39 +44,39 @@ pkg.deps.SELFTEST: libs/console/stub
 
 pkg.syscfg_defs:
     OS_CLI:
-        description: 'gaga'
+        description: 'TBD'
         value: 'MYNEWT_PKG_LIBS_SHELL'
     OS_COREDUMP:
-        description: 'gaga'
+        description: 'TBD'
         value: 'MYNEWT_PKG_SYS_COREDUMP'
 
     MSYS_1_BLOCK_COUNT:
-        description: 'gaga'
+        description: 'TBD'
         value: 12
     MSYS_1_BLOCK_SIZE:
-        description: 'gaga'
+        description: 'TBD'
         value: 260
     MSYS_2_BLOCK_COUNT:
-        description: 'gaga'
+        description: 'TBD'
         value: 0
     MSYS_2_BLOCK_SIZE:
-        description: 'gaga'
+        description: 'TBD'
         value: 0
     MSYS_3_BLOCK_COUNT:
-        description: 'gaga'
+        description: 'TBD'
         value: 0
     MSYS_3_BLOCK_SIZE:
-        description: 'gaga'
+        description: 'TBD'
         value: 0
     MSYS_4_BLOCK_COUNT:
-        description: 'gaga'
+        description: 'TBD'
         value: 0
     MSYS_4_BLOCK_SIZE:
-        description: 'gaga'
+        description: 'TBD'
         value: 0
     MSYS_5_BLOCK_COUNT:
-        description: 'gaga'
+        description: 'TBD'
         value: 0
     MSYS_5_BLOCK_SIZE:
-        description: 'gaga'
+        description: 'TBD'
         value: 0

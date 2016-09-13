@@ -31,5 +31,5 @@ pkg.deps.FS_CLI:
 
 pkg.syscfg_defs:
     FS_CLI:
-        description: 'gaga'
+        description: 'TBD'
         value: 'MYNEWT_PKG_LIBS_SHELL'

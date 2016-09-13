@@ -51,37 +51,37 @@ pkg.deps.UART_0:
 
 pkg.syscfg_defs:
     BSP_NRF51:
-        description: 'gaga'
+        description: 'TBD'
         value: 1
 
     CLOCK_FREQ:
-        description: 'gaga'
+        description: 'TBD'
         value: 1000000
 
     32768_XTAL:
-        description: 'gaga'
+        description: 'TBD'
         value: 1
 
     ADC_0:
-        description: 'gaga'
+        description: 'TBD'
         value:  1
     ADC_0_RESOLUTION:
-        description: 'gaga'
+        description: 'TBD'
         value: 'SAADC_CONFIG_RESOLUTION'
     ADC_0_OVERSAMPLE:
-        description: 'gaga'
+        description: 'TBD'
         value: 'SAADC_CONFIG_OVERSAMPLE'
     ADC_0_INTERRUPT_PRIORITY:
-        description: 'gaga'
+        description: 'TBD'
         value: 'SAADC_CONFIG_IRQ_PRIORITY'
 
     UART_0:
-        description: 'gaga'
+        description: 'TBD'
         value:  1
 
     SPI_MASTER:
-        description: 'gaga'
+        description: 'TBD'
         value:  1
     SPI_SLAVE:
-        description: 'gaga'
+        description: 'TBD'
         value:  0

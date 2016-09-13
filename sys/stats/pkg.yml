@@ -38,11 +38,11 @@ pkg.init_stage: 0
 
 pkg.syscfg_defs:
     STATS_NAMES:
-        description: 'gaga'
+        description: 'TBD'
         value: 1
     STATS_CLI:
-        description: 'gaga'
+        description: 'TBD'
         value: 'MYNEWT_PKG_LIBS_SHELL'
     STATS_NEWTMGR:
-        description: 'gaga'
+        description: 'TBD'
         value: 'MYNEWT_PKG_LIBS_NEWTMGR'

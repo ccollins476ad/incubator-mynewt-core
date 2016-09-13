@@ -31,21 +31,21 @@ pkg.deps:
 pkg.syscfg_defs:
     # Supported GAP roles.  By default, all four roles are enabled.
     BLE_ROLE_CENTRAL:
-        description: 'gaga'
+        description: 'TBD'
         value: 1
     BLE_ROLE_PERIPHERAL:
-        description: 'gaga'
+        description: 'TBD'
         value: 1
     BLE_ROLE_BROADCASTER:
-        description: 'gaga'
+        description: 'TBD'
         value: 1
     BLE_ROLE_OBSERVER:
-        description: 'gaga'
+        description: 'TBD'
         value: 1
 
     BLE_MAX_CONNECTIONS:
         description: 'The maximum number of concurrent connections.'
         value: 1
     BLE_WHITELIST:
-        description: 'gaga'
+        description: 'TBD'
         value: 1

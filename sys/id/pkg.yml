@@ -41,5 +41,5 @@ pkg.init_stage: 5
 
 pkg.syscfg_defs:
     ID_CLI:
-        description: 'gaga'
+        description: 'TBD'
         value: 1

@@ -43,11 +43,11 @@ pkg.init_stage: 5
 
 pkg.syscfg_defs:
     BOOTUTIL_NFFS:
-        description: 'gaga'
+        description: 'TBD'
         value: 'MYNEWT_PKG_FS_NFFS'
     BOOTUTIL_SIGN_RSA:
-        description: 'gaga'
+        description: 'TBD'
         value: '0'
     BOOTUTIL_SIGN_EC:
-        description: 'gaga'
+        description: 'TBD'
         value: '0'
