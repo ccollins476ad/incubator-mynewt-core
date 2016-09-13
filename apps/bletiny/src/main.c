@@ -1035,7 +1035,9 @@ bletiny_tx_timer_cb(void *arg)
     }
 
     len = bletiny_tx_data.tx_len;
-    om = os_msys_get_pkthdr(len + 4, sizeof(struct ble_mbuf_hdr));
+    if (os_msys_num_free() >= 4) {
+        om = os_msys_get_pkthdr(len + 4, sizeof(struct ble_mbuf_hdr));
+    }
 
     if (om) {
         /* Put the HCI header in the mbuf */
@@ -1626,7 +1628,6 @@ main(void)
                  bletiny_stack, BLETINY_STACK_SIZE);
 
     /* Initialize the NimBLE host configuration. */
-    ble_hs_cfg.parent_task = &bletiny_task;
     ble_hs_cfg.parent_evq = &bletiny_evq;
     ble_hs_cfg.reset_cb = bletiny_on_reset;
     ble_hs_cfg.store_read_cb = ble_store_ram_read;
