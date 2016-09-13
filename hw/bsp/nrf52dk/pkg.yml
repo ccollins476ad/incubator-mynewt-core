@@ -50,6 +50,9 @@ pkg.deps.ADC_0:
 pkg.deps.UART_0:
     - drivers/uart/uart_hal
 
+pkg.deps.UART_1:
+    - drivers/uart/uart_bitbang
+
 pkg.syscfg_defs:
     BSP_NRF52:
         description: 'TBD'
@@ -59,7 +62,7 @@ pkg.syscfg_defs:
         description: 'TBD'
         value:  1000000
 
-    32768_XTAL:
+    XTAL_32768:
         description: 'TBD'
         value: 1
 
@@ -79,6 +82,9 @@ pkg.syscfg_defs:
     UART_0:
         description: 'TBD'
         value:  1
+    UART_1:
+        description: 'TBD'
+        value:  0
 
     SPI_MASTER:
         description: 'TBD'
