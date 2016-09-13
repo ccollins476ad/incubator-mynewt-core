@@ -151,6 +151,6 @@ extern struct ble_hs_cfg ble_hs_cfg;
 
 int ble_hs_synced(void);
 int ble_hs_start(void);
-int ble_hs_init(void);
+void ble_hs_init(void);
 
 #endif

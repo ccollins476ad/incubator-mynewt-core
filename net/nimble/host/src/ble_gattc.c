@@ -317,9 +317,9 @@ static const struct ble_gattc_rx_exec_entry {
 };
 
 /* Maintains the list of active GATT client procedures. */
-static uint8_t ble_gattc_proc_mem[
-    OS_MEMPOOL_BYTES(MYNEWT_VAL(BLE_GATT_MAX_PROCS),
-                     sizeof (struct ble_gattc_proc))
+static os_membuf_t ble_gattc_proc_mem[
+    OS_MEMPOOL_SIZE(MYNEWT_VAL(BLE_GATT_MAX_PROCS),
+                    sizeof (struct ble_gattc_proc))
 ];
 
 static struct os_mempool ble_gattc_proc_pool;

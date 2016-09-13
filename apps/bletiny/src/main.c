@@ -1035,6 +1035,8 @@ bletiny_tx_timer_cb(void *arg)
     }
 
     len = bletiny_tx_data.tx_len;
+
+    om = NULL;
     if (os_msys_num_free() >= 4) {
         om = os_msys_get_pkthdr(len + 4, sizeof(struct ble_mbuf_hdr));
     }

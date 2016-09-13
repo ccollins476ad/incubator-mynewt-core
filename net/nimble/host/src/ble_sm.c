@@ -127,9 +127,9 @@ ble_sm_state_dispatch[BLE_SM_PROC_STATE_CNT] = {
 #endif
 };
 
-static uint8_t ble_sm_proc_mem[
-    OS_MEMPOOL_BYTES(MYNEWT_VAL(BLE_SM_MAX_PROCS),
-                     sizeof (struct ble_sm_proc))
+static os_membuf_t ble_sm_proc_mem[
+    OS_MEMPOOL_SIZE(MYNEWT_VAL(BLE_SM_MAX_PROCS),
+                    sizeof (struct ble_sm_proc))
 ];
 
 static struct os_mempool ble_sm_proc_pool;

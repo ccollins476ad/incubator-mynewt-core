@@ -45,8 +45,6 @@ pkg.req_apis:
 pkg.init_function: "ble_hs_init"
 pkg.init_stage: 2
 
-pkg.cflags.TEST: -DBLE_HS_DEBUG
-
 pkg.syscfg_defs:
     # Debug settings.
     BLE_HS_DEBUG:
@@ -85,7 +83,7 @@ pkg.syscfg_defs:
         value: 1
     BLE_SM_IO_CAP:
         description: 'TBD'
-        value: BLE_HS_IO_NO_INPUT_OUTPUT
+        value: 'BLE_HS_IO_NO_INPUT_OUTPUT'
     BLE_SM_OOB_DATA_FLAG:
         description: 'TBD'
         value: 0

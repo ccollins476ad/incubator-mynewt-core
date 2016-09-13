@@ -33,9 +33,9 @@ static uint16_t ble_att_svr_id;
 static void *ble_att_svr_entry_mem;
 static struct os_mempool ble_att_svr_entry_pool;
 
-static uint8_t ble_att_svr_prep_entry_mem[
-    OS_MEMPOOL_BYTES(MYNEWT_VAL(BLE_ATT_MAX_PREP_ENTRIES),
-                     sizeof (struct ble_att_prep_entry))
+static os_membuf_t ble_att_svr_prep_entry_mem[
+    OS_MEMPOOL_SIZE(MYNEWT_VAL(BLE_ATT_MAX_PREP_ENTRIES),
+                    sizeof (struct ble_att_prep_entry))
 ];
 
 static struct os_mempool ble_att_svr_prep_entry_pool;

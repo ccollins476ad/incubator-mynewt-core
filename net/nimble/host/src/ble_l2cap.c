@@ -30,8 +30,8 @@ _Static_assert(sizeof (struct ble_l2cap_hdr) == BLE_L2CAP_HDR_SZ,
 
 struct os_mempool ble_l2cap_chan_pool;
 
-static uint8_t ble_l2cap_chan_mem[
-    OS_MEMPOOL_BYTES(MYNEWT_VAL(BLE_L2CAP_MAX_CHANS),
+static os_membuf_t ble_l2cap_chan_mem[
+    OS_MEMPOOL_SIZE(MYNEWT_VAL(BLE_L2CAP_MAX_CHANS),
                      sizeof (struct ble_l2cap_chan))
 ];
 

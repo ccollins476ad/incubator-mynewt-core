@@ -30,9 +30,9 @@
 static SLIST_HEAD(, ble_hs_conn) ble_hs_conns;
 static struct os_mempool ble_hs_conn_pool;
 
-static uint8_t ble_hs_conn_elem_mem[
-    OS_MEMPOOL_BYTES(MYNEWT_VAL(BLE_MAX_CONNECTIONS),
-                     sizeof (struct ble_hs_conn))
+static os_membuf_t ble_hs_conn_elem_mem[
+    OS_MEMPOOL_SIZE(MYNEWT_VAL(BLE_MAX_CONNECTIONS),
+                    sizeof (struct ble_hs_conn))
 ];
 
 static const uint8_t ble_hs_conn_null_addr[6];

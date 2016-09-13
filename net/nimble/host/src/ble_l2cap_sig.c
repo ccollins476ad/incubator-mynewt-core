@@ -102,9 +102,9 @@ static ble_l2cap_sig_rx_fn * const ble_l2cap_sig_dispatch[] = {
 
 static uint8_t ble_l2cap_sig_cur_id;
 
-static uint8_t ble_l2cap_sig_proc_mem[
-    OS_MEMPOOL_BYTES(MYNEWT_VAL(BLE_L2CAP_SIG_MAX_PROCS),
-                     sizeof (struct ble_l2cap_sig_proc))
+static os_membuf_t ble_l2cap_sig_proc_mem[
+    OS_MEMPOOL_SIZE(MYNEWT_VAL(BLE_L2CAP_SIG_MAX_PROCS),
+                    sizeof (struct ble_l2cap_sig_proc))
 ];
 
 static struct os_mempool ble_l2cap_sig_proc_pool;
