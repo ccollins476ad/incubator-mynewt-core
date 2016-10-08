@@ -62,11 +62,10 @@ main(void)
     struct boot_rsp rsp;
     int rc;
 
-    flash_map_init();
-
 #if MYNEWT_VAL(BOOT_SERIAL)
     sysinit();
 #else
+    flash_map_init();
     bsp_init();
 #endif
 

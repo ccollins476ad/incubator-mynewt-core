@@ -32,7 +32,9 @@ pkg.cflags:
     - '-DSTM32F407xx'
     - '-DHAL_ADC_MODULE_ENABLED'
     - '-DHAL_DMA_MODULE_ENABLED'
+
 pkg.deps:
+    - boot/bootutil
     - hw/mcu/stm/stm32f4xx
     - libc/baselibc
     - sys/flash_map

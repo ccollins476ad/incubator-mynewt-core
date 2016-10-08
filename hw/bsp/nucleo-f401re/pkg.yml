@@ -28,7 +28,9 @@ pkg.keywords:
     - nucleo
 
 pkg.cflags: -DSTM32F401xE
+
 pkg.deps:
+    - boot/bootutil
     - hw/mcu/stm/stm32f4xx
     - libc/baselibc
     - sys/flash_map

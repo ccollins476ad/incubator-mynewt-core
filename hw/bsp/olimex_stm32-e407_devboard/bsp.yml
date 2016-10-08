@@ -26,6 +26,7 @@ bsp.debugscript: "olimex_stm32-e407_devboard_debug.sh"
 
 bsp.flash_map:
     areas:
+        # System areas.
         FLASH_AREA_BOOTLOADER:
             device: 0
             offset: 0x08000000
@@ -43,13 +44,14 @@ bsp.flash_map:
             offset: 0x080e0000
             size: 128kB
 
-        FLASH_AREA_NFFS:
-            user_id: 0
-            device: 0
-            offset: 0x080a0000
-            size: 256kB
+        # User areas.
         FLASH_AREA_REBOOT_LOG:
-            user_id: 1
+            user_id: 0
             device: 0
             offset: 0x08008000
             size: 32kB
+        FLASH_AREA_NFFS:
+            user_id: 1
+            device: 0
+            offset: 0x080a0000
+            size: 256kB

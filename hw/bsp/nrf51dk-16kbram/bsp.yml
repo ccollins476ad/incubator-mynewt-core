@@ -27,10 +27,11 @@ bsp.debugscript: nrf51dk-16kbram_debug.sh
 
 bsp.flash_map:
     areas:
+        # System areas.
         FLASH_AREA_BOOTLOADER:
             device: 0
             offset: 0x00000000
-            size: 32kB
+            size: 16kB
         FLASH_AREA_IMAGE_0:
             device: 0
             offset: 0x00008000
@@ -43,8 +44,15 @@ bsp.flash_map:
             device: 0
             offset: 0x0003f000
             size: 2kB
-        FLASH_AREA_NFFS:
+
+        # User areas.
+        FLASH_AREA_REBOOT_LOG:
             user_id: 0
+            device: 0
+            offset: 0x00004000
+            size: 16kB
+        FLASH_AREA_NFFS:
+            user_id: 1
             device: 0
             offset: 0x0003f800
             size: 2kB

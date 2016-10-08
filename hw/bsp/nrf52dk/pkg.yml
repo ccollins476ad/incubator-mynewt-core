@@ -32,10 +32,10 @@ pkg.cflags:
     - '-DSPI_MASTER_0_ENABLE'
 
 pkg.deps:
+    - boot/bootutil
     - hw/mcu/nordic/nrf52xxx
     - libc/baselibc
     - sys/flash_map
-    - boot/bootutil
 
 pkg.deps.BLE_DEVICE:
     - hw/drivers/nimble/nrf52

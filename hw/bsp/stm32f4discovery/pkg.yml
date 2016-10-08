@@ -28,7 +28,9 @@ pkg.keywords:
     - discovery
 
 pkg.cflags: -DSTM32F407xx
+
 pkg.deps:
+    - boot/bootutil
     - hw/mcu/stm/stm32f4xx
     - libc/baselibc
     - sys/flash_map

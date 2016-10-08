@@ -26,10 +26,11 @@ bsp.debugscript: "stm32f4discovery_debug.sh"
 
 bsp.flash_map:
     areas:
+        # System areas.
         FLASH_AREA_BOOTLOADER:
             device: 0
             offset: 0x08000000
-            size: 32kB
+            size: 16kB
         FLASH_AREA_IMAGE_0:
             device: 0
             offset: 0x08020000
@@ -42,8 +43,15 @@ bsp.flash_map:
             device: 0
             offset: 0x080e0000
             size: 128kB
-        FLASH_AREA_NFFS:
+
+        # User areas.
+        FLASH_AREA_REBOOT_LOG:
             user_id: 0
+            device: 0
+            offset: 0x08004000
+            size: 16kB
+        FLASH_AREA_NFFS:
+            user_id: 1
             device: 0
             offset: 0x08008000
             size: 32kB
