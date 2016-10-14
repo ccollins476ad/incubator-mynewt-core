@@ -36,6 +36,29 @@
 int boot_current_slot;
 int8_t boot_split_app_active;
 
+/*
+ * Read the image trailer from a given slot.
+ */
+int
+boot_vect_read_img_trailer(int slot, struct boot_img_trailer *bit)
+{
+    int rc;
+    const struct flash_area *fap;
+    uint32_t off;
+    int area_id;
+
+    area_id = flash_area_id_from_image_slot(slot);
+    rc = flash_area_open(area_id, &fap);
+    if (rc) {
+        return rc;
+    }
+    off = fap->fa_size - sizeof(struct boot_img_trailer);
+    rc = flash_area_read(fap, off, bit, sizeof(*bit));
+    flash_area_close(fap);
+
+    return rc;
+}
+
 int
 boot_status_sz(void)
 {
@@ -48,8 +71,8 @@ boot_swap_type(void)
     struct boot_img_trailer bit0;
     struct boot_img_trailer bit1;
 
-    boot_slot_magic(0, &bit0);
-    boot_slot_magic(1, &bit1);
+    boot_vect_read_img_trailer(0, &bit0);
+    boot_vect_read_img_trailer(1, &bit1);
 
     if (bit0.bit_copy_start == BOOT_MAGIC_SWAP_NONE &&
         bit1.bit_copy_start == BOOT_MAGIC_SWAP_NONE) {
@@ -221,7 +244,7 @@ boot_read_status(struct boot_status *bs)
         return 1;
     }
 
-    boot_slot_magic(1, &bit);
+    boot_scratch_magic(&bit);
     if (bit.bit_copy_start != BOOT_MAGIC_SWAP_NONE &&
         bit.bit_copy_done == 0xff) {
 
@@ -229,6 +252,7 @@ boot_read_status(struct boot_status *bs)
         boot_read_status_bytes(bs, flash_id, off);
         return 1;
     }
+
 
     return 0;
 }

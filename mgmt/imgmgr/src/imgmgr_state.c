@@ -62,6 +62,8 @@ imgmgr_state_flags(int query_slot)
         break;
     case BOOT_SWAP_TYPE_PERM:
         if (query_slot == 0) {
+            flags |= IMGMGR_STATE_F_ACTIVE;
+        } else if (query_slot == 1) {
             flags |= IMGMGR_STATE_F_CONFIRMED;
         }
         break;
