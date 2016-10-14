@@ -36,6 +36,12 @@
 int boot_current_slot;
 int8_t boot_split_app_active;
 
+int
+boot_status_sz(void)
+{
+    return sizeof(struct boot_img_trailer) + 32 * sizeof(uint32_t);
+}
+
 /*
  * Read the image trailer from a given slot.
  */
@@ -83,7 +89,7 @@ boot_vect_read_test(int *slot)
         if (rc) {
             continue;
         }
-        if (bit.bit_copy_start == BOOT_IMG_MAGIC) {
+        if (bit.bit_copy_start == BOOT_MAGIC_SWAP_TEMP) {
             *slot = i;
             return 0;
         }
@@ -108,7 +114,7 @@ boot_vect_read_main(int *slot)
     rc = boot_vect_read_img_trailer(0, &bit);
     assert(rc == 0);
 
-    if (bit.bit_copy_start != BOOT_IMG_MAGIC || bit.bit_img_ok != 0xff) {
+    if (bit.bit_copy_start != BOOT_MAGIC_SWAP_TEMP || bit.bit_img_ok != 0xff) {
         /*
          * If there never was copy that took place, or if the current
          * image has been marked good, we'll keep booting it.
@@ -144,7 +150,7 @@ boot_vect_write_test(int slot)
     }
 
     off = fap->fa_size - sizeof(struct boot_img_trailer);
-    magic = BOOT_IMG_MAGIC;
+    magic = BOOT_MAGIC_SWAP_TEMP;
 
     rc = flash_area_write(fap, off, &magic, sizeof(magic));
     flash_area_close(fap);
@@ -256,21 +262,25 @@ boot_read_status(struct boot_status *bs)
     uint8_t flash_id;
     uint32_t off;
 
-    /*
-     * Check if boot_img_trailer is in scratch, or at the end of slot0.
-     */
+    /* Check if boot_img_trailer is in scratch, or at the end of slot0. */
     boot_slot_magic(0, &bit);
-    if (bit.bit_copy_start == BOOT_IMG_MAGIC && bit.bit_copy_done == 0xff) {
+    if (bit.bit_copy_start != BOOT_MAGIC_SWAP_NONE &&
+        bit.bit_copy_done == 0xff) {
+
         boot_magic_loc(0, &flash_id, &off);
         boot_read_status_bytes(bs, flash_id, off);
         return 1;
     }
-    boot_scratch_magic(&bit);
-    if (bit.bit_copy_start == BOOT_IMG_MAGIC && bit.bit_copy_done == 0xff) {
+
+    boot_slot_magic(1, &bit);
+    if (bit.bit_copy_start != BOOT_MAGIC_SWAP_NONE &&
+        bit.bit_copy_done == 0xff) {
+
         boot_scratch_loc(&flash_id, &off);
         boot_read_status_bytes(bs, flash_id, off);
         return 1;
     }
+
     return 0;
 }
 
@@ -316,10 +326,10 @@ boot_write_status(struct boot_status *bs)
  * progress.
  */
 void
-boot_clear_status(void)
+boot_set_copy_done(void)
 {
+    struct boot_img_trailer bit;
     uint32_t off;
-    uint8_t val = 0;
     uint8_t flash_id;
 
     /*
@@ -327,8 +337,9 @@ boot_clear_status(void)
      * Here we say that copy operation was finished.
      */
     boot_magic_loc(0, &flash_id, &off);
-    off += sizeof(uint32_t);
-    hal_flash_write(flash_id, off, &val, sizeof(val));
+    bit.bit_copy_start = BOOT_MAGIC_SWAP_PERM;
+    bit.bit_copy_done = 1;
+    hal_flash_write(flash_id, off, &bit, 5);
 }
 
 int
