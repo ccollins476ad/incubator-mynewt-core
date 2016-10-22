@@ -16,6 +16,6 @@
 # under the License.
 
 syscfg.defs:
-    FLASH_MAP_EXTRA_AREAS:
+    FLASH_MAP_MAX_AREAS:
         description: 'TBD'
-        value: 5
+        value: 10

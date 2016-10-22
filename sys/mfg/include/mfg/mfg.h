@@ -27,11 +27,11 @@
 
 #define MFG_HASH_SZ                     32
 
-#define MFG_META_TLV_CODE_HASH          0x01
-#define MFG_META_TLV_CODE_FLASH_AREA    0x02
+#define MFG_META_TLV_TYPE_HASH          0x01
+#define MFG_META_TLV_TYPE_FLASH_AREA    0x02
 
 struct mfg_meta_tlv {
-    uint8_t code;
+    uint8_t type;
     uint8_t size;
     /* Followed by packed data. */
 };
@@ -45,12 +45,12 @@ struct mfg_meta_flash_area {
 };
 
 int mfg_next_tlv(struct mfg_meta_tlv *tlv, uint32_t *off);
-int mfg_next_tlv_with_code(struct mfg_meta_tlv *tlv, uint32_t *off,
-                           uint8_t code);
-int mfg_read_flash_area(const struct mfg_meta_tlv *tlv, uint32_t off,
-                        struct mfg_meta_flash_area *out_mfa);
-int mfg_read_hash(const struct mfg_meta_tlv *tlv, uint32_t off,
-                  void *out_hash);
+int mfg_next_tlv_with_type(struct mfg_meta_tlv *tlv, uint32_t *off,
+                           uint8_t type);
+int mfg_read_tlv_flash_area(const struct mfg_meta_tlv *tlv, uint32_t off,
+                            struct mfg_meta_flash_area *out_mfa);
+int mfg_read_tlv_hash(const struct mfg_meta_tlv *tlv, uint32_t off,
+                      void *out_hash);
 int mfg_init(void);
 
 #endif

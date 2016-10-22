@@ -6,7 +6,7 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *  http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
@@ -23,6 +23,46 @@
 
 #include "os/os.h"
 #include "mfg/mfg.h"
+
+/**
+ * The "manufacturing meta region" is located at the end of the boot loader
+ * flash area.  This region has the following structure.
+ *
+ *  0                   1                   2                   3
+ *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |Version (0x01) |                  0xff padding                 |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |   TLV type    |   TLV size    | TLV data ("TLV size" bytes)   ~
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               ~
+ * ~                                                               ~
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |   TLV type    |   TLV size    | TLV data ("TLV size" bytes)   ~
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               ~
+ * ~                                                               ~
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |   Region size                 |         0xff padding          |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                       Magic (0x3bb2a269)                      |
+ * +-+-+-+-+-+--+-+-+-+-end of boot loader area+-+-+-+-+-+-+-+-+-+-+
+ *
+ * The number of TLVs is variable; two are shown above for illustrative
+ * purposes.
+ *
+ * Fields:
+ * <Header>
+ * 1. Version: Manufacturing meta version number; always 0x01.
+ *
+ * <TLVs>
+ * 2. TLV type: Indicates the type of data to follow.
+ * 3. TLV size: The number of bytes of data to follow.
+ * 4. TLV data: "TLV size" bytes of data.
+ *
+ * <Footer>
+ * 5. Region size: The size, in bytes, of the entire manufacturing meta region;
+ *    includes header, TLVs, and footer.
+ * 6. Magic: indicates the presence of the manufacturing meta region.
+ */
 
 #define MFG_META_MAGIC          0x3bb2a269
 #define MFG_META_HEADER_SZ      4
@@ -55,6 +95,26 @@ _Static_assert(sizeof (struct mfg_meta_footer) == MFG_META_FOOTER_SZ,
 _Static_assert(sizeof (struct mfg_meta_flash_area) == MFG_META_FLASH_AREA_SZ,
                "mfg_meta_flash_area must be 12 bytes");
 
+/**
+ * Retrieves a TLV header from the mfg meta region.  To request the first TLV
+ * in the region, specify an offset of 0.  To request a subsequent TLV, specify
+ * the values retrieved by the previous call to this function.
+ *
+ * @param tlv (in / out)        Input: The previously-read TLV header; not used
+ *                                  as input when requesting the first TLV.
+ *                              Output: On success, the requested TLV header
+ *                                  gets written here.
+ * @param off (in / out)        Input: The flash-area-offset of the previously
+ *                                  read TLV header; 0 when requesting the
+ *                                  first TLV.
+ *                              Output: On success, the flash-area-offset of
+ *                                  the retrieved TLV header.
+ *
+ * @return                      0 if a TLV header was successfully retrieved;
+ *                              MFG_EDONE if there are no additional TLVs to
+ *                                  read;
+ *                              Other MFG error code on failure.
+ */
 int
 mfg_next_tlv(struct mfg_meta_tlv *tlv, uint32_t *off)
 {
@@ -98,8 +158,31 @@ done:
     return rc;
 }
 
+/**
+ * Retrieves a TLV header of the specified type from the mfg meta region.  To
+ * request the first TLV in the region, specify an offset of 0.  To request a
+ * subsequent TLV, specify the values retrieved by the previous call to this
+ * function.
+ *
+ * @param tlv (in / out)        Input: The previously-read TLV header; not used
+ *                                  as input when requesting the first TLV.
+ *                              Output: On success, the requested TLV header
+ *                                  gets written here.
+ * @param off (in / out)        Input: The flash-area-offset of the previously
+ *                                  read TLV header; 0 when requesting the
+ *                                  first TLV.
+ *                              Output: On success, the flash-area-offset of
+ *                                  the retrieved TLV header.
+ * @param type                  The type of TLV to retrieve; one of the
+ *                                  MFG_META_TLV_TYPE_[...] constants.
+ *
+ * @return                      0 if a TLV header was successfully retrieved;
+ *                              MFG_EDONE if there are no additional TLVs of
+ *                                  the specified type to read;
+ *                              Other MFG error code on failure.
+ */
 int
-mfg_next_tlv_with_code(struct mfg_meta_tlv *tlv, uint32_t *off, uint8_t code)
+mfg_next_tlv_with_type(struct mfg_meta_tlv *tlv, uint32_t *off, uint8_t type)
 {
     int rc;
 
@@ -109,7 +192,7 @@ mfg_next_tlv_with_code(struct mfg_meta_tlv *tlv, uint32_t *off, uint8_t code)
             break;
         }
 
-        if (tlv->code == code) {
+        if (tlv->type == type) {
             break;
         }
 
@@ -119,9 +202,25 @@ mfg_next_tlv_with_code(struct mfg_meta_tlv *tlv, uint32_t *off, uint8_t code)
     return rc;
 }
 
+/**
+ * Reads a flash-area TLV from the manufacturing meta region.  This function
+ * should only be called after a TLV has been identified as having the
+ * MFG_META_TLV_TYPE_FLASH_AREA type.
+ *
+ * @param tlv                   The header of the TLV to read.  This header
+ *                                  should have been retrieved via a call to
+ *                                  mfg_next_tlv() or mfg_next_tlv_with_type().
+ * @param off                   The flash-area-offset of the TLV header.  Note:
+ *                                  this is the offset of the TLV header, not
+ *                                  the TLV data.
+ * @param out_mfa (out)         On success, the retrieved flash area
+ *                                  information gets written here.
+ *
+ * @return                      0 on success; MFG error code on failure.
+ */
 int
-mfg_read_flash_area(const struct mfg_meta_tlv *tlv, uint32_t off,
-                    struct mfg_meta_flash_area *out_mfa)
+mfg_read_tlv_flash_area(const struct mfg_meta_tlv *tlv, uint32_t off,
+                        struct mfg_meta_flash_area *out_mfa)
 {
     const struct flash_area *fap;
     int read_sz;
@@ -143,14 +242,31 @@ mfg_read_flash_area(const struct mfg_meta_tlv *tlv, uint32_t off,
     }
 
     rc = 0;
-    
+
 done:
     flash_area_close(fap);
     return rc;
 }
 
+/**
+ * Reads a hash TLV from the manufacturing meta region.  This function should
+ * only be called after a TLV has been identified as having the
+ * MFG_META_TLV_TYPE_HASH type.
+ *
+ * @param tlv                   The header of the TLV to read.  This header
+ *                                  should have been retrieved via a call to
+ *                                  mfg_next_tlv() or mfg_next_tlv_with_type().
+ * @param off                   The flash-area-offset of the TLV header.  Note:
+ *                                  this is the offset of the TLV header, not
+ *                                  the TLV data.
+ * @param out_hash (out)        On success, the retrieved SHA256 hash gets
+ *                                  written here.  This buffer must be at least
+ *                                  32 bytes wide.
+ *
+ * @return                      0 on success; MFG error code on failure.
+ */
 int
-mfg_read_hash(const struct mfg_meta_tlv *tlv, uint32_t off, void *out_hash)
+mfg_read_tlv_hash(const struct mfg_meta_tlv *tlv, uint32_t off, void *out_hash)
 {
     const struct flash_area *fap;
     int read_sz;
@@ -170,12 +286,19 @@ mfg_read_hash(const struct mfg_meta_tlv *tlv, uint32_t off, void *out_hash)
     }
 
     rc = 0;
-    
+
 done:
     flash_area_close(fap);
     return rc;
 }
 
+/**
+ * Locates the manufacturing meta region in flash.  This function must be
+ * called before any TLVs can be read.  No-op if this function has already
+ * executed successfully.
+ *
+ * @return                      0 on success; MFG error code on failure.
+ */
 int
 mfg_init(void)
 {

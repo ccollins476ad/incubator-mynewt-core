@@ -49,7 +49,7 @@ static const char *app_str = "";
 static char serial[ID_SERIAL_MAX_LEN];
 
 /** Base64-encoded null-terminated manufacturing hash. */
-static char id_mfghash[MFG_HASH_SZ * 4 / 3 + 1];
+static char id_mfghash[BASE64_ENCODE_SIZE(MFG_HASH_SZ) + 1];
 
 struct conf_handler id_conf = {
     .ch_name = "id",
@@ -127,17 +127,20 @@ id_read_mfghash(void)
 
     memset(id_mfghash, 0, sizeof id_mfghash);
 
+    /* Find hash TLV in the manufacturing meta region. */
     off = 0;
-    rc = mfg_next_tlv_with_code(&tlv, &off, MFG_META_TLV_CODE_HASH);
+    rc = mfg_next_tlv_with_type(&tlv, &off, MFG_META_TLV_TYPE_HASH);
     if (rc != 0) {
         return;
     }
 
-    rc = mfg_read_hash(&tlv, off, raw_hash);
+    /* Read the TLV contents. */
+    rc = mfg_read_tlv_hash(&tlv, off, raw_hash);
     if (rc != 0) {
         return;
     }
 
+    /* Store the SHA256 hash as a base64-encoded string. */
     base64_encode(raw_hash, sizeof raw_hash, id_mfghash, 1);
 }
 
@@ -149,5 +152,6 @@ id_init(void)
     rc = conf_register(&id_conf);
     SYSINIT_PANIC_ASSERT(rc == 0);
 
+    /* Attempt to read the manufacturing image hash from the meta region. */
     id_read_mfghash();
 }
