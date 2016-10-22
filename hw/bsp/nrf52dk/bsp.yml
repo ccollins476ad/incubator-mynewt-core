@@ -24,6 +24,7 @@ bsp.linkerscript.BOOT_LOADER.OVERWRITE: "boot-nrf52dk.ld"
 bsp.part2linkerscript: "split-nrf52dk.ld"
 bsp.downloadscript: nrf52dk_download.sh
 bsp.debugscript: nrf52dk_debug.sh
+bsp.writescript: nrf52dk_write.sh
 
 bsp.flash_map:
     areas:

@@ -28,7 +28,14 @@
 #include "hal/hal_bsp.h"
 #include "hal/hal_flash.h"
 #include "hal/hal_flash_int.h"
+#include "mfg/mfg.h"
 #include "flash_map/flash_map.h"
+
+#define FLASH_MAP_MAX_MFG_AREAS                                 \
+    (sizeof sysflash_map_dflt / sizeof sysflash_map_dflt[0] +   \
+        MYNEWT_VAL(FLASH_MAP_EXTRA_AREAS))
+
+static struct flash_area flash_map_mfg_areas[FLASH_MAP_MAX_MFG_AREAS];
 
 const struct flash_area *flash_map;
 int flash_map_entries;
@@ -166,18 +173,69 @@ flash_area_id_to_image_slot(int area_id)
     }
 }
 
+static int
+flash_map_read_mfg(int *out_num_areas)
+{
+    struct mfg_meta_flash_area meta_flash_area;
+    struct mfg_meta_tlv tlv;
+    struct flash_area *fap;
+    uint32_t off;
+    int rc;
+
+    *out_num_areas = 0;
+    off = 0;
+
+    /* Ensure manufacturing module is initialized. */
+    rc = mfg_init();
+    if (rc != 0) {
+        return rc; // XXX
+    }
+
+    while (1) {
+        if (*out_num_areas >= FLASH_MAP_MAX_MFG_AREAS) {
+            return -1;
+        }
+
+        rc = mfg_next_tlv_with_code(&tlv, &off, MFG_META_TLV_CODE_FLASH_AREA);
+        switch (rc) {
+        case 0:
+            break;
+        case MFG_EDONE:
+            return 0;
+        default:
+            return rc; // XXX
+        }
+
+        rc = mfg_read_flash_area(&tlv, off, &meta_flash_area);
+        if (rc != 0) {
+            return rc; // XXX
+        }
+
+        fap = flash_map_mfg_areas + *out_num_areas;
+        fap->fa_id = meta_flash_area.area_id;
+        fap->fa_device_id = meta_flash_area.device_id;
+        fap->fa_off = meta_flash_area.offset;
+        fap->fa_size = meta_flash_area.size;
+
+        (*out_num_areas)++;
+    }
+}
+
 void
 flash_map_init(void)
 {
+    int num_areas;
     int rc;
 
     rc = hal_flash_init();
     SYSINIT_PANIC_ASSERT(rc == 0);
 
-    /* XXX: Attempt to read from meta region; for now we always use default
-     * map
-     */
-
     flash_map = sysflash_map_dflt;
     flash_map_entries = sizeof sysflash_map_dflt / sizeof sysflash_map_dflt[0];
+
+    rc = flash_map_read_mfg(&num_areas);
+    if (rc == 0) {
+        flash_map = flash_map_mfg_areas;
+        flash_map_entries = num_areas;
+    }
 }
