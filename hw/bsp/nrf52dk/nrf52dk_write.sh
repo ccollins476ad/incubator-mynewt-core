@@ -23,13 +23,15 @@ GDB_CMD_FILE=.gdb_cmds
 
 src_file="$1"
 dst_off="$2"
+src_off="$3"
+src_len="$4"
 
 is_int() {
     printf "%d" "$1" > /dev/null 2>&1
 }
 
 print_usage() {
-    printf 'usage: %s <src-file> <dst-offset>\n' "$0" >&2
+    printf 'usage: %s <src-file> <dst-offset> [src-offset] [src-len]\n' "$0" >&2
 }
 
 usage_err() {
@@ -56,10 +58,31 @@ fi
 
 if ! is_int "$dst_off"
 then
-    usage_err $(printf 'invalid offset: %d' "$src_file")
+    usage_err $(printf 'invalid dst-offset: %d' "$dst_off")
 fi
 
-printf 'Downloading "%s" to 0x%08x\n' "$src_file" "$dst_off"
+if [ "$src_off" = '' ]
+then
+    src_off=0
+elif ! is_int "$src_off"
+then
+    usage_err $(printf 'invalid src-offset: %d' "$src_off")
+fi
+
+# If a source length was specified, calculate the source end.  Otherwise, don't
+# define a source end; gdb will read the entire file.
+if [ ! "$src_len" = '' ]
+then
+    if ! is_int "$src_len"
+    then
+        usage_err $(printf 'invalid src-len: %d' "$src_len")
+    fi
+
+    src_end=$(($src_off + $src_len))
+fi
+
+printf 'Downloading "%s"[%s:%s] to 0x%08x\n' \
+    "$src_file" "$src_off" "$src_end" "$dst_off"
 
 # XXX for some reason JLinkExe overwrites flash at offset 0 when
 # downloading somewhere in the flash. So need to figure out how to tell it
@@ -70,7 +93,7 @@ shell /bin/sh -c    \
     'trap \"\" 2;   \
      JLinkGDBServer -device nRF52 -speed 4000 -if SWD -port 3333 -singlerun' &
 target remote localhost:3333
-restore $src_file binary $dst_off
+restore $src_file binary $dst_off $src_off $src_end
 quit
 "
 
