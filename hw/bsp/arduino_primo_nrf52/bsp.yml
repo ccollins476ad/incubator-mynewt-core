@@ -24,6 +24,8 @@ bsp.linkerscript.BOOT_LOADER.OVERWRITE: "boot-primo.ld"
 bsp.part2linkerscript: "split-primo.ld"
 bsp.downloadscript: primo_download.sh
 bsp.debugscript: primo_debug.sh
+bsp.writescript: primo_write.sh
+bsp.writescript.USE_OPENOCD.OVERWRITE: primo_write_openocd.sh
 
 bsp.flash_map:
     areas:

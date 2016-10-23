@@ -24,6 +24,7 @@ bsp.linkerscript.BOOT_LOADER.OVERWRITE: "boot-bmd300eval.ld"
 bsp.part2linkerscript: "split-bmd300eval.ld"
 bsp.downloadscript: bmd300eval_download.sh
 bsp.debugscript: bmd300eval_debug.sh
+bsp.writescript: bmd300eval_write.sh
 
 bsp.flash_map:
     areas:
