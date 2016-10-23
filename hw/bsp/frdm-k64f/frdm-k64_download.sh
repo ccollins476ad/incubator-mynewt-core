@@ -42,14 +42,17 @@ GDB_CMD_FILE=.gdb_cmds
 # Look for 'bootloader' in FEATURES
 for feature in ${FEATURES}; do
     if [ ${feature} == "BOOT_LOADER" ]; then
-	IS_BOOTLOADER=1
+        IS_BOOTLOADER=1
     fi
     if [ ${feature} = "openocd_debug" ]; then
-	USE_OPENOCD=1
+        USE_OPENOCD=1
     fi
 done
 
-if [ ${IS_BOOTLOADER} -eq 1 ]; then
+if [ "$MFG_IMAGE" -eq 1 ]; then
+    FLASH_OFFSET=0x0
+    FILE_NAME=$BIN_BASENAME.bin
+elif [ $IS_BOOTLOADER -eq 1 ]; then
     FLASH_OFFSET=0x00000000
     FILE_NAME=${BIN_BASENAME}.elf.bin
 else
