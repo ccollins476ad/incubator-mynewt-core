@@ -195,12 +195,18 @@ uart_poller(void *arg)
             }
             for (bytes = 0; bytes < UART_MAX_BYTES_PER_POLL; bytes++) {
                 if (uart->u_rx_char < 0) {
+                    errno = 0;
                     rc = read(uart->u_fd, &ch, 1);
                     if (rc == 0) {
                         /* XXX EOF, what now? */
                         assert(0);
                     } else if (rc < 0) {
-                        break;
+                        if (errno == ENXIO) {
+                            /* Device detached from OS. */
+                            assert(0);
+                        } else {
+                            break;
+                        }
                     } else {
                         uart->u_rx_char = ch;
                     }
