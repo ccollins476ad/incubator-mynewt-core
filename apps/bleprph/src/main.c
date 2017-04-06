@@ -200,7 +200,7 @@ bleprph_gap_event(struct ble_gap_event *event, void *arg)
         /* Encryption has been enabled or disabled for this connection. */
         BLEPRPH_LOG(INFO, "encryption change event; status=%d ",
                     event->enc_change.status);
-        rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
+        rc = ble_gap_conn_find(event->enc_change.conn_handle, &desc);
         assert(rc == 0);
         bleprph_print_conn_desc(&desc);
         BLEPRPH_LOG(INFO, "\n");
