@@ -215,11 +215,11 @@ typedef struct sBand
     /*!
      * Time stamp of the last Tx frame
      */
-    TimerTime_t LastTxDoneTime;
+    uint32_t LastTxDoneTime;
     /*!
      * Holds the time where the device is off
      */
-    TimerTime_t TimeOff;
+    uint32_t TimeOff;
 }Band_t;
 
 /*!
@@ -830,7 +830,7 @@ typedef struct sMcpsConfirm
     /*!
      * The transmission time on air of the frame
      */
-    TimerTime_t TxTimeOnAir;
+    uint32_t TxTimeOnAir;
     /*!
      * The uplink counter value related to the frame
      */
@@ -1030,7 +1030,7 @@ typedef struct sMlmeConfirm
     /*!
      * The transmission time on air of the frame
      */
-    TimerTime_t TxTimeOnAir;
+    uint32_t TxTimeOnAir;
     /*!
      * Demodulation margin. Contains the link margin [dB] of the last
      * successfully received LinkCheckReq

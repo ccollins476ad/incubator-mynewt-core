@@ -24,6 +24,8 @@ Maintainer: Miguel Luis ( Semtech ), Gregory Cristian ( Semtech ) and Daniel Jä
 #include "mac/LoRaMac.h"
 #include "mac/LoRaMacTest.h"
 
+#include "hal/hal_timer.h"
+
 /*!
  * Maximum PHY layer payload size
  */
@@ -484,8 +486,8 @@ static uint8_t MaxDCycle = 0;
  * Aggregated duty cycle management
  */
 static uint16_t AggregatedDCycle;
-static TimerTime_t AggregatedLastTxDoneTime;
-static TimerTime_t AggregatedTimeOff;
+static uint32_t AggregatedLastTxDoneTime;
+static uint32_t AggregatedTimeOff;
 
 /*!
  * Enables/Disables duty cycle management (Test only)
@@ -502,7 +504,7 @@ static uint8_t Channel;
  *
  * \remark Used for the BACKOFF_DC computation.
  */
-static TimerTime_t LoRaMacInitializationTime = 0;
+static uint32_t LoRaMacInitializationTime = 0;
 
 /*!
  * LoRaMac internal states
@@ -527,7 +529,7 @@ uint32_t LoRaMacState = LORAMAC_IDLE;
 /*!
  * LoRaMac timer used to check the LoRaMacState (runs every second)
  */
-static TimerEvent_t MacStateCheckTimer;
+static struct hal_timer MacStateCheckTimer;
 
 /*!
  * LoRaMac upper layer event functions
@@ -547,13 +549,13 @@ static RadioEvents_t RadioEvents;
 /*!
  * LoRaMac duty cycle delayed Tx timer
  */
-static TimerEvent_t TxDelayedTimer;
+static struct hal_timer TxDelayedTimer;
 
 /*!
  * LoRaMac reception windows timers
  */
-static TimerEvent_t RxWindowTimer1;
-static TimerEvent_t RxWindowTimer2;
+static struct hal_timer RxWindowTimer1;
+static struct hal_timer RxWindowTimer2;
 
 /*!
  * LoRaMac reception windows delay
@@ -566,7 +568,7 @@ static uint32_t RxWindow2Delay;
 /*!
  * Acknowledge timeout timer. Used for packet retransmissions.
  */
-static TimerEvent_t AckTimeoutTimer;
+static struct hal_timer AckTimeoutTimer;
 
 /*!
  * Number of trials to get a frame acknowledged
@@ -586,7 +588,7 @@ static bool AckTimeoutRetry = false;
 /*!
  * Last transmission time on air
  */
-TimerTime_t TxTimeOnAir = 0;
+uint32_t TxTimeOnAir = 0;
 
 /*!
  * Number of trials for the Join Request
@@ -688,7 +690,7 @@ static void OnAckTimeoutTimerEvent( void );
  * \retval status  Function status [1: OK, 0: Unable to find a channel on the
  *                                  current datarate]
  */
-static bool SetNextChannel( TimerTime_t* time );
+static bool SetNextChannel( uint32_t* time );
 
 /*!
  * \brief Initializes and opens the reception window
@@ -947,7 +949,7 @@ static void ResetMacParameters( void );
 
 static void OnRadioTxDone( void )
 {
-    TimerTime_t curTime = TimerGetCurrentTime( );
+    uint32_t curTime = TimerGetCurrentTime( );
 
     if( LoRaMacDeviceClass != CLASS_C )
     {
@@ -1896,12 +1898,12 @@ static void OnAckTimeoutTimerEvent( void )
     }
 }
 
-static bool SetNextChannel( TimerTime_t* time )
+static bool SetNextChannel( uint32_t* time )
 {
     uint8_t nbEnabledChannels = 0;
     uint8_t delayTx = 0;
     uint8_t enabledChannels[LORA_MAX_NB_CHANNELS];
-    TimerTime_t nextTxDelay = ( TimerTime_t )( -1 );
+    uint32_t nextTxDelay = ( uint32_t )( -1 );
 
     memset1( enabledChannels, 0, LORA_MAX_NB_CHANNELS );
 
@@ -2884,7 +2886,7 @@ LoRaMacStatus_t Send( LoRaMacHeader_t *macHdr, uint8_t fPort, void *fBuffer, uin
 
 static LoRaMacStatus_t ScheduleTx( )
 {
-    TimerTime_t dutyCycleTimeOff = 0;
+    uint32_t dutyCycleTimeOff = 0;
 
     // Check if the device is off
     if( MaxDCycle == 255 )
@@ -2928,7 +2930,7 @@ static LoRaMacStatus_t ScheduleTx( )
 static uint16_t JoinDutyCycle( void )
 {
     uint16_t dutyCycle = 0;
-    TimerTime_t timeElapsed = TimerGetElapsedTime( LoRaMacInitializationTime );
+    uint32_t timeElapsed = TimerGetElapsedTime( LoRaMacInitializationTime );
 
     if( timeElapsed < 3600e3 )
     {
