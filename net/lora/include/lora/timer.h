@@ -20,31 +20,6 @@ Maintainer: Miguel Luis and Gregory Cristian
 struct hal_timer;
 
 /*!
- * \brief Timer object description
- */
-#if 0
-typedef struct TimerEvent_s
-{
-    uint32_t Timestamp;         //! Current timer value
-    uint32_t ReloadValue;       //! Timer delay value
-    bool IsRunning;             //! Is the timer currently running
-    void (*Callback)(void); //! Timer IRQ callback function
-    struct TimerEvent_s *Next;  //! Pointer to the next Timer object.
-}struct hal_timer;
-#endif
-
-/*!
- * \brief Initializes the timer object
- *
- * \remark TimerSetValue function must be called before starting the timer.
- *         this function initializes timestamp and reload value at 0.
- *
- * \param [IN] obj          Structure containing the timer object parameters
- * \param [IN] callback     Function callback called at the end of the timeout
- */
-void TimerInit(struct hal_timer *obj, void (*callback)(void));
-
-/*!
  * Timer IRQ event handler
  */
 void TimerIrqHandler(void);

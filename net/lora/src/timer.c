@@ -1,7 +1,6 @@
 #include "lora/timer.h"
 #include "lora/utilities.h"
 
-void TimerInit(struct hal_timer *obj, void (*callback)(void)) { }
 void TimerIrqHandler(void) { }
 void TimerStart(struct hal_timer *obj) { }
 void TimerStop(struct hal_timer *obj) { }

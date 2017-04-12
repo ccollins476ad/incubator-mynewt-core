@@ -18,6 +18,7 @@ Maintainer: Miguel Luis, Gregory Cristian and Wael Guibene
 #include "radio.h"
 #include "sx1276.h"
 #include "sx1276-board.h"
+#include "os/os_cputime.h"
 
 /*
  * Local types definition
@@ -125,7 +126,7 @@ void SX1276OnDio5Irq( void );
 /*!
  * \brief Tx & Rx timeout timer callback
  */
-void SX1276OnTimeoutIrq( void );
+void SX1276OnTimeoutIrq(void *unused);
 
 /*
  * Private global constants
@@ -221,9 +222,9 @@ void SX1276Init( RadioEvents_t *events )
     RadioEvents = events;
 
     // Initialize driver timeout timers
-    TimerInit( &TxTimeoutTimer, SX1276OnTimeoutIrq );
-    TimerInit( &RxTimeoutTimer, SX1276OnTimeoutIrq );
-    TimerInit( &RxTimeoutSyncWord, SX1276OnTimeoutIrq );
+    os_cputime_timer_init(&TxTimeoutTimer, SX1276OnTimeoutIrq);
+    os_cputime_timer_init(&RxTimeoutTimer, SX1276OnTimeoutIrq);
+    os_cputime_timer_init(&RxTimeoutSyncWord, SX1276OnTimeoutIrq);
 
     SX1276Reset( );
 
@@ -1320,7 +1321,7 @@ void SX1276SetPublicNetwork( bool enable )
     }
 }
 
-void SX1276OnTimeoutIrq( void )
+void SX1276OnTimeoutIrq(void *unused)
 {
     switch( SX1276.Settings.State )
     {
