@@ -26,3 +26,7 @@ pkg.deps:
     - "@apache-mynewt-core/kernel/os"
     - "@apache-mynewt-core/net/lora"
     - "@apache-mynewt-core/net/lora/radio"
+
+pkg.cflags:
+    # Allow declarations inside for loops.
+    - "-std=c99"

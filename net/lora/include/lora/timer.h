@@ -16,6 +16,7 @@ Maintainer: Miguel Luis and Gregory Cristian
 #define __TIMER_H__
 
 #include <inttypes.h>
+#include <stdbool.h>
 
 /*!
  * \brief Timer object description

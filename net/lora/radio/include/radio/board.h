@@ -22,6 +22,8 @@ Maintainer: Miguel Luis and Gregory Cristian
 #include <stdint.h>
 #include "lora/utilities.h"
 
+#include "../sx1276/include/sx1276/sx1276.h"
+
 /*!
  * Board MCU pins definitions
  */

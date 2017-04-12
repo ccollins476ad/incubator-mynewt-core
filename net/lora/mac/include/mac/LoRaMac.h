@@ -48,6 +48,8 @@
 
 // Includes board dependent definitions such as channels frequencies
 #include "LoRaMac-definitions.h"
+#include "lora/timer.h"
+
 
 /*!
  * Beacon interval in ms
