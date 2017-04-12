@@ -20,13 +20,6 @@ Maintainer: Miguel Luis and Gregory Cristian
 struct hal_timer;
 
 /*!
- * \brief Resets the timer object
- *
- * \param [IN] obj Structure containing the timer object parameters
- */
-void TimerReset(struct hal_timer *obj);
-
-/*!
  * \brief Read the current time
  *
  * \retval time returns current time
