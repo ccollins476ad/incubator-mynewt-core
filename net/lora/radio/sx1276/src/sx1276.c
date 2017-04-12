@@ -12,13 +12,15 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 
 Maintainer: Miguel Luis, Gregory Cristian and Wael Guibene
 */
+#include <assert.h>
 #include <math.h>
 #include <string.h>
-#include "board.h"
-#include "radio.h"
-#include "sx1276.h"
-#include "sx1276-board.h"
+#include "hal/hal_spi.h"
 #include "os/os_cputime.h"
+#include "radio/board.h"
+#include "radio/radio.h"
+#include "sx1276/sx1276.h"
+#include "sx1276-board.h"
 
 /*!
  * Radio registers definition
@@ -203,9 +205,9 @@ DioIrqHandler *DioIrq[] = { SX1276OnDio0Irq, SX1276OnDio1Irq,
 /*!
  * Tx and Rx timers
  */
-TimerEvent_t TxTimeoutTimer;
-TimerEvent_t RxTimeoutTimer;
-TimerEvent_t RxTimeoutSyncWord;
+struct hal_timer TxTimeoutTimer;
+struct hal_timer RxTimeoutTimer;
+struct hal_timer RxTimeoutSyncWord;
 
 static uint32_t rx_timeout_sync_delay = -1;
 
@@ -220,17 +222,15 @@ void SX1276Init( RadioEvents_t *events )
     RadioEvents = events;
 
     // Initialize driver timeout timers
-    os_cputime_timer_init(&TxTimeoutTimer, SX1276OnTimeoutIrq);
-    os_cputime_timer_init(&RxTimeoutTimer, SX1276OnTimeoutIrq);
-    os_cputime_timer_init(&RxTimeoutSyncWord, SX1276OnTimeoutIrq);
+    os_cputime_timer_init(&TxTimeoutTimer, SX1276OnTimeoutIrq, NULL);
+    os_cputime_timer_init(&RxTimeoutTimer, SX1276OnTimeoutIrq, NULL);
+    os_cputime_timer_init(&RxTimeoutSyncWord, SX1276OnTimeoutIrq, NULL);
 
     SX1276Reset( );
 
     RxChainCalibration( );
 
     SX1276SetOpMode( RF_OPMODE_SLEEP );
-
-    SX1276IoIrqInit( DioIrq );
 
     for( i = 0; i < sizeof( RadioRegsInit ) / sizeof( RadioRegisters_t ); i++ )
     {
@@ -267,7 +267,7 @@ bool SX1276IsChannelFree( RadioModems_t modem, uint32_t freq, int16_t rssiThresh
 
     SX1276SetOpMode( RF_OPMODE_RECEIVER );
 
-    DelayMs( 1 );
+    os_cputime_delay_usecs(1000);
 
     rssi = SX1276ReadRssi( modem );
 
@@ -306,7 +306,7 @@ uint32_t SX1276Random( void )
 
     for( i = 0; i < 32; i++ )
     {
-        DelayMs( 1 );
+        os_cputime_delay_usecs(1000);
         // Unfiltered RSSI value reading. Only takes the LSB value
         rnd |= ( ( uint32_t )SX1276Read( REG_LR_RSSIWIDEBAND ) & 0x01 ) << i;
     }
@@ -819,7 +819,7 @@ void SX1276Send( uint8_t *buffer, uint8_t size )
             if( ( SX1276Read( REG_OPMODE ) & ~RF_OPMODE_MASK ) == RF_OPMODE_SLEEP )
             {
                 SX1276SetStby( );
-                DelayMs( 1 );
+                os_cputime_delay_usecs(1000);
             }
             // Write payload buffer
             SX1276WriteFifo( buffer, size );
@@ -1160,16 +1160,16 @@ int16_t SX1276ReadRssi( RadioModems_t modem )
 void SX1276Reset( void )
 {
     // Set RESET pin to 0
-    GpioInit( &SX1276.Reset, RADIO_RESET, PIN_OUTPUT, PIN_PUSH_PULL, PIN_NO_PULL, 0 );
+    hal_gpio_init_out(RADIO_RESET, 0);
 
     // Wait 1 ms
-    DelayMs( 1 );
+    os_cputime_delay_usecs(1000);
 
     // Configure RESET as input
-    GpioInit( &SX1276.Reset, RADIO_RESET, PIN_INPUT, PIN_PUSH_PULL, PIN_NO_PULL, 1 );
+    hal_gpio_init_in(RADIO_RESET, HAL_GPIO_PULL_NONE);
 
     // Wait 6 ms
-    DelayMs( 6 );
+    os_cputime_delay_usecs(6000);
 }
 
 void SX1276SetOpMode( uint8_t opMode )
@@ -1188,7 +1188,7 @@ void SX1276SetOpMode( uint8_t opMode )
 
 void SX1276SetModem( RadioModems_t modem )
 {
-    assert_param( ( SX1276.Spi.Spi.Instance != NULL ) );
+    //assert( ( SX1276.Spi.Spi.Instance != NULL ) );
 
     if( ( SX1276Read( REG_OPMODE ) & RFLR_OPMODE_LONGRANGEMODE_ON ) != 0 )
     {
@@ -1242,16 +1242,18 @@ void SX1276WriteBuffer( uint8_t addr, uint8_t *buffer, uint8_t size )
     uint8_t i;
 
     //NSS = 0;
-    GpioWrite( &SX1276.Spi.Nss, 0 );
+    //GpioWrite( &SX1276.Spi.Nss, 0 );
 
-    SpiInOut( &SX1276.Spi, addr | 0x80 );
+    hal_spi_tx_val(0, addr | 0x80);
+    //SpiInOut( &SX1276.Spi, addr | 0x80 );
     for( i = 0; i < size; i++ )
     {
-        SpiInOut( &SX1276.Spi, buffer[i] );
+        hal_spi_tx_val(0, buffer[i]);
+        //SpiInOut( &SX1276.Spi, buffer[i] );
     }
 
     //NSS = 1;
-    GpioWrite( &SX1276.Spi.Nss, 1 );
+    //GpioWrite( &SX1276.Spi.Nss, 1 );
 }
 
 void SX1276ReadBuffer( uint8_t addr, uint8_t *buffer, uint8_t size )
@@ -1259,17 +1261,19 @@ void SX1276ReadBuffer( uint8_t addr, uint8_t *buffer, uint8_t size )
     uint8_t i;
 
     //NSS = 0;
-    GpioWrite( &SX1276.Spi.Nss, 0 );
+    //GpioWrite( &SX1276.Spi.Nss, 0 );
 
-    SpiInOut( &SX1276.Spi, addr & 0x7F );
+    hal_spi_tx_val(0, addr | 0x7f);
+    //SpiInOut( &SX1276.Spi, addr & 0x7F );
 
     for( i = 0; i < size; i++ )
     {
-        buffer[i] = SpiInOut( &SX1276.Spi, 0 );
+        //buffer[i] = SpiInOut( &SX1276.Spi, 0 );
+        buffer[i] = hal_spi_tx_val(0, 0);
     }
 
     //NSS = 1;
-    GpioWrite( &SX1276.Spi.Nss, 1 );
+    //GpioWrite( &SX1276.Spi.Nss, 1 );
 }
 
 void SX1276WriteFifo( uint8_t *buffer, uint8_t size )
@@ -1654,10 +1658,10 @@ void SX1276OnDio2Irq( void )
             {
             case MODEM_FSK:
                 // Checks if DIO4 is connected. If it is not PreambleDtected is set to true.
-                if( SX1276.DIO4.port == NULL )
-                {
-                    SX1276.Settings.FskPacketHandler.PreambleDetected = true;
-                }
+                //if( SX1276.DIO4.port == NULL )
+                //{
+                    //SX1276.Settings.FskPacketHandler.PreambleDetected = true;
+                //}
 
                 if( ( SX1276.Settings.FskPacketHandler.PreambleDetected == true ) && ( SX1276.Settings.FskPacketHandler.SyncWordDetected == false ) )
                 {
