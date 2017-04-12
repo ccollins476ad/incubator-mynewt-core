@@ -1,7 +1,6 @@
 #include "lora/timer.h"
 #include "lora/utilities.h"
 
-void TimerStop(struct hal_timer *obj) { }
 void TimerReset(struct hal_timer *obj) { }
 uint32_t TimerGetCurrentTime(void) { return 0; }
 uint32_t TimerGetElapsedTime(uint32_t savedTime) { return 0; }
