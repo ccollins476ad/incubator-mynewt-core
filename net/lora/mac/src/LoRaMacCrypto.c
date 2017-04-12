@@ -19,12 +19,12 @@ Maintainer: Miguel Luis ( Semtech ), Gregory Cristian ( Semtech ) and Daniel Jä
 */
 #include <stdlib.h>
 #include <stdint.h>
-#include "utilities.h"
+#include "lora/utilities.h"
 
 #include "aes.h"
 #include "cmac.h"
 
-#include "LoRaMacCrypto.h"
+#include "mac/LoRaMacCrypto.h"
 
 /*!
  * CMAC/AES Message Integrity Code (MIC) Block B0 size
