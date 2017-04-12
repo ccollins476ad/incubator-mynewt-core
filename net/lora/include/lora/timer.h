@@ -20,11 +20,6 @@ Maintainer: Miguel Luis and Gregory Cristian
 struct hal_timer;
 
 /*!
- * Timer IRQ event handler
- */
-void TimerIrqHandler(void);
-
-/*!
  * \brief Starts and adds the timer object to the list of timer events
  *
  * \param [IN] obj Structure containing the timer object parameters
