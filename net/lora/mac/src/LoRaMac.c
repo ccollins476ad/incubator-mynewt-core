@@ -964,18 +964,17 @@ static void OnRadioTxDone(void)
     // Setup timers
     if( IsRxWindowsEnabled == true )
     {
-        TimerSetValue( &RxWindowTimer1, RxWindow1Delay );
-        TimerStart( &RxWindowTimer1 );
+        os_cputime_timer_relative(&RxWindowTimer1, RxWindow1Delay);
         if( LoRaMacDeviceClass != CLASS_C )
         {
-            TimerSetValue( &RxWindowTimer2, RxWindow2Delay );
-            TimerStart( &RxWindowTimer2 );
+            os_cputime_timer_relative(&RxWindowTimer2, RxWindow2Delay);
         }
         if( ( LoRaMacDeviceClass == CLASS_C ) || ( NodeAckRequested == true ) )
         {
-            TimerSetValue( &AckTimeoutTimer, RxWindow2Delay + ACK_TIMEOUT +
-                                             randr( -ACK_TIMEOUT_RND, ACK_TIMEOUT_RND ) );
-            TimerStart( &AckTimeoutTimer );
+            os_cputime_timer_relative(
+                &AckTimeoutTimer,
+                RxWindow2Delay + ACK_TIMEOUT +
+                    randr(-ACK_TIMEOUT_RND, ACK_TIMEOUT_RND));
         }
     }
     else
@@ -1022,8 +1021,7 @@ static void PrepareRxDoneAbort( void )
     LoRaMacFlags.Bits.MacDone = 1;
 
     // Trig OnMacCheckTimerEvent call as soon as possible
-    TimerSetValue( &MacStateCheckTimer, 1 );
-    TimerStart( &MacStateCheckTimer );
+    os_cputime_timer_relative(&MacStateCheckTimer, 1);
 }
 
 static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
@@ -1417,8 +1415,7 @@ static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
     LoRaMacFlags.Bits.MacDone = 1;
 
     // Trig OnMacCheckTimerEvent call as soon as possible
-    TimerSetValue( &MacStateCheckTimer, 1 );
-    TimerStart( &MacStateCheckTimer );
+    os_cputime_timer_relative(&MacStateCheckTimer, 1);
 }
 
 static void OnRadioTxTimeout( void )
@@ -1662,8 +1659,8 @@ static void OnMacStateCheckTimerEvent(void *unused)
     else
     {
         // Operation not finished restart timer
-        TimerSetValue( &MacStateCheckTimer, MAC_STATE_CHECK_TIMEOUT );
-        TimerStart( &MacStateCheckTimer );
+        os_cputime_timer_relative(&MacStateCheckTimer,
+                                  MAC_STATE_CHECK_TIMEOUT);
     }
 
     if( LoRaMacFlags.Bits.McpsInd == 1 )
@@ -2921,8 +2918,7 @@ static LoRaMacStatus_t ScheduleTx( )
     {
         // Send later - prepare timer
         LoRaMacState |= LORAMAC_TX_DELAYED;
-        TimerSetValue( &TxDelayedTimer, dutyCycleTimeOff );
-        TimerStart( &TxDelayedTimer );
+        os_cputime_timer_relative(&TxDelayedTimer, dutyCycleTimeOff);
 
         return LORAMAC_STATUS_OK;
     }
@@ -3309,8 +3305,7 @@ LoRaMacStatus_t SendFrameOnChannel( ChannelParams_t channel )
     MlmeConfirm.TxTimeOnAir = TxTimeOnAir;
 
     // Starts the MAC layer status check timer
-    TimerSetValue( &MacStateCheckTimer, MAC_STATE_CHECK_TIMEOUT );
-    TimerStart( &MacStateCheckTimer );
+    os_cputime_timer_relative(&MacStateCheckTimer, MAC_STATE_CHECK_TIMEOUT);
 
     if( IsLoRaMacNetworkJoined == false )
     {
@@ -3334,8 +3329,7 @@ LoRaMacStatus_t SetTxContinuousWave( uint16_t timeout )
     txPower = TxPowers[txPowerIndex];
 
     // Starts the MAC layer status check timer
-    TimerSetValue( &MacStateCheckTimer, MAC_STATE_CHECK_TIMEOUT );
-    TimerStart( &MacStateCheckTimer );
+    os_cputime_timer_relative(&MacStateCheckTimer, MAC_STATE_CHECK_TIMEOUT);
 
     Radio.SetTxContinuousWave( Channels[Channel].Frequency, txPower, timeout );
 
@@ -3466,7 +3460,6 @@ LoRaMacStatus_t LoRaMacInitialization( LoRaMacPrimitives_t *primitives, LoRaMacC
     // Initialize timers
     os_cputime_timer_init(&MacStateCheckTimer, OnMacStateCheckTimerEvent,
                           NULL);
-    TimerSetValue(&MacStateCheckTimer, MAC_STATE_CHECK_TIMEOUT);
 
     os_cputime_timer_init(&TxDelayedTimer, OnTxDelayedTimerEvent, NULL);
     os_cputime_timer_init(&RxWindowTimer1, OnRxWindow1TimerEvent, NULL);

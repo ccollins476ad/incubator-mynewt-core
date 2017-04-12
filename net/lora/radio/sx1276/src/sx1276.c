@@ -20,10 +20,6 @@ Maintainer: Miguel Luis, Gregory Cristian and Wael Guibene
 #include "sx1276-board.h"
 #include "os/os_cputime.h"
 
-/*
- * Local types definition
- */
-
 /*!
  * Radio registers definition
  */
@@ -210,6 +206,8 @@ DioIrqHandler *DioIrq[] = { SX1276OnDio0Irq, SX1276OnDio1Irq,
 TimerEvent_t TxTimeoutTimer;
 TimerEvent_t RxTimeoutTimer;
 TimerEvent_t RxTimeoutSyncWord;
+
+static uint32_t rx_timeout_sync_delay = -1;
 
 /*
  * Radio driver functions implementation
@@ -990,8 +988,7 @@ void SX1276SetRx( uint32_t timeout )
     SX1276.Settings.State = RF_RX_RUNNING;
     if( timeout != 0 )
     {
-        TimerSetValue( &RxTimeoutTimer, timeout );
-        TimerStart( &RxTimeoutTimer );
+        os_cputime_timer_relative(&RxTimeoutTimer, timeout);
     }
 
     if( SX1276.Settings.Modem == MODEM_FSK )
@@ -1000,12 +997,13 @@ void SX1276SetRx( uint32_t timeout )
 
         if( rxContinuous == false )
         {
-            TimerSetValue( &RxTimeoutSyncWord, ceil( ( 8.0 * ( SX1276.Settings.Fsk.PreambleLen +
-                                                             ( ( SX1276Read( REG_SYNCCONFIG ) &
-                                                                ~RF_SYNCCONFIG_SYNCSIZE_MASK ) +
-                                                                1.0 ) + 10.0 ) /
-                                                             ( double )SX1276.Settings.Fsk.Datarate ) * 1e3 ) + 4 );
-            TimerStart( &RxTimeoutSyncWord );
+            rx_timeout_sync_delay = 
+                ceil((8.0 * (SX1276.Settings.Fsk.PreambleLen +
+                             ((SX1276Read(REG_SYNCCONFIG) &
+                                ~RF_SYNCCONFIG_SYNCSIZE_MASK) + 1.0) + 10.0) /
+                      (double)SX1276.Settings.Fsk.Datarate) * 1e3) + 4;
+            os_cputime_timer_relative(
+                &RxTimeoutSyncWord, rx_timeout_sync_delay);
         }
     }
     else
@@ -1023,8 +1021,6 @@ void SX1276SetRx( uint32_t timeout )
 
 void SX1276SetTx( uint32_t timeout )
 {
-    TimerSetValue( &TxTimeoutTimer, timeout );
-
     switch( SX1276.Settings.Modem )
     {
     case MODEM_FSK:
@@ -1080,7 +1076,7 @@ void SX1276SetTx( uint32_t timeout )
     }
 
     SX1276.Settings.State = RF_TX_RUNNING;
-    TimerStart( &TxTimeoutTimer );
+    os_cputime_timer_relative(&TxTimeoutTimer, timeout);
     SX1276SetOpMode( RF_OPMODE_TRANSMITTER );
 }
 
@@ -1130,10 +1126,8 @@ void SX1276SetTxContinuousWave( uint32_t freq, int8_t power, uint16_t time )
     SX1276Write( REG_DIOMAPPING1, RF_DIOMAPPING1_DIO0_11 | RF_DIOMAPPING1_DIO1_11 );
     SX1276Write( REG_DIOMAPPING2, RF_DIOMAPPING2_DIO4_10 | RF_DIOMAPPING2_DIO5_10 );
 
-    TimerSetValue( &TxTimeoutTimer, timeout );
-
     SX1276.Settings.State = RF_TX_RUNNING;
-    TimerStart( &TxTimeoutTimer );
+    os_cputime_timer_relative(&TxTimeoutTimer, timeout);
     SX1276SetOpMode( RF_OPMODE_TRANSMITTER );
 }
 
@@ -1343,7 +1337,9 @@ void SX1276OnTimeoutIrq(void *unused)
             {
                 // Continuous mode restart Rx chain
                 SX1276Write( REG_RXCONFIG, SX1276Read( REG_RXCONFIG ) | RF_RXCONFIG_RESTARTRXWITHOUTPLLLOCK );
-                TimerStart( &RxTimeoutSyncWord );
+                assert(rx_timeout_sync_delay != (uint32_t)-1);
+                os_cputime_timer_relative(
+                    &RxTimeoutSyncWord, rx_timeout_sync_delay);
             }
             else
             {
@@ -1402,7 +1398,9 @@ void SX1276OnDio0Irq( void )
                         {
                             // Continuous mode restart Rx chain
                             SX1276Write( REG_RXCONFIG, SX1276Read( REG_RXCONFIG ) | RF_RXCONFIG_RESTARTRXWITHOUTPLLLOCK );
-                            TimerStart( &RxTimeoutSyncWord );
+                            assert(rx_timeout_sync_delay != (uint32_t)-1);
+                            os_cputime_timer_relative(
+                                &RxTimeoutSyncWord, rx_timeout_sync_delay);
                         }
 
                         if( ( RadioEvents != NULL ) && ( RadioEvents->RxError != NULL ) )
@@ -1448,7 +1446,9 @@ void SX1276OnDio0Irq( void )
                 {
                     // Continuous mode restart Rx chain
                     SX1276Write( REG_RXCONFIG, SX1276Read( REG_RXCONFIG ) | RF_RXCONFIG_RESTARTRXWITHOUTPLLLOCK );
-                    TimerStart( &RxTimeoutSyncWord );
+                    assert(rx_timeout_sync_delay != (uint32_t)-1);
+                    os_cputime_timer_relative(
+                        &RxTimeoutSyncWord, rx_timeout_sync_delay);
                 }
 
                 if( ( RadioEvents != NULL ) && ( RadioEvents->RxDone != NULL ) )

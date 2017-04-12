@@ -20,13 +20,6 @@ Maintainer: Miguel Luis and Gregory Cristian
 struct hal_timer;
 
 /*!
- * \brief Starts and adds the timer object to the list of timer events
- *
- * \param [IN] obj Structure containing the timer object parameters
- */
-void TimerStart(struct hal_timer *obj);
-
-/*!
  * \brief Stops and removes the timer object from the list of timer events
  *
  * \param [IN] obj Structure containing the timer object parameters
@@ -39,14 +32,6 @@ void TimerStop(struct hal_timer *obj);
  * \param [IN] obj Structure containing the timer object parameters
  */
 void TimerReset(struct hal_timer *obj);
-
-/*!
- * \brief Set timer new timeout value
- *
- * \param [IN] obj   Structure containing the timer object parameters
- * \param [IN] value New timer timeout value
- */
-void TimerSetValue(struct hal_timer *obj, uint32_t value);
 
 /*!
  * \brief Read the current time
