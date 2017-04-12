@@ -950,7 +950,7 @@ static void ResetMacParameters( void );
 
 static void OnRadioTxDone(void)
 {
-    uint32_t curTime = TimerGetCurrentTime( );
+    uint32_t curTime = os_cputime_get32();
 
     if( LoRaMacDeviceClass != CLASS_C )
     {
@@ -3082,7 +3082,7 @@ static void ResetMacParameters( void )
     Channel = LORA_MAX_NB_CHANNELS;
 
     // Store the current initialization time
-    LoRaMacInitializationTime = TimerGetCurrentTime( );
+    LoRaMacInitializationTime = os_cputime_get32();
 }
 
 LoRaMacStatus_t PrepareFrame( LoRaMacHeader_t *macHdr, LoRaMacFrameCtrl_t *fCtrl, uint8_t fPort, void *fBuffer, uint16_t fBufferSize )

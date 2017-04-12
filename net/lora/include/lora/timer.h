@@ -20,13 +20,6 @@ Maintainer: Miguel Luis and Gregory Cristian
 struct hal_timer;
 
 /*!
- * \brief Read the current time
- *
- * \retval time returns current time
- */
-uint32_t TimerGetCurrentTime(void);
-
-/*!
  * \brief Return the Time elapsed since a fix moment in Time
  *
  * \param [IN] savedTime    fix moment in Time
