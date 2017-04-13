@@ -19,6 +19,7 @@ Maintainer: Miguel Luis ( Semtech ), Gregory Cristian ( Semtech ) and Daniel Jä
 */
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 #include "lora/utilities.h"
 
 #include "aes.h"
@@ -63,7 +64,7 @@ static aes_context AesContext;
 /*!
  * CMAC computation context variable
  */
-static AES_CMAC_CTX AesCmacCtx[1];
+//static AES_CMAC_CTX AesCmacCtx[1];
 
 /*!
  * \brief Computes the LoRaMAC frame MIC field  
@@ -92,15 +93,15 @@ void LoRaMacComputeMic( const uint8_t *buffer, uint16_t size, const uint8_t *key
 
     MicBlockB0[15] = size & 0xFF;
 
-    AES_CMAC_Init( AesCmacCtx );
+    //AES_CMAC_Init( AesCmacCtx );
 
-    AES_CMAC_SetKey( AesCmacCtx, key );
+    //AES_CMAC_SetKey( AesCmacCtx, key );
 
-    AES_CMAC_Update( AesCmacCtx, MicBlockB0, LORAMAC_MIC_BLOCK_B0_SIZE );
+    //AES_CMAC_Update( AesCmacCtx, MicBlockB0, LORAMAC_MIC_BLOCK_B0_SIZE );
     
-    AES_CMAC_Update( AesCmacCtx, buffer, size & 0xFF );
+    //AES_CMAC_Update( AesCmacCtx, buffer, size & 0xFF );
     
-    AES_CMAC_Final( Mic, AesCmacCtx );
+    //AES_CMAC_Final( Mic, AesCmacCtx );
     
     *mic = ( uint32_t )( ( uint32_t )Mic[3] << 24 | ( uint32_t )Mic[2] << 16 | ( uint32_t )Mic[1] << 8 | ( uint32_t )Mic[0] );
 }
@@ -111,8 +112,8 @@ void LoRaMacPayloadEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t 
     uint8_t bufferIndex = 0;
     uint16_t ctr = 1;
 
-    memset1( AesContext.ksch, '\0', 240 );
-    aes_set_key( key, 16, &AesContext );
+    memset( AesContext.ksch, '\0', 240 );
+    //aes_set_key( key, 16, &AesContext );
 
     aBlock[5] = dir;
 
@@ -130,7 +131,7 @@ void LoRaMacPayloadEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t 
     {
         aBlock[15] = ( ( ctr ) & 0xFF );
         ctr++;
-        aes_encrypt( aBlock, sBlock, &AesContext );
+        //aes_encrypt( aBlock, sBlock, &AesContext );
         for( i = 0; i < 16; i++ )
         {
             encBuffer[bufferIndex + i] = buffer[bufferIndex + i] ^ sBlock[i];
@@ -142,7 +143,7 @@ void LoRaMacPayloadEncrypt( const uint8_t *buffer, uint16_t size, const uint8_t 
     if( size > 0 )
     {
         aBlock[15] = ( ( ctr ) & 0xFF );
-        aes_encrypt( aBlock, sBlock, &AesContext );
+        //aes_encrypt( aBlock, sBlock, &AesContext );
         for( i = 0; i < size; i++ )
         {
             encBuffer[bufferIndex + i] = buffer[bufferIndex + i] ^ sBlock[i];
@@ -157,26 +158,26 @@ void LoRaMacPayloadDecrypt( const uint8_t *buffer, uint16_t size, const uint8_t 
 
 void LoRaMacJoinComputeMic( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint32_t *mic )
 {
-    AES_CMAC_Init( AesCmacCtx );
+    //AES_CMAC_Init( AesCmacCtx );
 
-    AES_CMAC_SetKey( AesCmacCtx, key );
+    //AES_CMAC_SetKey( AesCmacCtx, key );
 
-    AES_CMAC_Update( AesCmacCtx, buffer, size & 0xFF );
+    //AES_CMAC_Update( AesCmacCtx, buffer, size & 0xFF );
 
-    AES_CMAC_Final( Mic, AesCmacCtx );
+    //AES_CMAC_Final( Mic, AesCmacCtx );
 
     *mic = ( uint32_t )( ( uint32_t )Mic[3] << 24 | ( uint32_t )Mic[2] << 16 | ( uint32_t )Mic[1] << 8 | ( uint32_t )Mic[0] );
 }
 
 void LoRaMacJoinDecrypt( const uint8_t *buffer, uint16_t size, const uint8_t *key, uint8_t *decBuffer )
 {
-    memset1( AesContext.ksch, '\0', 240 );
-    aes_set_key( key, 16, &AesContext );
-    aes_encrypt( buffer, decBuffer, &AesContext );
+    memset( AesContext.ksch, '\0', 240 );
+    //aes_set_key( key, 16, &AesContext );
+    //aes_encrypt( buffer, decBuffer, &AesContext );
     // Check if optional CFList is included
     if( size >= 16 )
     {
-        aes_encrypt( buffer + 16, decBuffer + 16, &AesContext );
+        //aes_encrypt( buffer + 16, decBuffer + 16, &AesContext );
     }
 }
 
@@ -185,18 +186,18 @@ void LoRaMacJoinComputeSKeys( const uint8_t *key, const uint8_t *appNonce, uint1
     uint8_t nonce[16];
     uint8_t *pDevNonce = ( uint8_t * )&devNonce;
     
-    memset1( AesContext.ksch, '\0', 240 );
-    aes_set_key( key, 16, &AesContext );
+    memset( AesContext.ksch, '\0', 240 );
+    //aes_set_key( key, 16, &AesContext );
 
-    memset1( nonce, 0, sizeof( nonce ) );
+    memset( nonce, 0, sizeof( nonce ) );
     nonce[0] = 0x01;
-    memcpy1( nonce + 1, appNonce, 6 );
-    memcpy1( nonce + 7, pDevNonce, 2 );
-    aes_encrypt( nonce, nwkSKey, &AesContext );
+    memcpy( nonce + 1, appNonce, 6 );
+    memcpy( nonce + 7, pDevNonce, 2 );
+    //aes_encrypt( nonce, nwkSKey, &AesContext );
 
-    memset1( nonce, 0, sizeof( nonce ) );
+    memset( nonce, 0, sizeof( nonce ) );
     nonce[0] = 0x02;
-    memcpy1( nonce + 1, appNonce, 6 );
-    memcpy1( nonce + 7, pDevNonce, 2 );
-    aes_encrypt( nonce, appSKey, &AesContext );
+    memcpy( nonce + 1, appNonce, 6 );
+    memcpy( nonce + 7, pDevNonce, 2 );
+    //aes_encrypt( nonce, appSKey, &AesContext );
 }

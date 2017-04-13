@@ -15,12 +15,16 @@ Maintainer: Miguel Luis, Gregory Cristian and Wael Guibene
 #include <assert.h>
 #include <math.h>
 #include <string.h>
+#include "syscfg/syscfg.h"
 #include "hal/hal_spi.h"
+#include "bsp/bsp.h"
 #include "os/os_cputime.h"
 #include "radio/board.h"
 #include "radio/radio.h"
 #include "sx1276/sx1276.h"
 #include "sx1276-board.h"
+
+#define SPI_SS_PIN  (MYNEWT_VAL(SPI_0_MASTER_SS_PIN))
 
 /*!
  * Radio registers definition
@@ -686,13 +690,13 @@ uint32_t SX1276GetTimeOnAir( RadioModems_t modem, uint8_t pktLen )
     {
     case MODEM_FSK:
         {
-            airTime = round( ( 8 * ( SX1276.Settings.Fsk.PreambleLen +
+            airTime = round(( 8 * ( SX1276.Settings.Fsk.PreambleLen +
                                      ( ( SX1276Read( REG_SYNCCONFIG ) & ~RF_SYNCCONFIG_SYNCSIZE_MASK ) + 1 ) +
                                      ( ( SX1276.Settings.Fsk.FixLen == 0x01 ) ? 0.0 : 1.0 ) +
                                      ( ( ( SX1276Read( REG_PACKETCONFIG1 ) & ~RF_PACKETCONFIG1_ADDRSFILTERING_MASK ) != 0x00 ) ? 1.0 : 0 ) +
                                      pktLen +
                                      ( ( SX1276.Settings.Fsk.CrcOn == 0x01 ) ? 2.0 : 0 ) ) /
-                                     SX1276.Settings.Fsk.Datarate ) * 1e3 );
+                                     SX1276.Settings.Fsk.Datarate ) * 1e3);
         }
         break;
     case MODEM_LORA:
@@ -783,7 +787,7 @@ void SX1276Send( uint8_t *buffer, uint8_t size )
             }
             else
             {
-                memcpy1( RxTxBuffer, buffer, size );
+                memcpy( RxTxBuffer, buffer, size );
                 SX1276.Settings.FskPacketHandler.ChunkSize = 32;
             }
 
@@ -1242,6 +1246,7 @@ void SX1276WriteBuffer( uint8_t addr, uint8_t *buffer, uint8_t size )
     uint8_t i;
 
     //NSS = 0;
+    hal_gpio_write(SPI_SS_PIN, 0);
     //GpioWrite( &SX1276.Spi.Nss, 0 );
 
     hal_spi_tx_val(0, addr | 0x80);
@@ -1253,6 +1258,7 @@ void SX1276WriteBuffer( uint8_t addr, uint8_t *buffer, uint8_t size )
     }
 
     //NSS = 1;
+    hal_gpio_write(SPI_SS_PIN, 1);
     //GpioWrite( &SX1276.Spi.Nss, 1 );
 }
 
@@ -1261,6 +1267,7 @@ void SX1276ReadBuffer( uint8_t addr, uint8_t *buffer, uint8_t size )
     uint8_t i;
 
     //NSS = 0;
+    hal_gpio_write(SPI_SS_PIN, 0);
     //GpioWrite( &SX1276.Spi.Nss, 0 );
 
     hal_spi_tx_val(0, addr | 0x7f);
@@ -1273,6 +1280,7 @@ void SX1276ReadBuffer( uint8_t addr, uint8_t *buffer, uint8_t size )
     }
 
     //NSS = 1;
+    hal_gpio_write(SPI_SS_PIN, 1);
     //GpioWrite( &SX1276.Spi.Nss, 1 );
 }
 

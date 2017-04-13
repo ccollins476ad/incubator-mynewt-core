@@ -1392,7 +1392,7 @@ static void OnRadioRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
             break;
         case FRAME_TYPE_PROPRIETARY:
             {
-                memcpy1( LoRaMacRxPayload, &payload[pktHeaderLen], size );
+                memcpy( LoRaMacRxPayload, &payload[pktHeaderLen], size );
 
                 McpsIndication.McpsIndication = MCPS_PROPRIETARY;
                 McpsIndication.Status = LORAMAC_EVENT_INFO_STATUS_OK;
@@ -1613,10 +1613,10 @@ static void OnMacStateCheckTimerEvent(void *unused)
                 LoRaMacParams.ChannelsMask[0] = LoRaMacParams.ChannelsMask[0] | ( LC( 1 ) + LC( 2 ) + LC( 3 ) );
 #elif defined( USE_BAND_470 )
                 // Re-enable default channels
-                memcpy1( ( uint8_t* )LoRaMacParams.ChannelsMask, ( uint8_t* )LoRaMacParamsDefaults.ChannelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
+                memcpy( ( uint8_t* )LoRaMacParams.ChannelsMask, ( uint8_t* )LoRaMacParamsDefaults.ChannelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
 #elif defined( USE_BAND_915 )
                 // Re-enable default channels
-                memcpy1( ( uint8_t* )LoRaMacParams.ChannelsMask, ( uint8_t* )LoRaMacParamsDefaults.ChannelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
+                memcpy( ( uint8_t* )LoRaMacParams.ChannelsMask, ( uint8_t* )LoRaMacParamsDefaults.ChannelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
 #elif defined( USE_BAND_915_HYBRID )
                 // Re-enable default channels
                 ReenableChannels( LoRaMacParamsDefaults.ChannelsMask[4], LoRaMacParams.ChannelsMask );
@@ -1903,12 +1903,12 @@ static bool SetNextChannel( uint32_t* time )
     uint8_t enabledChannels[LORA_MAX_NB_CHANNELS];
     uint32_t nextTxDelay = ( uint32_t )( -1 );
 
-    memset1( enabledChannels, 0, LORA_MAX_NB_CHANNELS );
+    memset( enabledChannels, 0, LORA_MAX_NB_CHANNELS );
 
 #if defined( USE_BAND_915 ) || defined( USE_BAND_915_HYBRID )
     if( CountNbEnabled125kHzChannels( ChannelsMaskRemaining ) == 0 )
     { // Restore default channels
-        memcpy1( ( uint8_t* ) ChannelsMaskRemaining, ( uint8_t* ) LoRaMacParams.ChannelsMask, 8 );
+        memcpy( ( uint8_t* ) ChannelsMaskRemaining, ( uint8_t* ) LoRaMacParams.ChannelsMask, 8 );
     }
     if( ( LoRaMacParams.ChannelsDatarate >= DR_4 ) && ( ( ChannelsMaskRemaining[4] & 0x00FF ) == 0 ) )
     { // Make sure, that the channels are activated
@@ -1922,7 +1922,7 @@ static bool SetNextChannel( uint32_t* time )
         ( CountBits( LoRaMacParams.ChannelsMask[4], 16 ) == 0 ) &&
         ( CountBits( LoRaMacParams.ChannelsMask[5], 16 ) == 0 ) )
     {
-        memcpy1( ( uint8_t* )LoRaMacParams.ChannelsMask, ( uint8_t* )LoRaMacParamsDefaults.ChannelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
+        memcpy( ( uint8_t* )LoRaMacParams.ChannelsMask, ( uint8_t* )LoRaMacParamsDefaults.ChannelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
     }
 #else
     if( CountBits( LoRaMacParams.ChannelsMask[0], 16 ) == 0 )
@@ -2337,7 +2337,7 @@ static bool AdrNextDr( bool adrEnabled, bool updateChannelMask, int8_t* datarate
                         if( updateChannelMask == true )
                         {
                             // Re-enable default channels
-                            memcpy1( ( uint8_t* )LoRaMacParams.ChannelsMask, ( uint8_t* )LoRaMacParamsDefaults.ChannelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
+                            memcpy( ( uint8_t* )LoRaMacParams.ChannelsMask, ( uint8_t* )LoRaMacParamsDefaults.ChannelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
                         }
                     }
 #elif defined( USE_BAND_915 ) || defined( USE_BAND_915_HYBRID )
@@ -2355,7 +2355,7 @@ static bool AdrNextDr( bool adrEnabled, bool updateChannelMask, int8_t* datarate
                         {
 #if defined( USE_BAND_915 )
                             // Re-enable default channels
-                            memcpy1( ( uint8_t* )LoRaMacParams.ChannelsMask, ( uint8_t* )LoRaMacParamsDefaults.ChannelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
+                            memcpy( ( uint8_t* )LoRaMacParams.ChannelsMask, ( uint8_t* )LoRaMacParamsDefaults.ChannelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
 #else // defined( USE_BAND_915_HYBRID )
                             // Re-enable default channels
                             ReenableChannels( LoRaMacParamsDefaults.ChannelsMask[4], LoRaMacParams.ChannelsMask );
@@ -2686,7 +2686,7 @@ static void ProcessMacCommands( uint8_t *payload, uint8_t macIndex, uint8_t comm
                         LoRaMacParams.ChannelsDatarate = datarate;
                         LoRaMacParams.ChannelsTxPower = txPower;
 
-                        memcpy1( ( uint8_t* )LoRaMacParams.ChannelsMask, ( uint8_t* )channelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
+                        memcpy( ( uint8_t* )LoRaMacParams.ChannelsMask, ( uint8_t* )channelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
 
                         LoRaMacParams.ChannelsNbRep = nbRep;
 #if defined( USE_BAND_915 ) || defined( USE_BAND_915_HYBRID )
@@ -3059,10 +3059,10 @@ static void ResetMacParameters( void )
 
     LoRaMacParams.Rx2Channel = LoRaMacParamsDefaults.Rx2Channel;
 
-    memcpy1( ( uint8_t* ) LoRaMacParams.ChannelsMask, ( uint8_t* ) LoRaMacParamsDefaults.ChannelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
+    memcpy( ( uint8_t* ) LoRaMacParams.ChannelsMask, ( uint8_t* ) LoRaMacParamsDefaults.ChannelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
 
 #if defined( USE_BAND_915 ) || defined( USE_BAND_915_HYBRID )
-    memcpy1( ( uint8_t* ) ChannelsMaskRemaining, ( uint8_t* ) LoRaMacParamsDefaults.ChannelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
+    memcpy( ( uint8_t* ) ChannelsMaskRemaining, ( uint8_t* ) LoRaMacParamsDefaults.ChannelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
 #endif
 
 
@@ -3168,7 +3168,7 @@ LoRaMacStatus_t PrepareFrame( LoRaMacHeader_t *macHdr, LoRaMacFrameCtrl_t *fCtrl
             LoRaMacBuffer[pktHeaderLen++] = ( UpLinkCounter >> 8 ) & 0xFF;
 
             // Copy the MAC commands which must be re-send into the MAC command buffer
-            memcpy1( &MacCommandsBuffer[MacCommandsBufferIndex], MacCommandsBufferToRepeat, MacCommandsBufferToRepeatIndex );
+            memcpy( &MacCommandsBuffer[MacCommandsBufferIndex], MacCommandsBufferToRepeat, MacCommandsBufferToRepeatIndex );
             MacCommandsBufferIndex += MacCommandsBufferToRepeatIndex;
 
             if( ( payload != NULL ) && ( LoRaMacTxPayloadLen > 0 ) )
@@ -3215,7 +3215,7 @@ LoRaMacStatus_t PrepareFrame( LoRaMacHeader_t *macHdr, LoRaMacFrameCtrl_t *fCtrl
                 {
                     LoRaMacPayloadEncrypt( (uint8_t* ) payload, LoRaMacTxPayloadLen, LoRaMacAppSKey, LoRaMacDevAddr, UP_LINK, UpLinkCounter, LoRaMacPayload );
                 }
-                memcpy1( LoRaMacBuffer + pktHeaderLen, LoRaMacPayload, LoRaMacTxPayloadLen );
+                memcpy( LoRaMacBuffer + pktHeaderLen, LoRaMacPayload, LoRaMacTxPayloadLen );
             }
             LoRaMacBufferPktLen = pktHeaderLen + LoRaMacTxPayloadLen;
 
@@ -3232,7 +3232,7 @@ LoRaMacStatus_t PrepareFrame( LoRaMacHeader_t *macHdr, LoRaMacFrameCtrl_t *fCtrl
         case FRAME_TYPE_PROPRIETARY:
             if( ( fBuffer != NULL ) && ( LoRaMacTxPayloadLen > 0 ) )
             {
-                memcpy1( LoRaMacBuffer + pktHeaderLen, ( uint8_t* ) fBuffer, LoRaMacTxPayloadLen );
+                memcpy( LoRaMacBuffer + pktHeaderLen, ( uint8_t* ) fBuffer, LoRaMacTxPayloadLen );
                 LoRaMacBufferPktLen = pktHeaderLen + LoRaMacTxPayloadLen;
             }
             break;
@@ -3475,7 +3475,7 @@ LoRaMacStatus_t LoRaMacInitialization( LoRaMacPrimitives_t *primitives, LoRaMacC
     Radio.Init( &RadioEvents );
 
     // Random seed initialization
-    srand1( Radio.Random( ) );
+    //srand1( Radio.Random( ) );
 
     PublicNetwork = true;
     Radio.SetPublicNetwork( PublicNetwork );
@@ -3745,7 +3745,7 @@ LoRaMacStatus_t LoRaMacMibSetRequestConfirm( MibRequestConfirm_t *mibSet )
         {
             if( mibSet->Param.NwkSKey != NULL )
             {
-                memcpy1( LoRaMacNwkSKey, mibSet->Param.NwkSKey,
+                memcpy( LoRaMacNwkSKey, mibSet->Param.NwkSKey,
                                sizeof( LoRaMacNwkSKey ) );
             }
             else
@@ -3758,7 +3758,7 @@ LoRaMacStatus_t LoRaMacMibSetRequestConfirm( MibRequestConfirm_t *mibSet )
         {
             if( mibSet->Param.AppSKey != NULL )
             {
-                memcpy1( LoRaMacAppSKey, mibSet->Param.AppSKey,
+                memcpy( LoRaMacAppSKey, mibSet->Param.AppSKey,
                                sizeof( LoRaMacAppSKey ) );
             }
             else
@@ -3807,7 +3807,7 @@ LoRaMacStatus_t LoRaMacMibSetRequestConfirm( MibRequestConfirm_t *mibSet )
                     }
                     else
                     {
-                        memcpy1( ( uint8_t* ) LoRaMacParamsDefaults.ChannelsMask,
+                        memcpy( ( uint8_t* ) LoRaMacParamsDefaults.ChannelsMask,
                                  ( uint8_t* ) mibSet->Param.ChannelsDefaultMask, sizeof( LoRaMacParamsDefaults.ChannelsMask ) );
                         for ( uint8_t i = 0; i < sizeof( LoRaMacParamsDefaults.ChannelsMask ) / 2; i++ )
                         {
@@ -3821,10 +3821,10 @@ LoRaMacStatus_t LoRaMacMibSetRequestConfirm( MibRequestConfirm_t *mibSet )
                     status = LORAMAC_STATUS_PARAMETER_INVALID;
                 }
 #elif defined( USE_BAND_470 )
-                memcpy1( ( uint8_t* ) LoRaMacParamsDefaults.ChannelsMask,
+                memcpy( ( uint8_t* ) LoRaMacParamsDefaults.ChannelsMask,
                          ( uint8_t* ) mibSet->Param.ChannelsDefaultMask, sizeof( LoRaMacParamsDefaults.ChannelsMask ) );
 #else
-                memcpy1( ( uint8_t* ) LoRaMacParamsDefaults.ChannelsMask,
+                memcpy( ( uint8_t* ) LoRaMacParamsDefaults.ChannelsMask,
                          ( uint8_t* ) mibSet->Param.ChannelsDefaultMask, 2 );
 #endif
             }
@@ -3853,7 +3853,7 @@ LoRaMacStatus_t LoRaMacMibSetRequestConfirm( MibRequestConfirm_t *mibSet )
                     }
                     else
                     {
-                        memcpy1( ( uint8_t* ) LoRaMacParams.ChannelsMask,
+                        memcpy( ( uint8_t* ) LoRaMacParams.ChannelsMask,
                                  ( uint8_t* ) mibSet->Param.ChannelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
                         for ( uint8_t i = 0; i < sizeof( LoRaMacParams.ChannelsMask ) / 2; i++ )
                         {
@@ -3867,10 +3867,10 @@ LoRaMacStatus_t LoRaMacMibSetRequestConfirm( MibRequestConfirm_t *mibSet )
                     status = LORAMAC_STATUS_PARAMETER_INVALID;
                 }
 #elif defined( USE_BAND_470 )
-                memcpy1( ( uint8_t* ) LoRaMacParams.ChannelsMask,
+                memcpy( ( uint8_t* ) LoRaMacParams.ChannelsMask,
                          ( uint8_t* ) mibSet->Param.ChannelsMask, sizeof( LoRaMacParams.ChannelsMask ) );
 #else
-                memcpy1( ( uint8_t* ) LoRaMacParams.ChannelsMask,
+                memcpy( ( uint8_t* ) LoRaMacParams.ChannelsMask,
                          ( uint8_t* ) mibSet->Param.ChannelsMask, 2 );
 #endif
             }
@@ -4228,7 +4228,7 @@ LoRaMacStatus_t LoRaMacMlmeRequest( MlmeReq_t *mlmeRequest )
         return LORAMAC_STATUS_BUSY;
     }
 
-    memset1( ( uint8_t* ) &MlmeConfirm, 0, sizeof( MlmeConfirm ) );
+    memset( ( uint8_t* ) &MlmeConfirm, 0, sizeof( MlmeConfirm ) );
 
     MlmeConfirm.Status = LORAMAC_EVENT_INFO_STATUS_ERROR;
 
@@ -4336,7 +4336,7 @@ LoRaMacStatus_t LoRaMacMcpsRequest( McpsReq_t *mcpsRequest )
     }
 
     macHdr.Value = 0;
-    memset1 ( ( uint8_t* ) &McpsConfirm, 0, sizeof( McpsConfirm ) );
+    memset ( ( uint8_t* ) &McpsConfirm, 0, sizeof( McpsConfirm ) );
     McpsConfirm.Status = LORAMAC_EVENT_INFO_STATUS_ERROR;
 
     switch( mcpsRequest->Type )
