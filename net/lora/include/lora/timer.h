@@ -35,9 +35,4 @@ uint32_t TimerGetElapsedTime(uint32_t savedTime);
  */
 uint32_t TimerGetFutureTime(uint32_t eventInFuture);
 
-/*!
- * \brief Manages the entry into ARM cortex deep-sleep mode
- */
-void TimerLowPowerHandler(void);
-
 #endif  // __TIMER_H__
