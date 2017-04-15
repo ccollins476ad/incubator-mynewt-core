@@ -20,6 +20,7 @@ Maintainer: Miguel Luis and Gregory Cristian
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include "bsp/bsp.h"
 #include "lora/utilities.h"
 
 #include "../sx1276/include/sx1276/sx1276.h"
@@ -28,59 +29,56 @@ Maintainer: Miguel Luis and Gregory Cristian
  * Board MCU pins definitions
  */
 
-#define RADIO_RESET                                 1 //PB_10
+#define RADIO_RESET                                 SX1276_NRESET
 
-#define RADIO_MOSI                                  1 //PA_7
-#define RADIO_MISO                                  1 //PA_6
-#define RADIO_SCLK                                  1 //PA_5
-#define RADIO_NSS                                   1 //PA_4
+#define RADIO_NSS                                   MYNEWT_VAL(SPI_0_MASTER_SS_PIN)
 
-#define RADIO_DIO_0                                 1 //PB_11
-#define RADIO_DIO_1                                 1 //PC_13
-#define RADIO_DIO_2                                 1 //PB_9
-#define RADIO_DIO_3                                 1 //PB_4
-#define RADIO_DIO_4                                 1 //PB_3
-#define RADIO_DIO_5                                 1 //PA_15
+#define RADIO_DIO_0                                 SX1276_DIO0
+#define RADIO_DIO_1                                 SX1276_DIO1
+#define RADIO_DIO_2                                 SX1276_DIO2
+#define RADIO_DIO_3                                 SX1276_DIO3
+#define RADIO_DIO_4                                 SX1276_DIO4
+#define RADIO_DIO_5                                 SX1276_DIO5
 
-#define RADIO_ANT_SWITCH_HF                         1 //PA_0
-#define RADIO_ANT_SWITCH_LF                         1 //PA_1
+#define RADIO_ANT_SWITCH_HF                         SX1276_ANT_HF_CTRL
+//#define RADIO_ANT_SWITCH_LF                         1 //PA_1
 
-#define OSC_LSE_IN                                  1 //PC_14
-#define OSC_LSE_OUT                                 1 //PC_15
+//#define OSC_LSE_IN                                  1 //PC_14
+//#define OSC_LSE_OUT                                 1 //PC_15
 
-#define OSC_HSE_IN                                  1 //PH_0
-#define OSC_HSE_OUT                                 1 //PH_1
+//#define OSC_HSE_IN                                  1 //PH_0
+//#define OSC_HSE_OUT                                 1 //PH_1
 
-#define USB_DM                                      1 //PA_11
-#define USB_DP                                      1 //PA_12
+//#define USB_DM                                      1 //PA_11
+//#define USB_DP                                      1 //PA_12
 
-#define I2C_SCL                                     1 //PB_6
-#define I2C_SDA                                     1 //PB_7
+//#define I2C_SCL                                     1 //PB_6
+//#define I2C_SDA                                     1 //PB_7
 
-#define BOOT_1                                      1 //PB_2
+//#define BOOT_1                                      1 //PB_2
 
-#define GPS_PPS                                     1 //PB_1
-#define UART_TX                                     1 //PA_9
-#define UART_RX                                     1 //PA_10
+//#define GPS_PPS                                     1 //PB_1
+//#define UART_TX                                     1 //PA_9
+//#define UART_RX                                     1 //PA_10
 
-#define DC_DC_EN                                    1 //PB_8
-#define BAT_LEVEL_PIN                               1 //PB_0
-#define BAT_LEVEL_CHANNEL                           1 //ADC_CHANNEL_8
+//#define DC_DC_EN                                    1 //PB_8
+//#define BAT_LEVEL_PIN                               1 //PB_0
+//#define BAT_LEVEL_CHANNEL                           1 //ADC_CHANNEL_8
 
-#define WKUP1                                       1 //PA_8
-#define USB_ON                                      1 //PA_2
+//#define WKUP1                                       1 //PA_8
+//#define USB_ON                                      1 //PA_2
 
-#define RF_RXTX                                     1 //PA_3
+#define RF_RXTX                                     SX1276_RXTX
 
-#define SWDIO                                       1 //PA_13
-#define SWCLK                                       1 //PA_14
+//#define SWDIO                                       1 //PA_13
+//#define SWCLK                                       1 //PA_14
 
-#define TEST_POINT1                                 1 //PB_12
-#define TEST_POINT2                                 1 //PB_13
-#define TEST_POINT3                                 1 //PB_14
-#define TEST_POINT4                                 1 //PB_15
+//#define TEST_POINT1                                 1 //PB_12
+//#define TEST_POINT2                                 1 //PB_13
+//#define TEST_POINT3                                 1 //PB_14
+//#define TEST_POINT4                                 1 //PB_15
 
-#define PIN_NC                                      1 //PB_5
+//#define PIN_NC                                      1 //PB_5
 
 /*!
  * Possible power sources
@@ -90,43 +88,6 @@ enum BoardPowerSources
     USB_POWER = 0,
     BATTERY_POWER,
 };
-
-/*!
- * \brief Disable interrupts
- *
- * \remark IRQ nesting is managed
- */
-void BoardDisableIrq( void );
-
-/*!
- * \brief Enable interrupts
- *
- * \remark IRQ nesting is managed
- */
-void BoardEnableIrq( void );
-
-/*!
- * \brief Initializes the target board peripherals.
- */
-void BoardInitMcu( void );
-
-/*!
- * \brief Initializes the boards peripherals.
- */
-void BoardInitPeriph( void );
-
-/*!
- * \brief De-initializes the target board peripherals to decrease power
- *        consumption.
- */
-void BoardDeInitMcu( void );
-
-/*!
- * \brief Measure the Battery voltage
- *
- * \retval value  battery voltage in volts
- */
-uint32_t BoardGetBatteryVoltage( void );
 
 /*!
  * \brief Get the current battery level

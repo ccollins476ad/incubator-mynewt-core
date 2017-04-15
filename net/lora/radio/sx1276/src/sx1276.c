@@ -98,32 +98,27 @@ void SX1276SetOpMode( uint8_t opMode );
 /*!
  * \brief DIO 0 IRQ callback
  */
-void SX1276OnDio0Irq( void );
+static void SX1276OnDio0Irq(void *unused);
 
 /*!
  * \brief DIO 1 IRQ callback
  */
-void SX1276OnDio1Irq( void );
+static void SX1276OnDio1Irq(void *unused);
 
 /*!
  * \brief DIO 2 IRQ callback
  */
-void SX1276OnDio2Irq( void );
+static void SX1276OnDio2Irq(void *unused);
 
 /*!
  * \brief DIO 3 IRQ callback
  */
-void SX1276OnDio3Irq( void );
+static void SX1276OnDio3Irq(void *unused);
 
 /*!
  * \brief DIO 4 IRQ callback
  */
-void SX1276OnDio4Irq( void );
-
-/*!
- * \brief DIO 5 IRQ callback
- */
-void SX1276OnDio5Irq( void );
+static void SX1276OnDio4Irq(void *unused);
 
 /*!
  * \brief Tx & Rx timeout timer callback
@@ -202,7 +197,7 @@ SX1276_t SX1276;
 /*!
  * Hardware DIO IRQ callback initialization
  */
-DioIrqHandler *DioIrq[] = { SX1276OnDio0Irq, SX1276OnDio1Irq,
+static DioIrqHandler *DioIrq[] = { SX1276OnDio0Irq, SX1276OnDio1Irq,
                             SX1276OnDio2Irq, SX1276OnDio3Irq,
                             SX1276OnDio4Irq, NULL };
 
@@ -235,6 +230,7 @@ void SX1276Init( RadioEvents_t *events )
     RxChainCalibration( );
 
     SX1276SetOpMode( RF_OPMODE_SLEEP );
+    SX1276IoInit(DioIrq);
 
     for( i = 0; i < sizeof( RadioRegsInit ) / sizeof( RadioRegisters_t ); i++ )
     {
@@ -242,7 +238,7 @@ void SX1276Init( RadioEvents_t *events )
         SX1276Write( RadioRegsInit[i].Addr, RadioRegsInit[i].Value );
     }
 
-    SX1276SetModem( MODEM_FSK );
+    SX1276SetModem( MODEM_LORA);
 
     SX1276.Settings.State = RF_IDLE;
 }
@@ -992,7 +988,7 @@ void SX1276SetRx( uint32_t timeout )
     SX1276.Settings.State = RF_RX_RUNNING;
     if( timeout != 0 )
     {
-        os_cputime_timer_relative(&RxTimeoutTimer, timeout);
+        os_cputime_timer_relative(&RxTimeoutTimer, timeout*1000);
     }
 
     if( SX1276.Settings.Modem == MODEM_FSK )
@@ -1007,7 +1003,7 @@ void SX1276SetRx( uint32_t timeout )
                                 ~RF_SYNCCONFIG_SYNCSIZE_MASK) + 1.0) + 10.0) /
                       (double)SX1276.Settings.Fsk.Datarate) * 1e3) + 4;
             os_cputime_timer_relative(
-                &RxTimeoutSyncWord, rx_timeout_sync_delay);
+                &RxTimeoutSyncWord, rx_timeout_sync_delay*1000);
         }
     }
     else
@@ -1080,7 +1076,7 @@ void SX1276SetTx( uint32_t timeout )
     }
 
     SX1276.Settings.State = RF_TX_RUNNING;
-    os_cputime_timer_relative(&TxTimeoutTimer, timeout);
+    os_cputime_timer_relative(&TxTimeoutTimer, timeout*1000);
     SX1276SetOpMode( RF_OPMODE_TRANSMITTER );
 }
 
@@ -1131,7 +1127,7 @@ void SX1276SetTxContinuousWave( uint32_t freq, int8_t power, uint16_t time )
     SX1276Write( REG_DIOMAPPING2, RF_DIOMAPPING2_DIO4_10 | RF_DIOMAPPING2_DIO5_10 );
 
     SX1276.Settings.State = RF_TX_RUNNING;
-    os_cputime_timer_relative(&TxTimeoutTimer, timeout);
+    os_cputime_timer_relative(&TxTimeoutTimer, timeout*1000);
     SX1276SetOpMode( RF_OPMODE_TRANSMITTER );
 }
 
@@ -1169,6 +1165,9 @@ void SX1276Reset( void )
     // Wait 1 ms
     os_cputime_delay_usecs(1000);
 
+    hal_gpio_write(RADIO_RESET, 1);
+    os_cputime_delay_usecs(1000);
+
     // Configure RESET as input
     hal_gpio_init_in(RADIO_RESET, HAL_GPIO_PULL_NONE);
 
@@ -1190,8 +1189,16 @@ void SX1276SetOpMode( uint8_t opMode )
     SX1276Write( REG_OPMODE, ( SX1276Read( REG_OPMODE ) & RF_OPMODE_MASK ) | opMode );
 }
 
+#define NUMMODEMS   32
+RadioModems_t mymodems[NUMMODEMS];
+int mymodems_cur;
+
 void SX1276SetModem( RadioModems_t modem )
 {
+    if (mymodems_cur < NUMMODEMS) {
+        mymodems[mymodems_cur] = modem;
+        mymodems_cur++;
+    }
     //assert( ( SX1276.Spi.Spi.Instance != NULL ) );
 
     if( ( SX1276Read( REG_OPMODE ) & RFLR_OPMODE_LONGRANGEMODE_ON ) != 0 )
@@ -1351,7 +1358,7 @@ void SX1276OnTimeoutIrq(void *unused)
                 SX1276Write( REG_RXCONFIG, SX1276Read( REG_RXCONFIG ) | RF_RXCONFIG_RESTARTRXWITHOUTPLLLOCK );
                 assert(rx_timeout_sync_delay != (uint32_t)-1);
                 os_cputime_timer_relative(
-                    &RxTimeoutSyncWord, rx_timeout_sync_delay);
+                    &RxTimeoutSyncWord, rx_timeout_sync_delay*1000);
             }
             else
             {
@@ -1376,7 +1383,7 @@ void SX1276OnTimeoutIrq(void *unused)
     }
 }
 
-void SX1276OnDio0Irq( void )
+void SX1276OnDio0Irq(void *unused)
 {
     volatile uint8_t irqFlags = 0;
 
@@ -1412,7 +1419,7 @@ void SX1276OnDio0Irq( void )
                             SX1276Write( REG_RXCONFIG, SX1276Read( REG_RXCONFIG ) | RF_RXCONFIG_RESTARTRXWITHOUTPLLLOCK );
                             assert(rx_timeout_sync_delay != (uint32_t)-1);
                             os_cputime_timer_relative(
-                                &RxTimeoutSyncWord, rx_timeout_sync_delay);
+                                &RxTimeoutSyncWord, rx_timeout_sync_delay*1000);
                         }
 
                         if( ( RadioEvents != NULL ) && ( RadioEvents->RxError != NULL ) )
@@ -1460,7 +1467,7 @@ void SX1276OnDio0Irq( void )
                     SX1276Write( REG_RXCONFIG, SX1276Read( REG_RXCONFIG ) | RF_RXCONFIG_RESTARTRXWITHOUTPLLLOCK );
                     assert(rx_timeout_sync_delay != (uint32_t)-1);
                     os_cputime_timer_relative(
-                        &RxTimeoutSyncWord, rx_timeout_sync_delay);
+                        &RxTimeoutSyncWord, rx_timeout_sync_delay*1000);
                 }
 
                 if( ( RadioEvents != NULL ) && ( RadioEvents->RxDone != NULL ) )
@@ -1580,7 +1587,7 @@ void SX1276OnDio0Irq( void )
     }
 }
 
-void SX1276OnDio1Irq( void )
+void SX1276OnDio1Irq(void *unused)
 {
     switch( SX1276.Settings.State )
     {
@@ -1657,7 +1664,7 @@ void SX1276OnDio1Irq( void )
     }
 }
 
-void SX1276OnDio2Irq( void )
+void SX1276OnDio2Irq(void *unused)
 {
     switch( SX1276.Settings.State )
     {
@@ -1727,7 +1734,7 @@ void SX1276OnDio2Irq( void )
     }
 }
 
-void SX1276OnDio3Irq( void )
+void SX1276OnDio3Irq(void *unused)
 {
     switch( SX1276.Settings.Modem )
     {
@@ -1758,7 +1765,7 @@ void SX1276OnDio3Irq( void )
     }
 }
 
-void SX1276OnDio4Irq( void )
+void SX1276OnDio4Irq(void *unused)
 {
     switch( SX1276.Settings.Modem )
     {
@@ -1769,19 +1776,6 @@ void SX1276OnDio4Irq( void )
                 SX1276.Settings.FskPacketHandler.PreambleDetected = true;
             }
         }
-        break;
-    case MODEM_LORA:
-        break;
-    default:
-        break;
-    }
-}
-
-void SX1276OnDio5Irq( void )
-{
-    switch( SX1276.Settings.Modem )
-    {
-    case MODEM_FSK:
         break;
     case MODEM_LORA:
         break;

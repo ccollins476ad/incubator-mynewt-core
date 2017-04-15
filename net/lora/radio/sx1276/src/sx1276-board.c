@@ -12,6 +12,7 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 
 Maintainer: Miguel Luis and Gregory Cristian
 */
+#include <assert.h>
 #include "radio/board.h"
 #include "radio/radio.h"
 #include "sx1276/sx1276.h"
@@ -53,29 +54,49 @@ const struct Radio_s Radio =
     SX1276SetPublicNetwork
 };
 
-/*!
- * Antenna switch GPIO pins objects
- */
-int AntSwitchLf;
-int AntSwitchHf;
-
 void
 SX1276IoInit(hal_gpio_irq_handler_t *irqHandlers)
 {
+    int rc;
+
     //GpioInit( &SX1276.Spi.Nss, RADIO_NSS, PIN_OUTPUT, PIN_PUSH_PULL, PIN_PULL_UP, 1 );
 
-    hal_gpio_irq_init(RADIO_DIO_0, irqHandlers[0], NULL, HAL_GPIO_TRIG_RISING,
-                      HAL_GPIO_PULL_UP);
-    hal_gpio_irq_init(RADIO_DIO_1, irqHandlers[1], NULL, HAL_GPIO_TRIG_RISING,
-                      HAL_GPIO_PULL_UP);
-    hal_gpio_irq_init(RADIO_DIO_2, irqHandlers[2], NULL, HAL_GPIO_TRIG_RISING,
-                      HAL_GPIO_PULL_UP);
-    hal_gpio_irq_init(RADIO_DIO_3, irqHandlers[3], NULL, HAL_GPIO_TRIG_RISING,
-                      HAL_GPIO_PULL_UP);
-    hal_gpio_irq_init(RADIO_DIO_4, irqHandlers[4], NULL, HAL_GPIO_TRIG_RISING,
-                      HAL_GPIO_PULL_UP);
-    hal_gpio_irq_init(RADIO_DIO_5, irqHandlers[5], NULL, HAL_GPIO_TRIG_RISING,
-                      HAL_GPIO_PULL_UP);
+    rc = hal_gpio_init_out(RADIO_DIO_0, 1);
+    assert(rc == 0);
+    rc = hal_gpio_init_out(RADIO_DIO_1, 1);
+    assert(rc == 0);
+    rc = hal_gpio_init_out(RADIO_DIO_2, 1);
+    assert(rc == 0);
+    rc = hal_gpio_init_out(RADIO_DIO_3, 1);
+    assert(rc == 0);
+    rc = hal_gpio_init_out(RADIO_DIO_4, 1);
+    assert(rc == 0);
+    rc = hal_gpio_init_out(RADIO_DIO_5, 1);
+    assert(rc == 0);
+
+    rc = hal_gpio_irq_init(RADIO_DIO_0, irqHandlers[0], NULL,
+                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_UP);
+    assert(rc == 0);
+
+    rc = hal_gpio_irq_init(RADIO_DIO_1, irqHandlers[1], NULL,
+                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_UP);
+    assert(rc == 0);
+
+    rc = hal_gpio_irq_init(RADIO_DIO_2, irqHandlers[2], NULL,
+                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_UP);
+    assert(rc == 0);
+
+    rc = hal_gpio_irq_init(RADIO_DIO_3, irqHandlers[3], NULL,
+                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_UP);
+    assert(rc == 0);
+
+    rc = hal_gpio_irq_init(RADIO_DIO_4, irqHandlers[4], NULL,
+                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_UP);
+    assert(rc == 0);
+
+    rc = hal_gpio_irq_init(RADIO_DIO_5, irqHandlers[5], NULL,
+                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_UP);
+    assert(rc == 0);
 }
 
 void SX1276IoDeInit( void )
@@ -182,7 +203,7 @@ void SX1276SetAntSwLowPower( bool status )
 
 void SX1276AntSwInit( void )
 {
-    hal_gpio_init_out(RADIO_ANT_SWITCH_LF, 1);
+    //hal_gpio_init_out(RADIO_ANT_SWITCH_LF, 1);
     hal_gpio_init_out(RADIO_ANT_SWITCH_HF, 0);
 }
 
@@ -193,14 +214,14 @@ void SX1276SetAntSw( uint8_t opMode )
     switch( opMode )
     {
     case RFLR_OPMODE_TRANSMITTER:
-        hal_gpio_write(RADIO_ANT_SWITCH_LF, 0);
+        //hal_gpio_write(RADIO_ANT_SWITCH_LF, 0);
         hal_gpio_write(RADIO_ANT_SWITCH_HF, 1);
         break;
     case RFLR_OPMODE_RECEIVER:
     case RFLR_OPMODE_RECEIVER_SINGLE:
     case RFLR_OPMODE_CAD:
     default:
-        hal_gpio_write(RADIO_ANT_SWITCH_LF, 1);
+        //hal_gpio_write(RADIO_ANT_SWITCH_LF, 1);
         hal_gpio_write(RADIO_ANT_SWITCH_HF, 0);
         break;
     }

@@ -143,7 +143,6 @@ hal_bsp_get_nvic_priority(int irq_num, uint32_t pri)
     return cfg_pri;
 }
 
-
 void
 hal_bsp_init(void)
 {
@@ -207,5 +206,5 @@ hal_bsp_init(void)
      * Could probably set this as a gpio input with pull-down but for now
      * make it an output and set it low.
      */
-    hal_gpio_init_out(SX1276_NRESET, 0);
+    //hal_gpio_init_out(SX1276_NRESET, 0);
 }

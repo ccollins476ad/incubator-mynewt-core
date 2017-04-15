@@ -14,13 +14,22 @@ Maintainer: Miguel Luis and Gregory Cristian
 */
 #include <string.h>
 #include <math.h>
+#include "sysinit/sysinit.h"
 #include "hal/hal_gpio.h"
+#include "hal/hal_spi.h"
 #include "bsp/bsp.h"
 #include "os/os.h"
 #include "radio/board.h"
 #include "mac/LoRaMac.h"
 
 #include "Commissioning.h"
+
+#define LORA_TASK_PRIO     3
+#define LORA_STACK_SIZE    OS_STACK_ALIGN(640)
+static os_stack_t lora_stack[LORA_STACK_SIZE];
+static struct os_task lora_task;
+
+#define SPI_BAUDRATE 500
 
 /*!
  * Defines the application data transmission duty cycle. 5s, value in [ms].
@@ -649,10 +658,8 @@ static void MlmeConfirm( MlmeConfirm_t *mlmeConfirm )
     NextTx = true;
 }
 
-/**
- * Main application entry point.
- */
-int main( void )
+static void
+lora_task_handler(void *arg)
 {
     LoRaMacPrimitives_t LoRaMacPrimitives;
     LoRaMacCallback_t LoRaMacCallbacks;
@@ -709,6 +716,10 @@ int main( void )
 #endif
 
 #endif
+                mibReq.Type = MIB_DEVICE_CLASS;
+                mibReq.Param.Class = CLASS_C;
+                LoRaMacMibSetRequestConfirm( &mibReq );
+
                 DeviceState = DEVICE_STATE_JOIN;
                 break;
             }
@@ -734,14 +745,16 @@ int main( void )
                 DeviceState = DEVICE_STATE_SLEEP;
 #else
                 // Choose a random device address if not already defined in Commissioning.h
-                if( DevAddr == 0 )
-                {
+                //while( DevAddr == 0 )
+                //{
                     // Random seed initialization
                     //srand1( BoardGetRandomSeed( ) );
 
                     // Choose a random device address
-                    DevAddr = randr( 0, 0x01FFFFFF );
-                }
+                    //DevAddr = randr( 0, 0x01FFFFFF );
+                //}
+
+                DevAddr = 2;
 
                 mibReq.Type = MIB_NET_ID;
                 mibReq.Param.NetID = LORAWAN_NETWORK_ID;
@@ -809,5 +822,51 @@ int main( void )
                 break;
             }
         }
+    }
+}
+
+static void
+loratest_spi_cfg(void)
+{
+    struct hal_spi_settings my_spi;
+    int rc;
+
+    hal_gpio_init_out(MYNEWT_VAL(SPI_0_MASTER_SS_PIN), 1);
+
+    my_spi.data_order = HAL_SPI_MSB_FIRST;
+    my_spi.data_mode = HAL_SPI_MODE0;
+    my_spi.baudrate = SPI_BAUDRATE;
+    my_spi.word_size = HAL_SPI_WORD_SIZE_8BIT;
+
+    rc = hal_spi_config(0, &my_spi);
+    assert(rc == 0);
+
+    rc = hal_spi_enable(0);
+    assert(rc == 0);
+}
+
+
+/**
+ * Main application entry point.
+ */
+int
+main(void)
+{
+#ifdef ARCH_sim
+    mcu_sim_parse_args(argc, argv);
+#endif
+
+    sysinit();
+
+    loratest_spi_cfg();
+
+    os_task_init(&lora_task, "lora_task", lora_task_handler, NULL,
+            LORA_TASK_PRIO, OS_WAIT_FOREVER, lora_stack, LORA_STACK_SIZE);
+
+    /*
+     * As the last thing, process events from default event queue.
+     */
+    while (1) {
+        os_eventq_run(os_eventq_dflt_get());
     }
 }
