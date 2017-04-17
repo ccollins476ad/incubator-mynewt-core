@@ -14,10 +14,9 @@ Maintainer: Miguel Luis and Gregory Cristian
 */
 #include <assert.h>
 #include "radio/board.h"
-#include "radio/radio.h"
+#include "sx1276/sx-radio.h"
 #include "sx1276/sx1276.h"
 #include "sx1276-board.h"
-#include "hal/hal_gpio.h"
 
 /*!
  * Flag used to set the RF switch control pins in low power mode when the radio is not active.
@@ -44,22 +43,29 @@ const struct Radio_s Radio =
     SX1276SetStby,
     SX1276SetRx,
     SX1276StartCad,
-    SX1276SetTxContinuousWave,
     SX1276ReadRssi,
     SX1276Write,
     SX1276Read,
     SX1276WriteBuffer,
     SX1276ReadBuffer,
-    SX1276SetMaxPayloadLength,
-    SX1276SetPublicNetwork
+    SX1276SetMaxPayloadLength
 };
 
-void
-SX1276IoInit(hal_gpio_irq_handler_t *irqHandlers)
+/*!
+ * Antenna switch GPIO pins objects
+ */
+// Not on sx1276 mbed card
+//Gpio_t AntSwitchLf;
+//Gpio_t AntSwitchHf;
+
+void SX1276IoInit( void )
+{
+
+}
+
+void SX1276IoIrqInit( DioIrqHandler **irqHandlers )
 {
     int rc;
-
-    //GpioInit( &SX1276.Spi.Nss, RADIO_NSS, PIN_OUTPUT, PIN_PUSH_PULL, PIN_PULL_UP, 1 );
 
     rc = hal_gpio_init_out(RADIO_DIO_0, 1);
     assert(rc == 0);
@@ -72,6 +78,8 @@ SX1276IoInit(hal_gpio_irq_handler_t *irqHandlers)
     rc = hal_gpio_init_out(RADIO_DIO_4, 1);
     assert(rc == 0);
     rc = hal_gpio_init_out(RADIO_DIO_5, 1);
+    assert(rc == 0);
+    rc = hal_gpio_init_out(RF_RXTX, 1);
     assert(rc == 0);
 
     rc = hal_gpio_irq_init(RADIO_DIO_0, irqHandlers[0], NULL,
@@ -101,75 +109,7 @@ SX1276IoInit(hal_gpio_irq_handler_t *irqHandlers)
 
 void SX1276IoDeInit( void )
 {
-    hal_gpio_irq_release(RADIO_NSS);
-    hal_gpio_irq_release(RADIO_DIO_0);
-    hal_gpio_irq_release(RADIO_DIO_1);
-    hal_gpio_irq_release(RADIO_DIO_2);
-    hal_gpio_irq_release(RADIO_DIO_3);
-    hal_gpio_irq_release(RADIO_DIO_4);
-    hal_gpio_irq_release(RADIO_DIO_5);
-}
 
-void SX1276SetRfTxPower( int8_t power )
-{
-    uint8_t paConfig = 0;
-    uint8_t paDac = 0;
-
-    paConfig = SX1276Read( REG_PACONFIG );
-    paDac = SX1276Read( REG_PADAC );
-
-    paConfig = ( paConfig & RF_PACONFIG_PASELECT_MASK ) | SX1276GetPaSelect( SX1276.Settings.Channel );
-    paConfig = ( paConfig & RF_PACONFIG_MAX_POWER_MASK ) | 0x70;
-
-    if( ( paConfig & RF_PACONFIG_PASELECT_PABOOST ) == RF_PACONFIG_PASELECT_PABOOST )
-    {
-        if( power > 17 )
-        {
-            paDac = ( paDac & RF_PADAC_20DBM_MASK ) | RF_PADAC_20DBM_ON;
-        }
-        else
-        {
-            paDac = ( paDac & RF_PADAC_20DBM_MASK ) | RF_PADAC_20DBM_OFF;
-        }
-        if( ( paDac & RF_PADAC_20DBM_ON ) == RF_PADAC_20DBM_ON )
-        {
-            if( power < 5 )
-            {
-                power = 5;
-            }
-            if( power > 20 )
-            {
-                power = 20;
-            }
-            paConfig = ( paConfig & RF_PACONFIG_OUTPUTPOWER_MASK ) | ( uint8_t )( ( uint16_t )( power - 5 ) & 0x0F );
-        }
-        else
-        {
-            if( power < 2 )
-            {
-                power = 2;
-            }
-            if( power > 17 )
-            {
-                power = 17;
-            }
-            paConfig = ( paConfig & RF_PACONFIG_OUTPUTPOWER_MASK ) | ( uint8_t )( ( uint16_t )( power - 2 ) & 0x0F );
-        }
-    }
-    else
-    {
-        if( power < -1 )
-        {
-            power = -1;
-        }
-        if( power > 14 )
-        {
-            power = 14;
-        }
-        paConfig = ( paConfig & RF_PACONFIG_OUTPUTPOWER_MASK ) | ( uint8_t )( ( uint16_t )( power + 1 ) & 0x0F );
-    }
-    SX1276Write( REG_PACONFIG, paConfig );
-    SX1276Write( REG_PADAC, paDac );
 }
 
 uint8_t SX1276GetPaSelect( uint32_t channel )
@@ -203,27 +143,24 @@ void SX1276SetAntSwLowPower( bool status )
 
 void SX1276AntSwInit( void )
 {
-    //hal_gpio_init_out(RADIO_ANT_SWITCH_LF, 1);
-    hal_gpio_init_out(RADIO_ANT_SWITCH_HF, 0);
+    // Consider turning off GPIO pins for low power. They are always on right
+    // now. GPIOTE library uses 0.5uA max when on, typical 0.1uA.
 }
 
-void SX1276AntSwDeInit( void ) { }
-
-void SX1276SetAntSw( uint8_t opMode )
+void SX1276AntSwDeInit( void )
 {
-    switch( opMode )
+    // Consider this for low power - ie turning off GPIO pins
+}
+
+void SX1276SetAntSw( uint8_t rxTx )
+{
+    if( rxTx != 0 ) // 1: TX, 0: RX
     {
-    case RFLR_OPMODE_TRANSMITTER:
-        //hal_gpio_write(RADIO_ANT_SWITCH_LF, 0);
-        hal_gpio_write(RADIO_ANT_SWITCH_HF, 1);
-        break;
-    case RFLR_OPMODE_RECEIVER:
-    case RFLR_OPMODE_RECEIVER_SINGLE:
-    case RFLR_OPMODE_CAD:
-    default:
-        //hal_gpio_write(RADIO_ANT_SWITCH_LF, 1);
-        hal_gpio_write(RADIO_ANT_SWITCH_HF, 0);
-        break;
+        hal_gpio_write(SX1276_RXTX, 1);
+    }
+    else
+    {
+        hal_gpio_write(SX1276_RXTX, 0);
     }
 }
 

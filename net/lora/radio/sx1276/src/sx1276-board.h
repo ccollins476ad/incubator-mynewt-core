@@ -47,7 +47,9 @@ Maintainer: Miguel Luis and Gregory Cristian
 /*!
  * \brief Initializes the radio I/Os pins interface
  */
-void SX1276IoInit(hal_gpio_irq_handler_t *irqHandlers);
+void SX1276IoInit( void );
+
+void SX1276IoIrqInit( DioIrqHandler **irqHandlers );
 
 /*!
  * \brief De-initializes the radio I/Os pins interface. 
@@ -106,6 +108,8 @@ void SX1276SetAntSw( uint8_t opMode );
  * \retval isSupported [true: supported, false: unsupported]
  */
 bool SX1276CheckRfFrequency( uint32_t frequency );
+
+void hal_pin_rxtx (int val);
 
 /*!
  * Radio hardware and global parameters

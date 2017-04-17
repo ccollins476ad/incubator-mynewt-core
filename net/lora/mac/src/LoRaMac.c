@@ -3322,16 +3322,16 @@ LoRaMacStatus_t SendFrameOnChannel( ChannelParams_t channel )
 
 LoRaMacStatus_t SetTxContinuousWave( uint16_t timeout )
 {
-    int8_t txPowerIndex = 0;
-    int8_t txPower = 0;
+    //int8_t txPowerIndex = 0;
+    //int8_t txPower = 0;
 
-    txPowerIndex = LimitTxPower( LoRaMacParams.ChannelsTxPower, Bands[Channels[Channel].Band].TxMaxPower );
-    txPower = TxPowers[txPowerIndex];
+    //txPowerIndex = LimitTxPower( LoRaMacParams.ChannelsTxPower, Bands[Channels[Channel].Band].TxMaxPower );
+    //txPower = TxPowers[txPowerIndex];
 
     // Starts the MAC layer status check timer
     os_cputime_timer_relative(&MacStateCheckTimer, MAC_STATE_CHECK_TIMEOUT);
 
-    Radio.SetTxContinuousWave( Channels[Channel].Frequency, txPower, timeout );
+    //Radio.SetTxContinuousWave( Channels[Channel].Frequency, txPower, timeout );
 
     LoRaMacState |= LORAMAC_TX_RUNNING;
 
@@ -3478,7 +3478,7 @@ LoRaMacStatus_t LoRaMacInitialization( LoRaMacPrimitives_t *primitives, LoRaMacC
     //srand1( Radio.Random( ) );
 
     PublicNetwork = true;
-    Radio.SetPublicNetwork( PublicNetwork );
+    //Radio.SetPublicNetwork( PublicNetwork );
     Radio.Sleep( );
 
     return LORAMAC_STATUS_OK;
@@ -3770,7 +3770,7 @@ LoRaMacStatus_t LoRaMacMibSetRequestConfirm( MibRequestConfirm_t *mibSet )
         case MIB_PUBLIC_NETWORK:
         {
             PublicNetwork = mibSet->Param.EnablePublicNetwork;
-            Radio.SetPublicNetwork( PublicNetwork );
+            //Radio.SetPublicNetwork( PublicNetwork );
             break;
         }
         case MIB_REPEATER_SUPPORT:

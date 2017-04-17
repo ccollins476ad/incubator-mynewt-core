@@ -110,7 +110,7 @@ struct {
     int tx_success;
 } loraping_stats;
 
-#define RX_TIMEOUT_VALUE                            (1000 * 1000)
+#define RX_TIMEOUT_VALUE                            (1000)
 #define BUFFER_SIZE                                 64 // Define the payload size here
 
 const uint8_t PingMsg[] = "PING";
@@ -226,14 +226,14 @@ loraping_rx(struct os_event *ev)
 void OnTxDone( void )
 {
     loraping_stats.tx_success++;
-    Radio.Sleep( );
+    //Radio.Sleep( );
 
     os_eventq_put(os_eventq_dflt_get(), &loraping_ev_rx);
 }
 
 void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
 {
-    Radio.Sleep( );
+    //Radio.Sleep( );
     assert(size <= sizeof Buffer);
     rx_size = size;
     memcpy(Buffer, payload, size);
@@ -246,15 +246,16 @@ void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
 void OnTxTimeout( void )
 {
     loraping_stats.tx_timeout++;
-    Radio.Sleep( );
+    //Radio.Sleep( );
 
     os_eventq_put(os_eventq_dflt_get(), &loraping_ev_tx);
+    os_eventq_put(os_eventq_dflt_get(), &loraping_ev_rx);
 }
 
 void OnRxTimeout( void )
 {
     loraping_stats.rx_timeout++;
-    Radio.Sleep( );
+    //Radio.Sleep( );
 
     os_eventq_put(os_eventq_dflt_get(), &loraping_ev_tx);
 }
@@ -262,7 +263,7 @@ void OnRxTimeout( void )
 void OnRxError( void )
 {
     loraping_stats.rx_error++;
-    Radio.Sleep( );
+    //Radio.Sleep( );
 
     os_eventq_put(os_eventq_dflt_get(), &loraping_ev_tx);
 }
@@ -293,7 +294,7 @@ main(void)
                       TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
                       LORA_SPREADING_FACTOR, LORA_CODINGRATE,
                       LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
-                      true, 0, 0, LORA_IQ_INVERSION_ON, 3000);
+                      true, 0, 0, LORA_IQ_INVERSION_ON, 3);
 
     Radio.SetRxConfig(MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR,
                       LORA_CODINGRATE, 0, LORA_PREAMBLE_LENGTH,
@@ -303,8 +304,6 @@ main(void)
     hal_gpio_read(RADIO_DIO_0);
 
     os_eventq_put(os_eventq_dflt_get(), &loraping_ev_tx);
-
-    Radio.Rx( RX_TIMEOUT_VALUE );
 
     /*
      * As the last thing, process events from default event queue.
