@@ -219,6 +219,17 @@ struct hal_timer RxTimeoutSyncWord;
 
 static uint32_t rx_timeout_sync_delay = -1;
 
+volatile int regvals[8];
+static int
+readreg(int regnum, int dstidx)
+{
+    int val;
+
+    val = SX1276Read(regnum);
+    regvals[dstidx] = val;
+    return val;
+}
+
 /*
  * Radio driver functions implementation
  */
@@ -887,6 +898,7 @@ void SX1276Send( uint8_t *buffer, uint8_t size )
             {
                 SX1276SetStby( );
                 os_cputime_delay_usecs(1000);
+                assert((SX1276Read( REG_OPMODE ) & ~RF_OPMODE_MASK ) != RF_OPMODE_SLEEP);
             }
             // Write payload buffer
             SX1276WriteFifo( buffer, size );
@@ -1144,6 +1156,9 @@ void SX1276SetTx( uint32_t timeout )
         break;
     }
 
+    readreg(REG_DIOMAPPING1, 0);
+    readreg(REG_DIOMAPPING2, 1);
+
     SX1276.Settings.State = RF_TX_RUNNING;
     os_cputime_timer_relative(&TxTimeoutTimer, timeout*1000);
     SX1276SetOpMode( RF_OPMODE_TRANSMITTER );
@@ -1321,7 +1336,7 @@ void SX1276ReadBuffer( uint8_t addr, uint8_t *buffer, uint8_t size )
     hal_gpio_write(SPI_SS_PIN, 0);
     //GpioWrite( &SX1276.Spi.Nss, 0 );
 
-    hal_spi_tx_val(0, addr | 0x7f);
+    hal_spi_tx_val(0, addr & 0x7f);
     //SpiInOut( &SX1276.Spi, addr & 0x7F );
 
     for( i = 0; i < size; i++ )
@@ -1404,6 +1419,10 @@ void SX1276OnTimeoutIrq(void *unused)
         }
         break;
     case RF_TX_RUNNING:
+        readreg(REG_DIOMAPPING1, 2);
+        readreg(REG_DIOMAPPING2, 3);
+        readreg(REG_LR_IRQFLAGSMASK, 4);
+
         SX1276.Settings.State = RF_IDLE;
         if( ( RadioEvents != NULL ) && ( RadioEvents->TxTimeout != NULL ) )
         {
@@ -1515,13 +1534,13 @@ void SX1276OnDio0Irq(void *unused)
                     int8_t snr = 0;
 
                     // Clear Irq
-                    SX1276Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_RXDONE );
+                    SX1276Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_RXDONE);
 
                     irqFlags = SX1276Read( REG_LR_IRQFLAGS );
                     if( ( irqFlags & RFLR_IRQFLAGS_PAYLOADCRCERROR_MASK ) == RFLR_IRQFLAGS_PAYLOADCRCERROR )
                     {
                         // Clear Irq
-                        SX1276Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_PAYLOADCRCERROR );
+                        SX1276Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_PAYLOADCRCERROR);
 
                         if( SX1276.Settings.LoRa.RxContinuous == false )
                         {
@@ -1718,7 +1737,7 @@ void SX1276OnDio2Irq(void *unused)
                 if( SX1276.Settings.LoRa.FreqHopOn == true )
                 {
                     // Clear Irq
-                    SX1276Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL );
+                    SX1276Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL);
 
                     if( ( RadioEvents != NULL ) && ( RadioEvents->FhssChangeChannel != NULL ) )
                     {
@@ -1739,7 +1758,7 @@ void SX1276OnDio2Irq(void *unused)
                 if( SX1276.Settings.LoRa.FreqHopOn == true )
                 {
                     // Clear Irq
-                    SX1276Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL );
+                    SX1276Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL);
 
                     if( ( RadioEvents != NULL ) && ( RadioEvents->FhssChangeChannel != NULL ) )
                     {
@@ -1766,7 +1785,7 @@ void SX1276OnDio3Irq(void *unused)
         if( ( SX1276Read( REG_LR_IRQFLAGS ) & RFLR_IRQFLAGS_CADDETECTED ) == RFLR_IRQFLAGS_CADDETECTED )
         {
             // Clear Irq
-            SX1276Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDETECTED | RFLR_IRQFLAGS_CADDONE );
+            SX1276Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDETECTED | RFLR_IRQFLAGS_CADDONE);
             if( ( RadioEvents != NULL ) && ( RadioEvents->CadDone != NULL ) )
             {
                 RadioEvents->CadDone( true );
@@ -1775,7 +1794,7 @@ void SX1276OnDio3Irq(void *unused)
         else
         {
             // Clear Irq
-            SX1276Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDONE );
+            SX1276Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_CADDONE);
             if( ( RadioEvents != NULL ) && ( RadioEvents->CadDone != NULL ) )
             {
                 RadioEvents->CadDone( false );
