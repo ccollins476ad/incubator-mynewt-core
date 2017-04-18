@@ -219,17 +219,6 @@ struct hal_timer RxTimeoutSyncWord;
 
 static uint32_t rx_timeout_sync_delay = -1;
 
-volatile int regvals[8];
-static int
-readreg(int regnum, int dstidx)
-{
-    int val;
-
-    val = SX1276Read(regnum);
-    regvals[dstidx] = val;
-    return val;
-}
-
 /*
  * Radio driver functions implementation
  */
@@ -1156,9 +1145,6 @@ void SX1276SetTx( uint32_t timeout )
         break;
     }
 
-    readreg(REG_DIOMAPPING1, 0);
-    readreg(REG_DIOMAPPING2, 1);
-
     SX1276.Settings.State = RF_TX_RUNNING;
     os_cputime_timer_relative(&TxTimeoutTimer, timeout*1000);
     SX1276SetOpMode( RF_OPMODE_TRANSMITTER );
@@ -1324,10 +1310,6 @@ void SX1276WriteBuffer( uint8_t addr, uint8_t *buffer, uint8_t size )
     //GpioWrite( &SX1276.Spi.Nss, 1 );
 }
 
-#define SPIBUF_SZ   1024
-uint8_t spibuf[SPIBUF_SZ];
-int spibuf_cur;
-
 void SX1276ReadBuffer( uint8_t addr, uint8_t *buffer, uint8_t size )
 {
     uint8_t i;
@@ -1343,9 +1325,6 @@ void SX1276ReadBuffer( uint8_t addr, uint8_t *buffer, uint8_t size )
     {
         //buffer[i] = SpiInOut( &SX1276.Spi, 0 );
         buffer[i] = hal_spi_tx_val(0, 0);
-        if (spibuf_cur < SPIBUF_SZ) {
-            spibuf[spibuf_cur++] = buffer[i];
-        }
     }
 
     //NSS = 1;
@@ -1419,10 +1398,6 @@ void SX1276OnTimeoutIrq(void *unused)
         }
         break;
     case RF_TX_RUNNING:
-        readreg(REG_DIOMAPPING1, 2);
-        readreg(REG_DIOMAPPING2, 3);
-        readreg(REG_LR_IRQFLAGSMASK, 4);
-
         SX1276.Settings.State = RF_IDLE;
         if( ( RadioEvents != NULL ) && ( RadioEvents->TxTimeout != NULL ) )
         {

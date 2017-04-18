@@ -67,44 +67,38 @@ void SX1276IoIrqInit( DioIrqHandler **irqHandlers )
 {
     int rc;
 
-    rc = hal_gpio_init_out(RADIO_DIO_0, 1);
-    assert(rc == 0);
-    rc = hal_gpio_init_out(RADIO_DIO_1, 1);
-    assert(rc == 0);
-    rc = hal_gpio_init_out(RADIO_DIO_2, 1);
-    assert(rc == 0);
-    rc = hal_gpio_init_out(RADIO_DIO_3, 1);
-    assert(rc == 0);
-    rc = hal_gpio_init_out(RADIO_DIO_4, 1);
-    assert(rc == 0);
-    rc = hal_gpio_init_out(RADIO_DIO_5, 1);
-    assert(rc == 0);
     rc = hal_gpio_init_out(RF_RXTX, 1);
     assert(rc == 0);
 
     rc = hal_gpio_irq_init(RADIO_DIO_0, irqHandlers[0], NULL,
-                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_UP);
+                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_NONE);
     assert(rc == 0);
+    hal_gpio_irq_enable(RADIO_DIO_0);
 
     rc = hal_gpio_irq_init(RADIO_DIO_1, irqHandlers[1], NULL,
-                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_UP);
+                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_NONE);
     assert(rc == 0);
+    hal_gpio_irq_enable(RADIO_DIO_1);
 
     rc = hal_gpio_irq_init(RADIO_DIO_2, irqHandlers[2], NULL,
-                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_UP);
+                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_NONE);
     assert(rc == 0);
+    hal_gpio_irq_enable(RADIO_DIO_2);
 
     rc = hal_gpio_irq_init(RADIO_DIO_3, irqHandlers[3], NULL,
-                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_UP);
+                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_NONE);
     assert(rc == 0);
+    hal_gpio_irq_enable(RADIO_DIO_3);
 
     rc = hal_gpio_irq_init(RADIO_DIO_4, irqHandlers[4], NULL,
-                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_UP);
+                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_NONE);
     assert(rc == 0);
+    hal_gpio_irq_enable(RADIO_DIO_4);
 
     rc = hal_gpio_irq_init(RADIO_DIO_5, irqHandlers[5], NULL,
-                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_UP);
+                           HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_NONE);
     assert(rc == 0);
+    hal_gpio_irq_enable(RADIO_DIO_5);
 }
 
 void SX1276IoDeInit( void )
