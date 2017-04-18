@@ -51,24 +51,17 @@ const struct Radio_s Radio =
     SX1276SetMaxPayloadLength
 };
 
-/*!
- * Antenna switch GPIO pins objects
- */
-// Not on sx1276 mbed card
-//Gpio_t AntSwitchLf;
-//Gpio_t AntSwitchHf;
-
 void SX1276IoInit( void )
-{
-
-}
-
-void SX1276IoIrqInit( DioIrqHandler **irqHandlers )
 {
     int rc;
 
     rc = hal_gpio_init_out(RF_RXTX, 1);
     assert(rc == 0);
+}
+
+void SX1276IoIrqInit( DioIrqHandler **irqHandlers )
+{
+    int rc;
 
     rc = hal_gpio_irq_init(RADIO_DIO_0, irqHandlers[0], NULL,
                            HAL_GPIO_TRIG_RISING, HAL_GPIO_PULL_NONE);
@@ -103,7 +96,12 @@ void SX1276IoIrqInit( DioIrqHandler **irqHandlers )
 
 void SX1276IoDeInit( void )
 {
-
+    hal_gpio_irq_release(RADIO_DIO_0);
+    hal_gpio_irq_release(RADIO_DIO_1);
+    hal_gpio_irq_release(RADIO_DIO_2);
+    hal_gpio_irq_release(RADIO_DIO_3);
+    hal_gpio_irq_release(RADIO_DIO_4);
+    hal_gpio_irq_release(RADIO_DIO_5);
 }
 
 uint8_t SX1276GetPaSelect( uint32_t channel )

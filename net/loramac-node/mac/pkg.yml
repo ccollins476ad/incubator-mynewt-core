@@ -17,15 +17,15 @@
 # under the License.
 #
 
-pkg.name: net/lora/mac
+pkg.name: net/loramac-node/mac
 pkg.description: XXX
 pkg.author: "Apache Mynewt <dev@mynewt.incubator.apache.org>"
 pkg.homepage: "http://mynewt.apache.org/"
 pkg.keywords:
 pkg.deps:
     - "@apache-mynewt-core/kernel/os"
-    - "@apache-mynewt-core/net/lora"
-    - "@apache-mynewt-core/net/lora/radio"
+    - "@apache-mynewt-core/net/loramac-node"
+    - "@apache-mynewt-core/net/loramac-node/radio"
 
 pkg.cflags:
     # Allow declarations inside for loops.

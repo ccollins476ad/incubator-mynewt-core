@@ -225,7 +225,6 @@ static uint32_t rx_timeout_sync_delay = -1;
 
 void SX1276Init( RadioEvents_t *events )
 {
-    //SX1276.Spi.Nss = SX1276_NSS_PIN;
     uint8_t i;
 
     RadioEvents = events;
@@ -1217,9 +1216,6 @@ void SX1276Reset( void )
     // Wait 1 ms
     os_cputime_delay_usecs(1000);
 
-    hal_gpio_write(RADIO_RESET, 1);
-    os_cputime_delay_usecs(1000);
-
     // Configure RESET as input
     hal_gpio_init_in(RADIO_RESET, HAL_GPIO_PULL_NONE);
 
@@ -1293,43 +1289,30 @@ void SX1276WriteBuffer( uint8_t addr, uint8_t *buffer, uint8_t size )
 {
     uint8_t i;
 
-    //NSS = 0;
     hal_gpio_write(SPI_SS_PIN, 0);
-    //GpioWrite( &SX1276.Spi.Nss, 0 );
 
     hal_spi_tx_val(0, addr | 0x80);
-    //SpiInOut( &SX1276.Spi, addr | 0x80 );
     for( i = 0; i < size; i++ )
     {
         hal_spi_tx_val(0, buffer[i]);
-        //SpiInOut( &SX1276.Spi, buffer[i] );
     }
 
-    //NSS = 1;
     hal_gpio_write(SPI_SS_PIN, 1);
-    //GpioWrite( &SX1276.Spi.Nss, 1 );
 }
 
 void SX1276ReadBuffer( uint8_t addr, uint8_t *buffer, uint8_t size )
 {
     uint8_t i;
 
-    //NSS = 0;
     hal_gpio_write(SPI_SS_PIN, 0);
-    //GpioWrite( &SX1276.Spi.Nss, 0 );
 
     hal_spi_tx_val(0, addr & 0x7f);
-    //SpiInOut( &SX1276.Spi, addr & 0x7F );
-
     for( i = 0; i < size; i++ )
     {
-        //buffer[i] = SpiInOut( &SX1276.Spi, 0 );
         buffer[i] = hal_spi_tx_val(0, 0);
     }
 
-    //NSS = 1;
     hal_gpio_write(SPI_SS_PIN, 1);
-    //GpioWrite( &SX1276.Spi.Nss, 1 );
 }
 
 void SX1276WriteFifo( uint8_t *buffer, uint8_t size )
