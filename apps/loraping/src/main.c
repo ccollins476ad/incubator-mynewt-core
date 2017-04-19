@@ -1,17 +1,32 @@
 /*
- / _____)             _              | |
-( (____  _____ ____ _| |_ _____  ____| |__
- \____ \| ___ |    (_   _) ___ |/ ___)  _ \
- _____) ) ____| | | || |_| ____( (___| | | |
-(______/|_____)_|_|_| \__)_____)\____)_| |_|
-    (C)2013 Semtech
+Copyright (c) 2013, SEMTECH S.A.
+All rights reserved.
 
-Description: Ping-Pong implementation
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of the Semtech corporation nor the
+      names of its contributors may be used to endorse or promote products
+      derived from this software without specific prior written permission.
 
-License: Revised BSD License, see LICENSE.TXT file include in the project
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL SEMTECH S.A. BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Maintainer: Miguel Luis and Gregory Cristian
+Description: Ping-Pong implementation.  Adapted to run in the MyNewt OS.
 */
+
 #include <string.h>
 #include "sysinit/sysinit.h"
 #include "syscfg/syscfg.h"
@@ -22,83 +37,75 @@ Maintainer: Miguel Luis and Gregory Cristian
 #include "board/board.h"
 #include "loramac-node/radio.h"
 
-static void loraping_tx(struct os_event *ev);
-static void loraping_rx(struct os_event *ev);
-
-static struct os_event loraping_ev_tx = {
-    .ev_cb = loraping_tx,
-};
-static struct os_event loraping_ev_rx = {
-    .ev_cb = loraping_rx,
-};
-
-#define SPI_BAUDRATE 500
+#define SPI_BAUDRATE                    500
 #define USE_MODEM_LORA
 #define USE_BAND_915
-//#define USE_BAND_868
 
-#if defined( USE_BAND_433 )
+#if defined(USE_BAND_433)
 
-#define RF_FREQUENCY                                434000000 // Hz
+#define RF_FREQUENCY                    434000000 /* Hz */
 
-#elif defined( USE_BAND_780 )
+#elif defined(USE_BAND_780)
 
-#define RF_FREQUENCY                                780000000 // Hz
+#define RF_FREQUENCY                    780000000 /* Hz */
 
-#elif defined( USE_BAND_868 )
+#elif defined(USE_BAND_868)
 
-#define RF_FREQUENCY                                868000000 // Hz
+#define RF_FREQUENCY                    868000000 /* Hz */
 
-#elif defined( USE_BAND_915 )
+#elif defined(USE_BAND_915)
 
-#define RF_FREQUENCY                                915000000 // Hz
+#define RF_FREQUENCY                    915000000 /* Hz */
 
 #else
     #error "Please define a frequency band in the compiler options."
 #endif
 
-#define TX_OUTPUT_POWER                             14        // dBm
+#define TX_OUTPUT_POWER                 14        /* dBm */
 
-#if defined( USE_MODEM_LORA )
+#if defined(USE_MODEM_LORA)
 
-#define LORA_BANDWIDTH                              0         // [0: 125 kHz,
-                                                              //  1: 250 kHz,
-                                                              //  2: 500 kHz,
-                                                              //  3: Reserved]
-#define LORA_SPREADING_FACTOR                       7         // [SF7..SF12]
-#define LORA_CODINGRATE                             1         // [1: 4/5,
-                                                              //  2: 4/6,
-                                                              //  3: 4/7,
-                                                              //  4: 4/8]
-#define LORA_PREAMBLE_LENGTH                        8         // Same for Tx and Rx
-#define LORA_SYMBOL_TIMEOUT                         5         // Symbols
-#define LORA_FIX_LENGTH_PAYLOAD_ON                  false
-#define LORA_IQ_INVERSION_ON                        false
+#define LORA_BANDWIDTH                  0         /* [0: 125 kHz, */
+                                                  /*  1: 250 kHz, */
+                                                  /*  2: 500 kHz, */
+                                                  /*  3: Reserved] */
+#define LORA_SPREADING_FACTOR           7         /* [SF7..SF12] */
+#define LORA_CODINGRATE                 1         /* [1: 4/5, */
+                                                  /*  2: 4/6, */
+                                                  /*  3: 4/7, */
+                                                  /*  4: 4/8] */
+#define LORA_PREAMBLE_LENGTH            8         /* Same for Tx and Rx */
+#define LORA_SYMBOL_TIMEOUT             5         /* Symbols */
+#define LORA_FIX_LENGTH_PAYLOAD_ON      false
+#define LORA_IQ_INVERSION_ON            false
 
-#elif defined( USE_MODEM_FSK )
+#elif defined(USE_MODEM_FSK)
 
-#define FSK_FDEV                                    25e3      // Hz
-#define FSK_DATARATE                                50e3      // bps
-#define FSK_BANDWIDTH                               50e3      // Hz
-#define FSK_AFC_BANDWIDTH                           83.333e3  // Hz
-#define FSK_PREAMBLE_LENGTH                         5         // Same for Tx and Rx
-#define FSK_FIX_LENGTH_PAYLOAD_ON                   false
+#define FSK_FDEV                        25e3      /* Hz */
+#define FSK_DATARATE                    50e3      /* bps */
+#define FSK_BANDWIDTH                   50e3      /* Hz */
+#define FSK_AFC_BANDWIDTH               83.333e3  /* Hz */
+#define FSK_PREAMBLE_LENGTH             5         /* Same for Tx and Rx */
+#define FSK_FIX_LENGTH_PAYLOAD_ON       false
 
 #else
     #error "Please define a modem in the compiler options."
 #endif
 
-#if 0
-typedef enum
-{
-    LOWPOWER,
-    RX,
-    RX_TIMEOUT,
-    RX_ERROR,
-    TX,
-    TX_TIMEOUT,
-}States_t;
-#endif
+#define RX_TIMEOUT_VALUE                1000
+#define BUFFER_SIZE                     64
+
+const uint8_t ping_msg[] = "PING";
+const uint8_t pong_msg[] = "PONG";
+
+volatile int go_tx;
+volatile int go_rx;
+
+static int8_t rssi_value;
+static int8_t snr_value;
+static uint8_t buffer[BUFFER_SIZE];
+static int rx_size;
+static int is_master = 1;
 
 struct {
     int rx_timeout;
@@ -110,51 +117,117 @@ struct {
     int tx_success;
 } loraping_stats;
 
-#define RX_TIMEOUT_VALUE                            (1000)
-#define BUFFER_SIZE                                 64 // Define the payload size here
+static void loraping_tx(struct os_event *ev);
+static void loraping_rx(struct os_event *ev);
 
-const uint8_t PingMsg[] = "PING";
-const uint8_t PongMsg[] = "PONG";
+static struct os_event loraping_ev_tx = {
+    .ev_cb = loraping_tx,
+};
+static struct os_event loraping_ev_rx = {
+    .ev_cb = loraping_rx,
+};
 
-int rx_size;
-uint8_t Buffer[BUFFER_SIZE];
+static void
+send_once(int is_ping)
+{
+    int i;
 
-//States_t State = LOWPOWER;
-volatile int go_tx;
-volatile int go_rx;
+    if (is_ping) {
+        memcpy(buffer, ping_msg, 4);
+    } else {
+        memcpy(buffer, pong_msg, 4);
+    }
+    for (i = 4; i < sizeof buffer; i++) {
+        buffer[i] = i - 4;
+    }
 
-int8_t RssiValue = 0;
-int8_t SnrValue = 0;
+    Radio.Send(buffer, sizeof buffer);
+}
 
-/*!
- * Radio events function pointer
- */
-static RadioEvents_t RadioEvents;
+static void
+loraping_tx(struct os_event *ev)
+{
+    if (rx_size == 0) {
+        /* Timeout. */
+    } else {
+        os_time_delay(1);
+        if (memcmp(buffer, pong_msg, 4) == 0) {
+            loraping_stats.rx_ping++;
+        } else if (memcmp(buffer, ping_msg, 4) == 0) {
+            loraping_stats.rx_pong++;
 
-/*!
- * \brief Function to be executed on Radio Tx Done event
- */
-void OnTxDone( void );
+            /* A master already exists.  Become a slave. */
+            is_master = 0;
+        } else { 
+            /* Valid reception but neither a PING nor a PONG message. */
+            loraping_stats.rx_other++;
+            /* Set device as master and start again. */
+            is_master = 1;
+        }
+    }
 
-/*!
- * \brief Function to be executed on Radio Rx Done event
- */
-void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr );
+    rx_size = 0;
+    send_once(is_master);
+}
 
-/*!
- * \brief Function executed on Radio Tx Timeout event
- */
-void OnTxTimeout( void );
+static void
+loraping_rx(struct os_event *ev)
+{
+    Radio.Rx(RX_TIMEOUT_VALUE);
+}
 
-/*!
- * \brief Function executed on Radio Rx Timeout event
- */
-void OnRxTimeout( void );
+static void
+on_tx_done(void)
+{
+    loraping_stats.tx_success++;
+    Radio.Sleep();
 
-/*!
- * \brief Function executed on Radio Rx Error event
- */
-void OnRxError( void );
+    os_eventq_put(os_eventq_dflt_get(), &loraping_ev_rx);
+}
+
+static void
+on_rx_done(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
+{
+    Radio.Sleep();
+
+    if (size > sizeof buffer) {
+        size = sizeof buffer;
+    }
+
+    rx_size = size;
+    memcpy(buffer, payload, size);
+    rssi_value = rssi;
+    snr_value = snr;
+
+    os_eventq_put(os_eventq_dflt_get(), &loraping_ev_tx);
+}
+
+static void
+on_tx_timeout(void)
+{
+    loraping_stats.tx_timeout++;
+    Radio.Sleep();
+
+    os_eventq_put(os_eventq_dflt_get(), &loraping_ev_rx);
+}
+
+static void
+on_rx_timeout(void)
+{
+    loraping_stats.rx_timeout++;
+    Radio.Sleep();
+
+    os_eventq_put(os_eventq_dflt_get(), &loraping_ev_tx);
+}
+
+static void
+on_rx_error(void)
+{
+    loraping_stats.rx_error++;
+    Radio.Sleep();
+
+    os_eventq_put(os_eventq_dflt_get(), &loraping_ev_tx);
+}
 
 static void
 loraping_spi_cfg(void)
@@ -176,101 +249,11 @@ loraping_spi_cfg(void)
     assert(rc == 0);
 }
 
-bool isMaster = true;
-
-static void
-send_once(int is_ping)
-{
-    if (is_ping) {
-        // Send the next PING frame
-        memcpy(Buffer, PingMsg, 4);
-    } else {
-        memcpy(Buffer, PongMsg, 4);
-    }
-
-    Radio.Send(Buffer, sizeof Buffer);
-}
-
-static void
-loraping_tx(struct os_event *ev)
-{
-    if (rx_size == 0) {
-        /* Timeout. */
-    } else {
-        os_time_delay(1);
-        if (memcmp(Buffer, PongMsg, 4) == 0) {
-            loraping_stats.rx_ping++;
-        } else if (memcmp(Buffer, PingMsg, 4) == 0) {
-            loraping_stats.rx_pong++;
-
-            // A master already exists then become a slave
-            isMaster = false;
-        } else { 
-            // valid reception but neither a PING or a PONG message
-            loraping_stats.rx_other++;
-            // Set device as master and start again
-            isMaster = true;
-        }
-    }
-
-    rx_size = 0;
-    send_once(isMaster);
-}
-
-static void
-loraping_rx(struct os_event *ev)
-{
-    Radio.Rx(RX_TIMEOUT_VALUE);
-}
-
-void OnTxDone( void )
-{
-    loraping_stats.tx_success++;
-    Radio.Sleep( );
-
-    os_eventq_put(os_eventq_dflt_get(), &loraping_ev_rx);
-}
-
-void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
-{
-    Radio.Sleep( );
-    assert(size <= sizeof Buffer);
-    rx_size = size;
-    memcpy(Buffer, payload, size);
-    RssiValue = rssi;
-    SnrValue = snr;
-
-    os_eventq_put(os_eventq_dflt_get(), &loraping_ev_tx);
-}
-
-void OnTxTimeout( void )
-{
-    loraping_stats.tx_timeout++;
-    Radio.Sleep( );
-
-    //os_eventq_put(os_eventq_dflt_get(), &loraping_ev_tx);
-    os_eventq_put(os_eventq_dflt_get(), &loraping_ev_rx);
-}
-
-void OnRxTimeout( void )
-{
-    loraping_stats.rx_timeout++;
-    Radio.Sleep( );
-
-    os_eventq_put(os_eventq_dflt_get(), &loraping_ev_tx);
-}
-
-void OnRxError( void )
-{
-    loraping_stats.rx_error++;
-    Radio.Sleep( );
-
-    os_eventq_put(os_eventq_dflt_get(), &loraping_ev_tx);
-}
-
 int
 main(void)
 {
+    RadioEvents_t radio_events;
+
 #ifdef ARCH_sim
     mcu_sim_parse_args(argc, argv);
 #endif
@@ -279,14 +262,14 @@ main(void)
 
     loraping_spi_cfg();
 
-    // Radio initialization
-    RadioEvents.TxDone = OnTxDone;
-    RadioEvents.RxDone = OnRxDone;
-    RadioEvents.TxTimeout = OnTxTimeout;
-    RadioEvents.RxTimeout = OnRxTimeout;
-    RadioEvents.RxError = OnRxError;
+    /* Radio initialization. */
+    radio_events.TxDone = on_tx_done;
+    radio_events.RxDone = on_rx_done;
+    radio_events.TxTimeout = on_tx_timeout;
+    radio_events.RxTimeout = on_rx_timeout;
+    radio_events.RxError = on_rx_error;
 
-    Radio.Init(&RadioEvents);
+    Radio.Init(&radio_events);
 
     Radio.SetChannel(RF_FREQUENCY);
 
@@ -301,8 +284,7 @@ main(void)
                       LORA_SYMBOL_TIMEOUT, LORA_FIX_LENGTH_PAYLOAD_ON,
                       0, true, 0, 0, LORA_IQ_INVERSION_ON, true);
 
-    hal_gpio_read(RADIO_DIO_0);
-
+    /* Immediately send a ping on start up. */
     os_eventq_put(os_eventq_dflt_get(), &loraping_ev_tx);
 
     /*
