@@ -89,6 +89,10 @@ pkg.deps:
 pkg.deps.BLE_DEVICE:
     - hw/drivers/nimble/nrf52
 
+pkg.deps.LORAMAC_NODE:
+    - hw/drivers/loramac-node/radio/sx1276
+    - hw/drivers/loramac-node/board/nrf52
+
 pkg.deps.UART_0:
     - hw/drivers/uart/uart_hal
 

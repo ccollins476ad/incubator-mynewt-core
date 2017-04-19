@@ -1,6 +1,6 @@
 #include "os/os.h"
-#include "lora/timer.h"
-#include "lora/utilities.h"
+#include "loramac-node/timer.h"
+#include "loramac-node/utilities.h"
 
 uint32_t
 TimerGetElapsedTime(uint32_t savedTime)

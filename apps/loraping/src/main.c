@@ -19,8 +19,8 @@ Maintainer: Miguel Luis and Gregory Cristian
 #include "hal/hal_spi.h"
 #include "bsp/bsp.h"
 #include "os/os.h"
-#include "radio/board.h"
-#include "radio/radio.h"
+#include "board/board.h"
+#include "loramac-node/radio.h"
 
 static void loraping_tx(struct os_event *ev);
 static void loraping_rx(struct os_event *ev);

@@ -17,7 +17,8 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 
 Maintainer: Miguel Luis ( Semtech ), Gregory Cristian ( Semtech ) and Daniel Jäckle ( STACKFORCE )
 */
-#include "radio/board.h"
+#include "loramac-node/radio.h"
+#include "board/board.h"
 #include "radio/radio.h"
 
 #include "mac/LoRaMacCrypto.h"

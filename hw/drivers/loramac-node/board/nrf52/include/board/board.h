@@ -21,9 +21,7 @@ Maintainer: Miguel Luis and Gregory Cristian
 #include <string.h>
 #include <stdint.h>
 #include "bsp/bsp.h"
-#include "lora/utilities.h"
-
-#include "../sx1276/include/sx1276/sx1276.h"
+#include "loramac-node/utilities.h"
 
 /*!
  * Board MCU pins definitions

@@ -19,9 +19,9 @@ Maintainer: Miguel Luis, Gregory Cristian and Wael Guibene
 #include "hal/hal_gpio.h"
 #include "hal/hal_spi.h"
 #include "os/os.h"
-#include "radio/board.h"
-#include "sx1276/sx-radio.h"
-#include "sx1276/sx1276.h"
+#include "board/board.h"
+#include "sx-radio.h"
+#include "sx1276.h"
 #include "sx1276-board.h"
 
 #define SPI_SS_PIN  (MYNEWT_VAL(SPI_0_MASTER_SS_PIN))

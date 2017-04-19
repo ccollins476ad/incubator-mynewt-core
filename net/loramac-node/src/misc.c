@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "lora/utilities.h"
+#include "loramac-node/utilities.h"
 
 int32_t
 randr(int32_t min, int32_t max)
