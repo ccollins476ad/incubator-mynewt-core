@@ -36,76 +36,57 @@ Description: Ping-Pong implementation.  Adapted to run in the MyNewt OS.
 #include "os/os.h"
 #include "board/board.h"
 #include "loramac-node/radio.h"
+#include "loraping.h"
 
-#define SPI_BAUDRATE                    500
-#define USE_MODEM_LORA
+#define LORAPING_SPI_BAUDRATE               500
 #define USE_BAND_915
 
 #if defined(USE_BAND_433)
 
-#define RF_FREQUENCY                    434000000 /* Hz */
+#define RF_FREQUENCY               434000000 /* Hz */
 
 #elif defined(USE_BAND_780)
 
-#define RF_FREQUENCY                    780000000 /* Hz */
+#define RF_FREQUENCY               780000000 /* Hz */
 
 #elif defined(USE_BAND_868)
 
-#define RF_FREQUENCY                    868000000 /* Hz */
+#define RF_FREQUENCY               868000000 /* Hz */
 
 #elif defined(USE_BAND_915)
 
-#define RF_FREQUENCY                    915000000 /* Hz */
+#define RF_FREQUENCY               915000000 /* Hz */
 
 #else
     #error "Please define a frequency band in the compiler options."
 #endif
 
-#define TX_OUTPUT_POWER                 14        /* dBm */
+#define LORAPING_TX_OUTPUT_POWER            14        /* dBm */
 
-#if defined(USE_MODEM_LORA)
-
-#define LORA_BANDWIDTH                  0         /* [0: 125 kHz, */
+#define LORAPING_BANDWIDTH                  0         /* [0: 125 kHz, */
                                                   /*  1: 250 kHz, */
                                                   /*  2: 500 kHz, */
                                                   /*  3: Reserved] */
-#define LORA_SPREADING_FACTOR           7         /* [SF7..SF12] */
-#define LORA_CODINGRATE                 1         /* [1: 4/5, */
+#define LORAPING_SPREADING_FACTOR           7         /* [SF7..SF12] */
+#define LORAPING_CODINGRATE                 1         /* [1: 4/5, */
                                                   /*  2: 4/6, */
                                                   /*  3: 4/7, */
                                                   /*  4: 4/8] */
-#define LORA_PREAMBLE_LENGTH            8         /* Same for Tx and Rx */
-#define LORA_SYMBOL_TIMEOUT             5         /* Symbols */
-#define LORA_FIX_LENGTH_PAYLOAD_ON      false
-#define LORA_IQ_INVERSION_ON            false
+#define LORAPING_PREAMBLE_LENGTH            8         /* Same for Tx and Rx */
+#define LORAPING_SYMBOL_TIMEOUT             5         /* Symbols */
+#define LORAPING_FIX_LENGTH_PAYLOAD_ON      false
+#define LORAPING_IQ_INVERSION_ON            false
 
-#elif defined(USE_MODEM_FSK)
+#define LORAPING_TX_TIMEOUT_MS              3000    /* ms */
+#define LORAPING_RX_TIMEOUT_MS              1000    /* ms */
+#define LORAPING_BUFFER_SIZE                64
 
-#define FSK_FDEV                        25e3      /* Hz */
-#define FSK_DATARATE                    50e3      /* bps */
-#define FSK_BANDWIDTH                   50e3      /* Hz */
-#define FSK_AFC_BANDWIDTH               83.333e3  /* Hz */
-#define FSK_PREAMBLE_LENGTH             5         /* Same for Tx and Rx */
-#define FSK_FIX_LENGTH_PAYLOAD_ON       false
+const uint8_t loraping_ping_msg[] = "PING";
+const uint8_t loraping_pong_msg[] = "PONG";
 
-#else
-    #error "Please define a modem in the compiler options."
-#endif
-
-#define RX_TIMEOUT_VALUE                1000
-#define BUFFER_SIZE                     64
-
-const uint8_t ping_msg[] = "PING";
-const uint8_t pong_msg[] = "PONG";
-
-volatile int go_tx;
-volatile int go_rx;
-
-static int8_t rssi_value;
-static int8_t snr_value;
-static uint8_t buffer[BUFFER_SIZE];
-static int rx_size;
-static int is_master = 1;
+static uint8_t loraping_buffer[LORAPING_BUFFER_SIZE];
+static int loraping_rx_size;
+static int loraping_is_master = 1;
 
 struct {
     int rx_timeout;
@@ -133,47 +114,50 @@ send_once(int is_ping)
     int i;
 
     if (is_ping) {
-        memcpy(buffer, ping_msg, 4);
+        memcpy(loraping_buffer, loraping_ping_msg, 4);
     } else {
-        memcpy(buffer, pong_msg, 4);
+        memcpy(loraping_buffer, loraping_pong_msg, 4);
     }
-    for (i = 4; i < sizeof buffer; i++) {
-        buffer[i] = i - 4;
+    for (i = 4; i < sizeof loraping_buffer; i++) {
+        loraping_buffer[i] = i - 4;
     }
 
-    Radio.Send(buffer, sizeof buffer);
+    Radio.Send(loraping_buffer, sizeof loraping_buffer);
 }
 
 static void
 loraping_tx(struct os_event *ev)
 {
-    if (rx_size == 0) {
+    /* Print information about last rx attempt. */
+    loraping_rxinfo_print();
+
+    if (loraping_rx_size == 0) {
         /* Timeout. */
     } else {
         os_time_delay(1);
-        if (memcmp(buffer, pong_msg, 4) == 0) {
+        if (memcmp(loraping_buffer, loraping_pong_msg, 4) == 0) {
             loraping_stats.rx_ping++;
-        } else if (memcmp(buffer, ping_msg, 4) == 0) {
+        } else if (memcmp(loraping_buffer, loraping_ping_msg, 4) == 0) {
             loraping_stats.rx_pong++;
 
             /* A master already exists.  Become a slave. */
-            is_master = 0;
+            loraping_is_master = 0;
         } else { 
             /* Valid reception but neither a PING nor a PONG message. */
             loraping_stats.rx_other++;
             /* Set device as master and start again. */
-            is_master = 1;
+            loraping_is_master = 1;
         }
     }
 
-    rx_size = 0;
-    send_once(is_master);
+    loraping_rx_size = 0;
+    send_once(loraping_is_master);
 }
 
 static void
 loraping_rx(struct os_event *ev)
 {
-    Radio.Rx(RX_TIMEOUT_VALUE);
+    Radio.Rx(LORAPING_RX_TIMEOUT_MS);
 }
 
 static void
@@ -190,14 +174,14 @@ on_rx_done(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
 {
     Radio.Sleep();
 
-    if (size > sizeof buffer) {
-        size = sizeof buffer;
+    if (size > sizeof loraping_buffer) {
+        size = sizeof loraping_buffer;
     }
 
-    rx_size = size;
-    memcpy(buffer, payload, size);
-    rssi_value = rssi;
-    snr_value = snr;
+    loraping_rx_size = size;
+    memcpy(loraping_buffer, payload, size);
+
+    loraping_rxinfo_rxed(rssi, snr);
 
     os_eventq_put(os_eventq_dflt_get(), &loraping_ev_tx);
 }
@@ -205,8 +189,9 @@ on_rx_done(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
 static void
 on_tx_timeout(void)
 {
-    loraping_stats.tx_timeout++;
     Radio.Sleep();
+
+    loraping_stats.tx_timeout++;
 
     os_eventq_put(os_eventq_dflt_get(), &loraping_ev_rx);
 }
@@ -214,8 +199,10 @@ on_tx_timeout(void)
 static void
 on_rx_timeout(void)
 {
-    loraping_stats.rx_timeout++;
     Radio.Sleep();
+
+    loraping_stats.rx_timeout++;
+    loraping_rxinfo_timeout();
 
     os_eventq_put(os_eventq_dflt_get(), &loraping_ev_tx);
 }
@@ -239,7 +226,7 @@ loraping_spi_cfg(void)
 
     my_spi.data_order = HAL_SPI_MSB_FIRST;
     my_spi.data_mode = HAL_SPI_MODE0;
-    my_spi.baudrate = SPI_BAUDRATE;
+    my_spi.baudrate = LORAPING_SPI_BAUDRATE;
     my_spi.word_size = HAL_SPI_WORD_SIZE_8BIT;
 
     rc = hal_spi_config(0, &my_spi);
@@ -274,18 +261,36 @@ main(void)
     Radio.SetChannel(RF_FREQUENCY);
 
     Radio.SetTxConfig(MODEM_LORA,
-                      TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
-                      LORA_SPREADING_FACTOR, LORA_CODINGRATE,
-                      LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
-                      true, 0, 0, LORA_IQ_INVERSION_ON, 3000);
+                      LORAPING_TX_OUTPUT_POWER,
+                      0,        /* Frequency deviation; unused with LoRa. */
+                      LORAPING_BANDWIDTH,
+                      LORAPING_SPREADING_FACTOR,
+                      LORAPING_CODINGRATE,
+                      LORAPING_PREAMBLE_LENGTH,
+                      LORAPING_FIX_LENGTH_PAYLOAD_ON,
+                      true,     /* CRC enabled. */
+                      0,        /* Frequency hopping disabled. */
+                      0,        /* Hop period; N/A. */
+                      LORAPING_IQ_INVERSION_ON,
+                      LORAPING_TX_TIMEOUT_MS);
 
-    Radio.SetRxConfig(MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR,
-                      LORA_CODINGRATE, 0, LORA_PREAMBLE_LENGTH,
-                      LORA_SYMBOL_TIMEOUT, LORA_FIX_LENGTH_PAYLOAD_ON,
-                      0, true, 0, 0, LORA_IQ_INVERSION_ON, true);
+    Radio.SetRxConfig(MODEM_LORA,
+                      LORAPING_BANDWIDTH,
+                      LORAPING_SPREADING_FACTOR,
+                      LORAPING_CODINGRATE,
+                      0,        /* AFC bandwisth; unused with LoRa. */
+                      LORAPING_PREAMBLE_LENGTH,
+                      LORAPING_SYMBOL_TIMEOUT,
+                      LORAPING_FIX_LENGTH_PAYLOAD_ON,
+                      0,        /* Fixed payload length; N/A. */
+                      true,     /* CRC enabled. */
+                      0,        /* Frequency hopping disabled. */
+                      0,        /* Hop period; N/A. */
+                      LORAPING_IQ_INVERSION_ON,
+                      true);    /* Continuous receive mode. */
 
-    /* Immediately send a ping on start up. */
-    os_eventq_put(os_eventq_dflt_get(), &loraping_ev_tx);
+    /* Immediately receive on start up. */
+    os_eventq_put(os_eventq_dflt_get(), &loraping_ev_rx);
 
     /*
      * As the last thing, process events from default event queue.
