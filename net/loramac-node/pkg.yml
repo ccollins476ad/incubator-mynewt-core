@@ -18,10 +18,11 @@
 #
 
 pkg.name: net/loramac-node
-pkg.description: XXX
-pkg.author: "Apache Mynewt <dev@mynewt.incubator.apache.org>"
+pkg.description: Mynewt port of the Semtech LoRaWAN endpoint stack.
+pkg.author: "Semtech"
 pkg.homepage: "http://mynewt.apache.org/"
 pkg.keywords:
+    - lora
 pkg.deps:
 
 pkg.req_apis:

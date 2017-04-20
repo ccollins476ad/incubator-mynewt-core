@@ -18,10 +18,11 @@
 #
 
 pkg.name: hw/drivers/loramac-node/board/nrf52
-pkg.description: XXX
-pkg.author: "Apache Mynewt <dev@mynewt.incubator.apache.org>"
+pkg.description: LoRaMac-node board driver for nRF52 systems.
+pkg.author: "Telenor Digital AS"
 pkg.homepage: "http://mynewt.apache.org/"
 pkg.keywords:
+    - lora
 pkg.deps:
     - "@apache-mynewt-core/kernel/os"
     - "@apache-mynewt-core/net/loramac-node"
