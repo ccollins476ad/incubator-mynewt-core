@@ -216,26 +216,6 @@ on_rx_error(void)
     os_eventq_put(os_eventq_dflt_get(), &loraping_ev_tx);
 }
 
-static void
-loraping_spi_cfg(void)
-{
-    struct hal_spi_settings my_spi;
-    int rc;
-
-    hal_gpio_init_out(MYNEWT_VAL(SPI_0_MASTER_SS_PIN), 1);
-
-    my_spi.data_order = HAL_SPI_MSB_FIRST;
-    my_spi.data_mode = HAL_SPI_MODE0;
-    my_spi.baudrate = LORAPING_SPI_BAUDRATE;
-    my_spi.word_size = HAL_SPI_WORD_SIZE_8BIT;
-
-    rc = hal_spi_config(0, &my_spi);
-    assert(rc == 0);
-
-    rc = hal_spi_enable(0);
-    assert(rc == 0);
-}
-
 int
 main(void)
 {
@@ -246,8 +226,6 @@ main(void)
 #endif
 
     sysinit();
-
-    loraping_spi_cfg();
 
     /* Radio initialization. */
     radio_events.TxDone = on_tx_done;

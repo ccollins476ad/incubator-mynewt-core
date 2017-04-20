@@ -24,8 +24,6 @@ Maintainer: Miguel Luis, Gregory Cristian and Wael Guibene
 #include "sx1276.h"
 #include "sx1276-board.h"
 
-#define SPI_SS_PIN  (MYNEWT_VAL(SPI_0_MASTER_SS_PIN))
-
 /*
  * Local types definition
  */
@@ -1289,30 +1287,30 @@ void SX1276WriteBuffer( uint8_t addr, uint8_t *buffer, uint8_t size )
 {
     uint8_t i;
 
-    hal_gpio_write(SPI_SS_PIN, 0);
+    hal_gpio_write(RADIO_NSS, 0);
 
-    hal_spi_tx_val(0, addr | 0x80);
+    hal_spi_tx_val(RADIO_SPI_IDX, addr | 0x80);
     for( i = 0; i < size; i++ )
     {
-        hal_spi_tx_val(0, buffer[i]);
+        hal_spi_tx_val(RADIO_SPI_IDX, buffer[i]);
     }
 
-    hal_gpio_write(SPI_SS_PIN, 1);
+    hal_gpio_write(RADIO_NSS, 1);
 }
 
 void SX1276ReadBuffer( uint8_t addr, uint8_t *buffer, uint8_t size )
 {
     uint8_t i;
 
-    hal_gpio_write(SPI_SS_PIN, 0);
+    hal_gpio_write(RADIO_NSS, 0);
 
-    hal_spi_tx_val(0, addr & 0x7f);
+    hal_spi_tx_val(RADIO_SPI_IDX, addr & 0x7f);
     for( i = 0; i < size; i++ )
     {
-        buffer[i] = hal_spi_tx_val(0, 0);
+        buffer[i] = hal_spi_tx_val(RADIO_SPI_IDX, 0);
     }
 
-    hal_gpio_write(SPI_SS_PIN, 1);
+    hal_gpio_write(RADIO_NSS, 1);
 }
 
 void SX1276WriteFifo( uint8_t *buffer, uint8_t size )

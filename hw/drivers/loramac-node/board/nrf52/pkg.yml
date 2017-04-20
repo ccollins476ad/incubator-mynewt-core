@@ -29,3 +29,6 @@ pkg.deps:
 
 pkg.apis:
     - loramac_board
+
+pkg.init:
+    lora_nrf52_init: 100

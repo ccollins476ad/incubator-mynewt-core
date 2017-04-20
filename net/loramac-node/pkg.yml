@@ -25,6 +25,13 @@ pkg.keywords:
     - lora
 pkg.deps:
 
+pkg.deps.LORAMAC_NODE_CLI:
+    - "@apache-mynewt-core/sys/shell"
+    - "@apache-mynewt-core/util/parse"
+
 pkg.req_apis:
     - loramac_board
     - loramac_radio
+
+pkg.init:
+    loramac_node_init: 200

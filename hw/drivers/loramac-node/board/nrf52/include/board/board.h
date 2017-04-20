@@ -27,20 +27,26 @@ Maintainer: Miguel Luis and Gregory Cristian
  * Board MCU pins definitions
  */
 
-#define RADIO_RESET                         SX1276_NRESET
+#define RADIO_RESET                 SX1276_NRESET
 
-#define RADIO_NSS                           MYNEWT_VAL(SPI_0_MASTER_SS_PIN)
+#define RADIO_SPI_IDX               MYNEWT_VAL(LORAMAC_NODE_BOARD_SPI_IDX)
 
-#define RADIO_DIO_0                         SX1276_DIO0
-#define RADIO_DIO_1                         SX1276_DIO1
-#define RADIO_DIO_2                         SX1276_DIO2
-#define RADIO_DIO_3                         SX1276_DIO3
-#define RADIO_DIO_4                         SX1276_DIO4
-#define RADIO_DIO_5                         SX1276_DIO5
+#if RADIO_SPI_IDX == 0
+#define RADIO_NSS                   MYNEWT_VAL(SPI_0_MASTER_SS_PIN)
+#else
+#error Invalid LORAMAC_NODE_BOARD_SPI_IDX value
+#endif
 
-#define RADIO_ANT_SWITCH_HF                 SX1276_ANT_HF_CTRL
+#define RADIO_DIO_0                 SX1276_DIO0
+#define RADIO_DIO_1                 SX1276_DIO1
+#define RADIO_DIO_2                 SX1276_DIO2
+#define RADIO_DIO_3                 SX1276_DIO3
+#define RADIO_DIO_4                 SX1276_DIO4
+#define RADIO_DIO_5                 SX1276_DIO5
 
-#define RF_RXTX                             SX1276_RXTX
+#define RADIO_ANT_SWITCH_HF         SX1276_ANT_HF_CTRL
+
+#define RF_RXTX                     SX1276_RXTX
 
 /*!
  * Possible power sources
