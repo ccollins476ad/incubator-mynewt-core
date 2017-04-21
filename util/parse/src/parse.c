@@ -17,10 +17,11 @@
  * under the License.
  */
 
-#include <limits.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <limits.h>
+#include <inttypes.h>
 #include <errno.h>
 #include <assert.h>
 #include "defs/error.h"
@@ -89,4 +90,74 @@ long long
 parse_ull(const char *sval, int *out_status)
 {
     return parse_ull_bounds(sval, 0, ULLONG_MAX, out_status);
+}
+
+int
+parse_byte_stream_delim(const char *sval, const char *delims, int max_len,
+                        uint8_t *dst, int *out_len)
+{
+    unsigned long ul;
+    const char *cur;
+    char *endptr;
+    int i;
+
+    i = 0;
+    cur = sval;
+    while (*cur != '\0') {
+        if (i >= max_len) {
+            return SYS_ERANGE;
+        }
+
+        ul = strtoul(cur, &endptr, parse_num_base(cur));
+        if (endptr == cur) {
+            return SYS_EINVAL;
+        }
+        cur = endptr;
+
+        if (*cur != '\0') {
+            if (strspn(cur, delims) != 1) {
+                return SYS_EINVAL;
+            }
+            cur++;
+            if (*cur == '\0') {
+                /* Ended with a delimiter. */
+                return SYS_EINVAL;
+            }
+        }
+
+        if (ul > UINT8_MAX) {
+            return SYS_EINVAL;
+        }
+
+        dst[i] = ul;
+        i++;
+    }
+
+    *out_len = i;
+
+    return 0;
+}
+
+int
+parse_byte_stream(const char *sval, int max_len, uint8_t *dst, int *out_len)
+{
+    return parse_byte_stream_delim(sval, ":-", max_len, dst, out_len);
+}
+
+int
+parse_byte_stream_exact_length(const char *sval, uint8_t *dst, int len)
+{
+    int actual_len;
+    int rc;
+
+    rc = parse_byte_stream(sval, len, dst, &actual_len);
+    if (rc != 0) {
+        return rc;
+    }
+
+    if (actual_len != len) {
+        return SYS_EINVAL;
+    }
+
+    return 0;
 }

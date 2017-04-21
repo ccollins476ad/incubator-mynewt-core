@@ -34,4 +34,14 @@ parse_ll(const char *sval, int *out_status);
 long long
 parse_ull(const char *sval, int *out_status);
 
+int
+parse_byte_stream_delim(const char *sval, const char *delims, int max_len,
+                        uint8_t *dst, int *out_len);
+
+int
+parse_byte_stream(const char *sval, int max_len, uint8_t *dst, int *out_len);
+
+int
+parse_byte_stream_exact_length(const char *sval, uint8_t *dst, int len);
+
 #endif
