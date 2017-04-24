@@ -19,6 +19,7 @@ Maintainer: Miguel Luis, Gregory Cristian and Wael Guibene
 #include "hal/hal_gpio.h"
 #include "hal/hal_spi.h"
 #include "os/os.h"
+#include "loramac-node/lora.h"
 #include "board/board.h"
 #include "sx-radio.h"
 #include "sx1276.h"
@@ -216,6 +217,61 @@ struct hal_timer RxTimeoutTimer;
 struct hal_timer RxTimeoutSyncWord;
 
 static uint32_t rx_timeout_sync_delay = -1;
+
+static void
+SX1276RxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
+{
+    STATS_INC(lora_stats, rx_success);
+
+    if( ( RadioEvents != NULL ) && ( RadioEvents->RxDone != NULL ) )
+    {
+        RadioEvents->RxDone( payload, size, rssi, snr );
+    }
+}
+
+static void
+SX1276RxError( void )
+{
+    STATS_INC(lora_stats, rx_error);
+
+    if( ( RadioEvents != NULL ) && ( RadioEvents->RxError != NULL ) )
+    {
+        RadioEvents->RxError( );
+    }
+}
+
+static void
+SX1276RxTimeout( void )
+{
+    STATS_INC(lora_stats, rx_timeout);
+
+    if( ( RadioEvents != NULL ) && ( RadioEvents->RxTimeout != NULL ) )
+    {
+        RadioEvents->RxTimeout( );
+    }
+}
+
+static void
+SX1276TxDone( void )
+{
+    STATS_INC(lora_stats, tx_success);
+
+    if( ( RadioEvents != NULL ) && ( RadioEvents->TxDone != NULL ) )
+    {
+        RadioEvents->TxDone( );
+    }
+}
+
+static void
+SX1276TxTimeout( void )
+{
+    STATS_INC(lora_stats, tx_timeout);
+
+    if( ( RadioEvents != NULL ) && ( RadioEvents->TxTimeout != NULL ) )
+    {
+        RadioEvents->TxTimeout( );
+    }
+}
 
 /*
  * Radio driver functions implementation
@@ -1373,17 +1429,11 @@ void SX1276OnTimeoutIrq(void *unused)
                 os_cputime_timer_stop(&RxTimeoutSyncWord);
             }
         }
-        if( ( RadioEvents != NULL ) && ( RadioEvents->RxTimeout != NULL ) )
-        {
-            RadioEvents->RxTimeout( );
-        }
+        SX1276RxTimeout( );
         break;
     case RF_TX_RUNNING:
         SX1276.Settings.State = RF_IDLE;
-        if( ( RadioEvents != NULL ) && ( RadioEvents->TxTimeout != NULL ) )
-        {
-            RadioEvents->TxTimeout( );
-        }
+        SX1276TxTimeout( );
         break;
     default:
         break;
@@ -1429,10 +1479,7 @@ void SX1276OnDio0Irq(void *unused)
                                 &RxTimeoutSyncWord, rx_timeout_sync_delay*1000);
                         }
 
-                        if( ( RadioEvents != NULL ) && ( RadioEvents->RxError != NULL ) )
-                        {
-                            RadioEvents->RxError( );
-                        }
+                        SX1276RxError( );
                         SX1276.Settings.FskPacketHandler.PreambleDetected = false;
                         SX1276.Settings.FskPacketHandler.SyncWordDetected = false;
                         SX1276.Settings.FskPacketHandler.NbBytes = 0;
@@ -1476,10 +1523,7 @@ void SX1276OnDio0Irq(void *unused)
                 }
                 os_cputime_timer_stop(&RxTimeoutTimer);
 
-                if( ( RadioEvents != NULL ) && ( RadioEvents->RxDone != NULL ) )
-                {
-                    RadioEvents->RxDone( RxTxBuffer, SX1276.Settings.FskPacketHandler.Size, SX1276.Settings.FskPacketHandler.RssiValue, 0 );
-                }
+                SX1276RxDone( RxTxBuffer, SX1276.Settings.FskPacketHandler.Size, SX1276.Settings.FskPacketHandler.RssiValue, 0 );
                 SX1276.Settings.FskPacketHandler.PreambleDetected = false;
                 SX1276.Settings.FskPacketHandler.SyncWordDetected = false;
                 SX1276.Settings.FskPacketHandler.NbBytes = 0;
@@ -1504,10 +1548,7 @@ void SX1276OnDio0Irq(void *unused)
                         }
                         os_cputime_timer_stop(&RxTimeoutTimer);
 
-                        if( ( RadioEvents != NULL ) && ( RadioEvents->RxError != NULL ) )
-                        {
-                            RadioEvents->RxError( );
-                        }
+                        SX1276RxError( );
                         break;
                     }
 
@@ -1559,10 +1600,7 @@ void SX1276OnDio0Irq(void *unused)
                     }
                     os_cputime_timer_stop(&RxTimeoutTimer);
 
-                    if( ( RadioEvents != NULL ) && ( RadioEvents->RxDone != NULL ) )
-                    {
-                        RadioEvents->RxDone( RxTxBuffer, SX1276.Settings.LoRaPacketHandler.Size, SX1276.Settings.LoRaPacketHandler.RssiValue, SX1276.Settings.LoRaPacketHandler.SnrValue );
-                    }
+                    SX1276RxDone( RxTxBuffer, SX1276.Settings.LoRaPacketHandler.Size, SX1276.Settings.LoRaPacketHandler.RssiValue, SX1276.Settings.LoRaPacketHandler.SnrValue );
                 }
                 break;
             default:
@@ -1581,10 +1619,7 @@ void SX1276OnDio0Irq(void *unused)
             case MODEM_FSK:
             default:
                 SX1276.Settings.State = RF_IDLE;
-                if( ( RadioEvents != NULL ) && ( RadioEvents->TxDone != NULL ) )
-                {
-                    RadioEvents->TxDone( );
-                }
+                SX1276TxDone( );
                 break;
             }
             break;
@@ -1630,10 +1665,7 @@ void SX1276OnDio1Irq(void *unused)
                 // Sync time out
                 os_cputime_timer_stop(&RxTimeoutTimer);
                 SX1276.Settings.State = RF_IDLE;
-                if( ( RadioEvents != NULL ) && ( RadioEvents->RxTimeout != NULL ) )
-                {
-                    RadioEvents->RxTimeout( );
-                }
+                SX1276RxTimeout( );
                 break;
             default:
                 break;

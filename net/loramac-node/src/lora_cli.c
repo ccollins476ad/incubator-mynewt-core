@@ -84,9 +84,6 @@ lora_cli_cmd_fn(int argc, char **argv)
         subcmd = lora_cli_subcmds + i;
         if (strcmp(argv[1], subcmd->sc_cmd) == 0) {
             rc = subcmd->sc_cmd_func(argc - 1, argv + 1);
-            if (rc != 0) {
-                console_printf("Erroneous request\n");
-            }
             return rc;
         }
     }
@@ -99,27 +96,42 @@ lora_cli_cmd_fn(int argc, char **argv)
 static int
 lora_cli_set_freq(int argc, char **argv)
 {
+    const char *err;
     uint32_t freq;
     int rc;
 
     if (argc <= 1) {
-        /* XXX: Print usage. */
-        return 1;
+        rc = 1;
+        err = NULL;
+        goto err;
     }
 
     freq = parse_ull(argv[1], &rc);
     if (rc != 0) {
-        return rc;
+        err = "invalid frequency";
+        goto err;
     }
 
     Radio.SetChannel(freq);
     return 0;
+
+err:
+    if (err != NULL) {
+        console_printf("error: %s\n", err);
+    }
+
+    console_printf(
+"usage:\n"
+"    lora set_freq <hz>\n");
+
+    return rc;
 }
 
 static int
 lora_cli_tx_cfg(int argc, char **argv)
 {
     RadioModems_t modem;
+    const char *err;
     char **arg;
     uint32_t bandwidth;
     uint32_t datarate;
@@ -136,87 +148,88 @@ lora_cli_tx_cfg(int argc, char **argv)
     int rc;
 
     if (argc <= 13) {
-        /* XXX: Print usage. */
-        return 1;
+        rc = 1;
+        err = NULL;
+        goto err;
     }
 
     arg = argv + 1;
 
     modem = parse_ull_bounds(*arg, 0, 1, &rc);
     if (rc != 0) {
-        return rc;
+        goto err;
     }
     arg++;
 
     power = parse_ll_bounds(*arg, INT8_MIN, INT8_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        goto err;
     }
     arg++;
 
     fdev = parse_ull_bounds(*arg, 0, UINT32_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        goto err;
     }
     arg++;
 
     bandwidth = parse_ull_bounds(*arg, 0, UINT32_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        goto err;
     }
     arg++;
 
     datarate = parse_ull_bounds(*arg, 0, UINT32_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        goto err;
     }
     arg++;
 
     coderate = parse_ull_bounds(*arg, 0, UINT8_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        goto err;
     }
     arg++;
 
     preamble_len = parse_ull_bounds(*arg, 0, UINT16_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        goto err;
     }
     arg++;
 
     fix_len = parse_ull_bounds(*arg, 0, 1, &rc);
     if (rc != 0) {
-        return rc;
+        goto err;
     }
     arg++;
 
     crc_on = parse_ull_bounds(*arg, 0, 1, &rc);
     if (rc != 0) {
-        return rc;
+        goto err;
     }
     arg++;
 
     freq_hop_on = parse_ull_bounds(*arg, 0, 1, &rc);
     if (rc != 0) {
-        return rc;
+        goto err;
     }
     arg++;
 
     hop_period = parse_ull_bounds(*arg, 0, UINT8_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        goto err;
     }
     arg++;
 
     iq_inverted = parse_ull_bounds(*arg, 0, 1, &rc);
     if (rc != 0) {
-        return rc;
+        goto err;
     }
     arg++;
 
     timeout = parse_ull_bounds(*arg, 0, UINT32_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        goto err;
     }
     arg++;
 
@@ -235,12 +248,28 @@ lora_cli_tx_cfg(int argc, char **argv)
                       timeout);
 
     return 0;
+
+err:
+    if (err != NULL) {
+        console_printf("error: %s\n", err);
+    }
+
+    console_printf(
+"usage:\n"
+"    lora tx_cfg <modem-type (0/1)> <power> <frequency-deviation>\n"
+"                <bandwidth> <data-rate> <code-rate> <preamble-length>\n"
+"                <fixed-length (0/1)> <crc-on (0/1)>\n"
+"                <frequency-hopping (0/1)> <hop-period> <iq-inverted (0/1)>\n"
+"                <timeout>\n");
+
+    return rc;
 }
 
 static int
 lora_cli_rx_cfg(int argc, char **argv)
 {
     RadioModems_t modem;
+    const char *err;
     char **arg;
     uint32_t bandwidth_afc;
     uint32_t bandwidth;
@@ -258,93 +287,108 @@ lora_cli_rx_cfg(int argc, char **argv)
     int rc;
 
     if (argc <= 14) {
-        /* XXX: Print usage. */
-        return 1;
+        rc = 1;
+        err = NULL;
+        goto err;
     }
 
     arg = argv + 1;
 
     modem = parse_ull_bounds(*arg, 0, 1, &rc);
     if (rc != 0) {
-        return rc;
+        err = "invalid modem type";
+        goto err;
     }
     arg++;
 
     bandwidth = parse_ull_bounds(*arg, 0, UINT32_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        err = "invalid bandwidth";
+        goto err;
     }
     arg++;
 
     datarate = parse_ull_bounds(*arg, 0, UINT32_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        err = "invalid data rate";
+        goto err;
     }
     arg++;
 
     coderate = parse_ull_bounds(*arg, 0, UINT8_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        err = "invalid code rate";
+        goto err;
     }
     arg++;
 
     bandwidth_afc = parse_ull_bounds(*arg, 0, UINT32_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        err = "invalid bandwidtch_afc";
+        goto err;
     }
     arg++;
 
     preamble_len = parse_ull_bounds(*arg, 0, UINT16_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        err = "invalid preamble length";
+        goto err;
     }
     arg++;
 
     symb_timeout = parse_ull_bounds(*arg, 0, UINT16_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        err = "invalid symbol timeout";
+        goto err;
     }
     arg++;
 
     fix_len = parse_ull_bounds(*arg, 0, 1, &rc);
     if (rc != 0) {
-        return rc;
+        err = "invalid fixed length value";
+        goto err;
     }
     arg++;
 
     payload_len = parse_ull_bounds(*arg, 0, UINT8_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        err = "invalid payload length";
+        goto err;
     }
     arg++;
 
     crc_on = parse_ull_bounds(*arg, 0, 1, &rc);
     if (rc != 0) {
-        return rc;
+        err = "invalid crc on value";
+        goto err;
     }
     arg++;
 
     freq_hop_on = parse_ull_bounds(*arg, 0, 1, &rc);
     if (rc != 0) {
-        return rc;
+        err = "invalid frequency hopping value";
+        goto err;
     }
     arg++;
 
     hop_period = parse_ull_bounds(*arg, 0, UINT8_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        err = "invalid hop period";
+        goto err;
     }
     arg++;
 
     iq_inverted = parse_ull_bounds(*arg, 0, 1, &rc);
     if (rc != 0) {
-        return rc;
+        err = "invalid iq inverted value";
+        goto err;
     }
     arg++;
 
     rx_continuous = parse_ull_bounds(*arg, 0, 1, &rc);
     if (rc != 0) {
-        return rc;
+        err = "invalid rx continuous value";
+        goto err;
     }
     arg++;
 
@@ -364,47 +408,90 @@ lora_cli_rx_cfg(int argc, char **argv)
                       rx_continuous);
 
     return 0;
+
+err:
+    if (err != NULL) {
+        console_printf("error: %s\n", err);
+    }
+
+    console_printf(
+"usage:\n"
+"    lora rx_cfg <modem-type (0/1)> <bandwidth> <data-rate> <code-rate>\n"
+"                <bandwidtch-afc> <preamble-length> <symbol-timeout>\n"
+"                <fixed-length (0/1)> <payload-length> <crc-on (0/1)>\n"
+"                <frequency-hopping (0/1)> <hop-period> <iq-inverted (0/1)>\n"
+"                <rx-continuous (0/1)>\n");
+
+    return rc;
 }
 
 static int
 lora_cli_tx(int argc, char **argv)
 {
     uint8_t buf[UINT8_MAX];
+    const char *err;
     int buf_sz;
     int rc;
 
     if (argc <= 1) {
-        /* XXX: Print usage. */
-        return 1;
+        rc = 1;
+        err = NULL;
+        goto err;
     }
 
     rc = parse_byte_stream(argv[1], sizeof buf, buf, &buf_sz);
     if (rc != 0) {
-        return rc;
+        err = "invalid payload";
+        goto err;
     }
 
     Radio.Send(buf, buf_sz);
     return 0;
+
+err:
+    if (err != NULL) {
+        console_printf("error: %s\n", err);
+    }
+
+    console_printf(
+"usage:\n"
+"    lora tx <0xXX:0xXX:...>\n");
+
+    return rc;
 }
 
 static int
 lora_cli_rx(int argc, char **argv)
 {
+    const char *err;
     uint32_t timeout;
     int rc;
 
     if (argc <= 1) {
-        /* XXX: Print usage. */
-        return 1;
+        rc = 1;
+        err = NULL;
+        goto err;
     }
 
     timeout = parse_ull_bounds(argv[1], 0, UINT32_MAX, &rc);
     if (rc != 0) {
-        return rc;
+        err = "invalid timeout";
+        goto err;
     }
 
     Radio.Rx(timeout);
     return 0;
+
+err:
+    if (err != NULL) {
+        console_printf("error: %s\n", err);
+    }
+
+    console_printf(
+"usage:\n"
+"    lora rx <timeout>\n");
+
+    return rc;
 }
 
 void

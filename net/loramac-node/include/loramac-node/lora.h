@@ -6,7 +6,7 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *  http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
@@ -17,32 +17,18 @@
  * under the License.
  */
 
-#include "sysinit/sysinit.h"
-#include "syscfg/syscfg.h"
-#include "loramac-node/lora.h"
-#include "lora_priv.h"
+#ifndef H_LORA_
+#define H_LORA_
 
-STATS_SECT_DECL(lora_stats) lora_stats;
-STATS_NAME_START(lora_stats)
-    STATS_NAME(lora_stats, rx_error)
-    STATS_NAME(lora_stats, rx_success)
-    STATS_NAME(lora_stats, rx_timeout)
-    STATS_NAME(lora_stats, tx_success)
-    STATS_NAME(lora_stats, tx_timeout)
-STATS_NAME_END(lora_stats)
+#include "stats/stats.h"
 
-void
-loramac_node_init(void)
-{
-    int rc;
+STATS_SECT_START(lora_stats)
+    STATS_SECT_ENTRY(rx_error)
+    STATS_SECT_ENTRY(rx_success)
+    STATS_SECT_ENTRY(rx_timeout)
+    STATS_SECT_ENTRY(tx_success)
+    STATS_SECT_ENTRY(tx_timeout)
+STATS_SECT_END
+extern STATS_SECT_DECL(lora_stats) lora_stats;
 
-    rc = stats_init_and_reg(
-        STATS_HDR(lora_stats),
-        STATS_SIZE_INIT_PARMS(lora_stats, STATS_SIZE_32),
-        STATS_NAME_INIT_PARMS(lora_stats), "lora");
-    SYSINIT_PANIC_ASSERT(rc == 0);
-
-#if MYNEWT_VAL(LORAMAC_NODE_CLI)
-    lora_cli_init();
 #endif
-}
