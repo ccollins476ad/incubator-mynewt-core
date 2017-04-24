@@ -17,31 +17,21 @@
 # under the License.
 #
 
-pkg.name: apps/loraping
-pkg.type: app
-pkg.description: "Example application which uses a variety of mynewt features."
-pkg.author: "Apache Mynewt <dev@mynewt.incubator.apache.org>"
+pkg.name: net/lora/node
+pkg.description: Mynewt port of the Semtech LoRaWAN endpoint stack.
+pkg.author: "Semtech"
 pkg.homepage: "http://mynewt.apache.org/"
 pkg.keywords:
-
+    - lora
 pkg.deps:
-    - "@apache-mynewt-core/boot/bootutil"
-    - "@apache-mynewt-core/boot/split"
-    - "@apache-mynewt-core/kernel/os"
-    - "@apache-mynewt-core/mgmt/imgmgr"
-    - "@apache-mynewt-core/mgmt/newtmgr"
-    - "@apache-mynewt-core/mgmt/newtmgr/transport/nmgr_shell"
-    - "@apache-mynewt-core/net/lora/node"
-    - "@apache-mynewt-core/sys/config"
-    - "@apache-mynewt-core/sys/console/full"
-    - "@apache-mynewt-core/sys/id"
-    - "@apache-mynewt-core/sys/log/full"
+
+pkg.deps.LORA_NODE_CLI:
     - "@apache-mynewt-core/sys/shell"
-    - "@apache-mynewt-core/sys/stats/full"
-    - "@apache-mynewt-core/test/flash_test"
+    - "@apache-mynewt-core/util/parse"
 
-pkg.deps.CONFIG_NFFS:
-    - fs/nffs
+pkg.req_apis:
+    - lora_node_board
+    - lora_node_radio
 
-pkg.deps.CONFIG_FCB:
-    - fs/fcb
+pkg.init:
+    lora_node_init: 200

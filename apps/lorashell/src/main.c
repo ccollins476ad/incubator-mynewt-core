@@ -25,7 +25,7 @@
 #include "bsp/bsp.h"
 #include "os/os.h"
 #include "board/board.h"
-#include "loramac-node/radio.h"
+#include "node/radio.h"
 #include "console/console.h"
 #include "shell/shell.h"
 #include "parse/parse.h"

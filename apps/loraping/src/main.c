@@ -35,7 +35,7 @@ Description: Ping-Pong implementation.  Adapted to run in the MyNewt OS.
 #include "bsp/bsp.h"
 #include "os/os.h"
 #include "board/board.h"
-#include "loramac-node/radio.h"
+#include "node/radio.h"
 #include "loraping.h"
 
 #define LORAPING_SPI_BAUDRATE               500
