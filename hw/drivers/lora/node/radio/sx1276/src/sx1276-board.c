@@ -14,7 +14,7 @@ Maintainer: Miguel Luis and Gregory Cristian
 */
 #include <assert.h>
 #include "board/board.h"
-#include "sx-radio.h"
+#include "node/radio.h"
 #include "sx1276.h"
 #include "sx1276-board.h"
 
@@ -28,27 +28,27 @@ static bool RadioIsActive = false;
  */
 const struct Radio_s Radio =
 {
-    SX1276Init,
-    SX1276GetStatus,
-    SX1276SetModem,
-    SX1276SetChannel,
-    SX1276IsChannelFree,
-    SX1276Random,
-    SX1276SetRxConfig,
-    SX1276SetTxConfig,
-    SX1276CheckRfFrequency,
-    SX1276GetTimeOnAir,
-    SX1276Send,
-    SX1276SetSleep,
-    SX1276SetStby,
-    SX1276SetRx,
-    SX1276StartCad,
-    SX1276ReadRssi,
-    SX1276Write,
-    SX1276Read,
-    SX1276WriteBuffer,
-    SX1276ReadBuffer,
-    SX1276SetMaxPayloadLength
+    .Init = SX1276Init,
+    .GetStatus = SX1276GetStatus,
+    .SetModem = SX1276SetModem,
+    .SetChannel = SX1276SetChannel,
+    .IsChannelFree = SX1276IsChannelFree,
+    .Random = SX1276Random,
+    .SetRxConfig = SX1276SetRxConfig,
+    .SetTxConfig = SX1276SetTxConfig,
+    .CheckRfFrequency = SX1276CheckRfFrequency,
+    .TimeOnAir = SX1276GetTimeOnAir,
+    .Send = SX1276Send,
+    .Sleep = SX1276SetSleep,
+    .Standby = SX1276SetStby,
+    .Rx = SX1276SetRx,
+    .StartCad = SX1276StartCad,
+    .Rssi = SX1276ReadRssi,
+    .Write = SX1276Write,
+    .Read = SX1276Read,
+    .WriteBuffer = SX1276WriteBuffer,
+    .ReadBuffer = SX1276ReadBuffer,
+    .SetMaxPayloadLength = SX1276SetMaxPayloadLength
 };
 
 void SX1276IoInit( void )

@@ -17,6 +17,39 @@
  * under the License.
  */
 
+/**
+ * A simple app for LoRa phy testing.  A typical usage scenario is:
+ *
+ * ##### Receiver
+ * # Sit on a single channel.
+ * lora set_freq 915000000
+ * 
+ * # Allow 250-byte packets.
+ * lora max_payload_len 1 250
+ *
+ * # Configure LoRa receiver (specify no arguments for usage).
+ * lora rx_cfg 1 0 7 1 0 8 5 0 0 1 0 0 0 1
+ *
+ * # Print message on each receive.
+ * lora_rx_verbose 1
+ *
+ * # Keep receiving until manual stop.
+ * lora_rx_rpt
+ *
+ * ##### Transceiver
+ * # Sit on a single channel.
+ * lora set_freq 915000000
+ *
+ * # Allow 250-byte packets.
+ * lora max_payload_len 1 250
+ *
+ * # Configure LoRa transceiver (specify no arguments for usage).
+ * lora tx_cfg 1 14 0 0 7 1 8 0 1 0 0 0 3000
+ *
+ * # Send; size=50, count=5, interval=100ms.
+ * lora_tx_rpt 50 5 100
+ */
+
 #include "syscfg/syscfg.h"
 
 #if MYNEWT_VAL(LORAMAC_NODE_CLI)
@@ -36,6 +69,7 @@ static int lora_cli_tx_cfg(int argc, char **argv);
 static int lora_cli_rx_cfg(int argc, char **argv);
 static int lora_cli_tx(int argc, char **argv);
 static int lora_cli_rx(int argc, char **argv);
+static int lora_cli_max_payload_len(int argc, char **argv);
 
 static struct shell_cmd lora_cli_cmd = {
     .sc_cmd = "lora",
@@ -63,18 +97,24 @@ static struct shell_cmd lora_cli_subcmds[] = {
         .sc_cmd = "rx",
         .sc_cmd_func = lora_cli_rx,
     },
+    {
+        .sc_cmd = "max_payload_len",
+        .sc_cmd_func = lora_cli_max_payload_len,
+    },
 };
 
 static int
 lora_cli_cmd_fn(int argc, char **argv)
 {
     const struct shell_cmd *subcmd;
+    const char *err;
     int rc;
     int i;
 
     if (argc <= 1) {
-        /* XXX: Print usage. */
-        return 1;
+        rc = 1;
+        err = NULL;
+        goto err;
     }
 
     for (i = 0;
@@ -88,9 +128,24 @@ lora_cli_cmd_fn(int argc, char **argv)
         }
     }
 
-    console_printf("Invalid lora command: %s\n", argv[1]);
-    /* XXX: Print usage. */
-    return 1;
+    rc = 1;
+    err = "invalid lora command";
+
+err:
+    if (err != NULL) {
+        console_printf("error: %s\n", err);
+    }
+
+    console_printf(
+"usage:\n"
+"    lora set_freq\n"
+"    lora tx_cfg\n"
+"    lora rx_cfg\n"
+"    lora tx\n"
+"    lora rx\n"
+"    lora max_payload_len\n");
+
+    return rc;
 }
 
 static int
@@ -490,6 +545,47 @@ err:
     console_printf(
 "usage:\n"
 "    lora rx <timeout>\n");
+
+    return rc;
+}
+
+static int
+lora_cli_max_payload_len(int argc, char **argv)
+{
+    RadioModems_t modem;
+    const char *err;
+    uint8_t len;
+    int rc;
+
+    if (argc <= 2) {
+        rc = 1;
+        err = NULL;
+        goto err;
+    }
+
+    modem = parse_ull_bounds(argv[1], 0, 1, &rc);
+    if (rc != 0) {
+        err = "invalid modem type";
+        goto err;
+    }
+
+    len = parse_ull_bounds(argv[2], 0, UINT8_MAX, &rc);
+    if (rc != 0) {
+        err = "invalid length";
+        goto err;
+    }
+
+    Radio.SetMaxPayloadLength(modem, len);
+    return 0;
+
+err:
+    if (err != NULL) {
+        console_printf("error: %s\n", err);
+    }
+
+    console_printf(
+"usage:\n"
+"    lora max_payload_len <length>\n");
 
     return rc;
 }

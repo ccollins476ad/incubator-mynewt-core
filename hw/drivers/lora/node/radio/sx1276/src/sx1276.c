@@ -20,8 +20,8 @@ Maintainer: Miguel Luis, Gregory Cristian and Wael Guibene
 #include "hal/hal_spi.h"
 #include "os/os.h"
 #include "node/lora.h"
+#include "node/radio.h"
 #include "board/board.h"
-#include "sx-radio.h"
 #include "sx1276.h"
 #include "sx1276-board.h"
 
@@ -176,7 +176,7 @@ const FskBandwidth_t FskBandwidths[] =
     { 166700, 0x11 },
     { 200000, 0x09 },
     { 250000, 0x01 },
-    { 300000, 0x00 }, // Invalid Badwidth
+    { 300000, 0x00 }, // Invalid Bandwidth
 };
 
 /*
@@ -940,7 +940,6 @@ void SX1276Send( uint8_t *buffer, uint8_t size )
             {
                 SX1276SetStby( );
                 os_cputime_delay_usecs(1000);
-                assert((SX1276Read( REG_OPMODE ) & ~RF_OPMODE_MASK ) != RF_OPMODE_SLEEP);
             }
             // Write payload buffer
             SX1276WriteFifo( buffer, size );

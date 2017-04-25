@@ -18,6 +18,7 @@
  */
 
 #include <string.h>
+#include <limits.h>
 #include "sysinit/sysinit.h"
 #include "syscfg/syscfg.h"
 #include "hal/hal_gpio.h"
@@ -33,6 +34,7 @@
 #define LORASHELL_NUM_RX_ENTRIES    10
 
 struct lorashell_rx_entry {
+    uint16_t size;
     int16_t rssi;
     int8_t snr;
 };
@@ -44,10 +46,14 @@ static int lorashell_rx_entry_cnt;
 
 static int lorashell_rx_rpt;
 static int lorashell_rx_verbose;
+static int lorashell_txes_pending;
+static uint8_t lorashell_tx_size;
+static uint32_t lorashell_tx_itvl; /* OS ticks. */
 
 static int lorashell_rx_info_cmd(int argc, char **argv);
 static int lorashell_rx_rpt_cmd(int argc, char **argv);
 static int lorashell_rx_verbose_cmd(int argc, char **argv);
+static int lorashell_tx_rpt_cmd(int argc, char **argv);
 
 static void lorashell_print_last_rx(struct os_event *ev);
 
@@ -64,6 +70,10 @@ static struct shell_cmd lorashell_cli_cmds[] = {
         .sc_cmd = "lora_rx_verbose",
         .sc_cmd_func = lorashell_rx_verbose_cmd,
     },
+    {
+        .sc_cmd = "lora_tx_rpt",
+        .sc_cmd_func = lorashell_tx_rpt_cmd,
+    },
 };
 #define LORASHELL_NUM_CLI_CMDS  \
     (sizeof lorashell_cli_cmds / sizeof lorashell_cli_cmds[0])
@@ -71,6 +81,7 @@ static struct shell_cmd lorashell_cli_cmds[] = {
 static struct os_event lorashell_print_last_rx_ev = {
     .ev_cb = lorashell_print_last_rx,
 };
+static struct os_callout lorashell_tx_timer;
 
 static void
 lorashell_rx_rpt_begin(void)
@@ -78,19 +89,56 @@ lorashell_rx_rpt_begin(void)
     Radio.Rx(0);
 }
 
+static void
+lorashell_tx_timer_exp(struct os_event *ev)
+{
+    static uint8_t start_byte;
+
+    uint8_t buf[UINT8_MAX];
+    uint8_t b;
+    int i;
+
+    if (lorashell_txes_pending <= 0) {
+        Radio.Sleep();
+        return;
+    }
+    lorashell_txes_pending--;
+
+    b = start_byte++;
+    for (i = 0; i < lorashell_tx_size; i++) {
+        buf[i] = b++;
+    }
+
+    Radio.Send(buf, lorashell_tx_size);
+}
+
 static const char *
 lorashell_rx_entry_str(const struct lorashell_rx_entry *entry)
 {
     static char buf[32];
 
-    snprintf(buf, sizeof buf, "rssi=%-d snr=%-d", entry->rssi, entry->snr);
+    snprintf(buf, sizeof buf, "size=%-4d rssi=%-4d snr=%-4d",
+             entry->size, entry->rssi, entry->snr);
     return buf;
+}
+
+static void
+lorashell_tx_timer_reset(void)
+{
+    int rc;
+
+    rc = os_callout_reset(&lorashell_tx_timer, lorashell_tx_itvl);
+    assert(rc == 0);
 }
 
 static void
 on_tx_done(void)
 {
-    Radio.Sleep();
+    if (lorashell_txes_pending <= 0) {
+        Radio.Sleep();
+    } else {
+        lorashell_tx_timer_reset();
+    }
 }
 
 static void
@@ -106,6 +154,7 @@ on_rx_done(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
     }
 
     entry = lorashell_rx_entries + lorashell_rx_entry_idx;
+    entry->size = size;
     entry->rssi = rssi;
     entry->snr = snr;
 
@@ -126,7 +175,8 @@ on_rx_done(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
 static void
 on_tx_timeout(void)
 {
-    Radio.Sleep();
+    assert(0);
+    lorashell_tx_timer_reset();
 }
 
 static void
@@ -160,18 +210,22 @@ static void
 lorashell_avg_rx_entry(struct lorashell_rx_entry *out_entry)
 {
     long long rssi_sum;
+    long long size_sum;
     long long snr_sum;
     int i;
 
     rssi_sum = 0;
+    size_sum = 0;
     snr_sum = 0;
     for (i = 0; i < lorashell_rx_entry_cnt; i++) {
         rssi_sum += lorashell_rx_entries[i].rssi;
+        size_sum += lorashell_rx_entries[i].size;
         snr_sum += lorashell_rx_entries[i].snr;
     }
 
     memset(out_entry, 0, sizeof *out_entry);
     if (lorashell_rx_entry_cnt > 0) {
+        out_entry->size = size_sum / lorashell_rx_entry_cnt;
         out_entry->rssi = rssi_sum / lorashell_rx_entry_cnt;
         out_entry->snr = snr_sum / lorashell_rx_entry_cnt;
     }
@@ -253,6 +307,75 @@ lorashell_rx_info_cmd(int argc, char **argv)
     return 0;
 }
 
+static int
+lorashell_tx_rpt_cmd(int argc, char **argv)
+{
+    const char *err;
+    uint32_t itvl_ms;
+    int rc;
+
+    if (argc < 1) {
+        rc = 1;
+        err = NULL;
+        goto err;
+    }
+
+    if (strcmp(argv[1], "stop") == 0) {
+        lorashell_txes_pending = 0;
+        Radio.Sleep();
+        console_printf("lora tx stopped\n");
+        return 0;
+    }
+
+    lorashell_tx_size = parse_ull_bounds(argv[1], 0, UINT8_MAX, &rc);
+    if (rc != 0) {
+        err = "invalid size";
+        goto err;
+    }
+
+    if (argc >= 2) {
+        lorashell_txes_pending = parse_ull_bounds(argv[2], 0, INT_MAX, &rc);
+        if (rc != 0) {
+            err = "invalid count";
+            goto err;
+        }
+    } else {
+        lorashell_txes_pending = 1;
+    }
+
+    if (argc >= 3) {
+        itvl_ms = parse_ull_bounds(argv[3], 0, UINT32_MAX, &rc);
+        if (rc != 0) {
+            err = "invalid interval";
+            goto err;
+        }
+    } else {
+        itvl_ms = 1000;
+    }
+
+    rc = os_time_ms_to_ticks(itvl_ms, &lorashell_tx_itvl);
+    if (rc != 0) {
+        err = "invalid interval";
+        goto err;
+    }
+
+    lorashell_tx_timer_exp(NULL);
+
+    return 0;
+
+err:
+    if (err != NULL) {
+        console_printf("error: %s\n", err);
+    }
+
+    console_printf(
+"usage:\n"
+"    lora_tx_rpt <size> [count] [interval (ms)]\n"
+"    lora_tx_rpt stop\n");
+
+    return rc;
+}
+
 int
 main(void)
 {
@@ -272,6 +395,9 @@ main(void)
             rc == 0, "Failed to register lorashell CLI commands");
     }
 
+    os_callout_init(&lorashell_tx_timer, os_eventq_dflt_get(),
+                    lorashell_tx_timer_exp, NULL);
+
     /* Radio initialization. */
     radio_events.TxDone = on_tx_done;
     radio_events.RxDone = on_rx_done;
@@ -280,6 +406,7 @@ main(void)
     radio_events.RxError = on_rx_error;
 
     Radio.Init(&radio_events);
+    Radio.SetMaxPayloadLength(MODEM_LORA, 250);
 
     console_printf("lorashell\n");
 
