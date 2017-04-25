@@ -29,12 +29,12 @@ Maintainer: Miguel Luis and Gregory Cristian
 
 #define RADIO_RESET                 SX1276_NRESET
 
-#define RADIO_SPI_IDX               MYNEWT_VAL(LORAMAC_NODE_BOARD_SPI_IDX)
+#define RADIO_SPI_IDX               MYNEWT_VAL(LORA_NODE_BOARD_SPI_IDX)
 
 #if RADIO_SPI_IDX == 0
 #define RADIO_NSS                   MYNEWT_VAL(SPI_0_MASTER_SS_PIN)
 #else
-#error Invalid LORAMAC_NODE_BOARD_SPI_IDX value
+#error Invalid LORA_NODE_BOARD_SPI_IDX value
 #endif
 
 #define RADIO_DIO_0                 SX1276_DIO0

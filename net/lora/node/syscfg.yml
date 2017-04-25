@@ -18,12 +18,22 @@
 #
 
 syscfg.defs:
-    LORAMAC_NODE:
+    LORA_NODE:
         description: >
             Used by package management system to include lora/node hardware
             drivers.
         value: 1
 
-    LORAMAC_NODE_CLI:
+    LORA_NODE_FREQ_BAND:
+        description: >
+            Which frequency band to use.  Valid values are:
+                o 433
+                o 470
+                o 780
+                o 868
+                o 915
+        value: 868
+
+    LORA_NODE_CLI:
         description: "Include shell commands for LoRa operations"
         value: 0

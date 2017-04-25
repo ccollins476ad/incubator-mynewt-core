@@ -20,6 +20,25 @@
 #ifndef H_LORA_PRIV_
 #define H_LORA_PRIV_
 
+#include "syscfg/syscfg.h"
+
+#if   MYNEWT_VAL(LORA_NODE_FREQ_BAND) == 433
+#define USE_BAND_433
+
+#elif MYNEWT_VAL(LORA_NODE_FREQ_BAND) == 470
+#define USE_BAND_470
+
+#elif MYNEWT_VAL(LORA_NODE_FREQ_BAND) == 780
+#define USE_BAND_780
+
+#elif MYNEWT_VAL(LORA_NODE_FREQ_BAND) == 868
+#define USE_BAND_868
+
+#elif MYNEWT_VAL(LORA_NODE_FREQ_BAND) == 915
+#define USE_BAND_915
+
+#endif
+
 void lora_cli_init(void);
 
 #endif

@@ -42,7 +42,7 @@ lora_node_init(void)
         STATS_NAME_INIT_PARMS(lora_stats), "lora");
     SYSINIT_PANIC_ASSERT(rc == 0);
 
-#if MYNEWT_VAL(LORAMAC_NODE_CLI)
+#if MYNEWT_VAL(LORA_NODE_CLI)
     lora_cli_init();
 #endif
 }

@@ -18,10 +18,10 @@
 #
 
 syscfg.defs:
-    LORAMAC_NODE_BOARD_SPI_IDX:
+    LORA_NODE_BOARD_SPI_IDX:
         description:
         value: 0
 
-    LORAMAC_NODE_BOARD_SPI_BAUDRATE:
+    LORA_NODE_BOARD_SPI_BAUDRATE:
         description:
         value: 500

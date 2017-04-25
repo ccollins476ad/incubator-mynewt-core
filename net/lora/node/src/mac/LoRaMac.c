@@ -21,12 +21,14 @@ Maintainer: Miguel Luis ( Semtech ), Gregory Cristian ( Semtech ) and Daniel Jä
 #include "board/board.h"
 #include "radio/radio.h"
 
-#include "mac/LoRaMacCrypto.h"
-#include "mac/LoRaMac.h"
-#include "mac/LoRaMacTest.h"
+#include "node/mac/LoRaMacCrypto.h"
+#include "node/mac/LoRaMac.h"
+#include "node/mac/LoRaMacTest.h"
 
 #include "hal/hal_timer.h"
 #include "os/os_cputime.h"
+
+#include "lora_priv.h"
 
 /*!
  * Maximum PHY layer payload size

@@ -33,7 +33,7 @@ lora_node_nrf52_init(void)
 
     spi_settings.data_order = HAL_SPI_MSB_FIRST;
     spi_settings.data_mode = HAL_SPI_MODE0;
-    spi_settings.baudrate = MYNEWT_VAL(LORAMAC_NODE_BOARD_SPI_BAUDRATE);
+    spi_settings.baudrate = MYNEWT_VAL(LORA_NODE_BOARD_SPI_BAUDRATE);
     spi_settings.word_size = HAL_SPI_WORD_SIZE_8BIT;
 
     rc = hal_spi_config(RADIO_SPI_IDX, &spi_settings);

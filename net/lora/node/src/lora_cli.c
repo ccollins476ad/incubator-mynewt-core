@@ -52,7 +52,7 @@
 
 #include "syscfg/syscfg.h"
 
-#if MYNEWT_VAL(LORAMAC_NODE_CLI)
+#if MYNEWT_VAL(LORA_NODE_CLI)
 
 #include <inttypes.h>
 #include <string.h>
@@ -599,4 +599,4 @@ lora_cli_init(void)
     SYSINIT_PANIC_ASSERT_MSG(rc == 0, "Failed to register lora CLI command");
 }
 
-#endif /* MYNEWT_VAL(LORAMAC_NODE_CLI) */
+#endif /* MYNEWT_VAL(LORA_NODE_CLI) */
