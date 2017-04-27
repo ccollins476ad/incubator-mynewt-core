@@ -17,41 +17,37 @@
  * under the License.
  */
 
+#ifndef H_BSP_H
+#define H_BSP_H
 
-#include "console/console.h"
-#include "console/prompt.h"
-#include <syscfg/syscfg.h>
+#include <inttypes.h>
 
-/* console prompt, always followed by a space */
-static char console_prompt[] = " > ";
-static char do_prompt = MYNEWT_VAL(CONSOLE_PROMPT);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Define special stackos sections */
+#define sec_data_core   __attribute__((section(".data.core")))
+#define sec_bss_core    __attribute__((section(".bss.core")))
+
+/* More convenient section placement macros. */
+#define bssnz_t
+
+extern uint8_t _ram_start;
+#define RAM_SIZE        0x8000
+
+/* LED pins */
+#define LED_BLINK_PIN   (18)
+#define LED_2           (19)
+
+/* UART info */
+#define CONSOLE_UART            "uart0"
+
+#define NFFS_AREA_MAX    (8)
 
 
-/* set the prompt character, leave the space */
-void
-console_set_prompt(char p)
-{
-    do_prompt = 1;
-    console_prompt[1] = p;
+#ifdef __cplusplus
 }
+#endif
 
-void
-console_no_prompt(void)
-{
-    do_prompt = 0;
-}
-
-void
-console_yes_prompt(void)
-{
-    do_prompt = 1;
-}
-
-/* print the prompt to the console */
-void
-console_print_prompt(void)
-{
-    if (do_prompt) {
-        console_printf("%s", console_prompt);
-    }
-}
+#endif  /* H_BSP_H */
