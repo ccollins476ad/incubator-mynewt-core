@@ -32,7 +32,7 @@ static bhd_req_run_fn bhd_conn_cancel_req_run;
 static bhd_req_run_fn bhd_scan_req_run;
 static bhd_req_run_fn bhd_scan_cancel_req_run;
 static bhd_req_run_fn bhd_set_preferred_mtu_req_run;
-static bhd_req_run_fn bhd_security_initiate_req_run;
+static bhd_req_run_fn bhd_enc_initiate_req_run;
 static bhd_req_run_fn bhd_conn_find_req_run;
 
 static const struct bhd_req_dispatch_entry {
@@ -55,7 +55,7 @@ static const struct bhd_req_dispatch_entry {
     { BHD_MSG_TYPE_SCAN,                bhd_scan_req_run },
     { BHD_MSG_TYPE_SCAN_CANCEL,         bhd_scan_cancel_req_run },
     { BHD_MSG_TYPE_SET_PREFERRED_MTU,   bhd_set_preferred_mtu_req_run },
-    { BHD_MSG_TYPE_SECURITY_INITIATE,   bhd_security_initiate_req_run },
+    { BHD_MSG_TYPE_ENC_INITIATE,   bhd_enc_initiate_req_run },
     { BHD_MSG_TYPE_CONN_FIND,           bhd_conn_find_req_run },
 
     { -1 },
@@ -78,7 +78,7 @@ static bhd_subrsp_enc_fn bhd_conn_cancel_rsp_enc;
 static bhd_subrsp_enc_fn bhd_scan_rsp_enc;
 static bhd_subrsp_enc_fn bhd_scan_cancel_rsp_enc;
 static bhd_subrsp_enc_fn bhd_set_preferred_mtu_rsp_enc;
-static bhd_subrsp_enc_fn bhd_security_initiate_rsp_enc;
+static bhd_subrsp_enc_fn bhd_enc_initiate_rsp_enc;
 static bhd_subrsp_enc_fn bhd_conn_find_rsp_enc;
 
 static const struct bhd_rsp_dispatch_entry {
@@ -102,7 +102,7 @@ static const struct bhd_rsp_dispatch_entry {
     { BHD_MSG_TYPE_SCAN,                bhd_scan_rsp_enc },
     { BHD_MSG_TYPE_SCAN_CANCEL,         bhd_scan_cancel_rsp_enc },
     { BHD_MSG_TYPE_SET_PREFERRED_MTU,   bhd_set_preferred_mtu_rsp_enc },
-    { BHD_MSG_TYPE_SECURITY_INITIATE,   bhd_security_initiate_rsp_enc },
+    { BHD_MSG_TYPE_ENC_INITIATE,        bhd_enc_initiate_rsp_enc },
     { BHD_MSG_TYPE_CONN_FIND,           bhd_conn_find_rsp_enc },
 
     { -1 },
@@ -738,8 +738,8 @@ bhd_set_preferred_mtu_req_run(cJSON *parent,
 }
 
 static int
-bhd_security_initiate_req_run(cJSON *parent,
-                              struct bhd_req *req, struct bhd_rsp *rsp)
+bhd_enc_initiate_req_run(cJSON *parent,
+                         struct bhd_req *req, struct bhd_rsp *rsp)
 {
     int rc;
 
@@ -967,7 +967,7 @@ bhd_set_preferred_mtu_rsp_enc(cJSON *parent, const struct bhd_rsp *rsp)
 }
 
 static int
-bhd_security_initiate_rsp_enc(cJSON *parent, const struct bhd_rsp *rsp)
+bhd_enc_initiate_rsp_enc(cJSON *parent, const struct bhd_rsp *rsp)
 {
     bhd_json_add_int(parent, "status", rsp->security_initiate.status);
     return 0;
