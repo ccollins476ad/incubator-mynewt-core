@@ -133,7 +133,7 @@ struct bhd_set_preferred_mtu_req {
     uint16_t mtu;
 };
 
-struct bhd_enc_initiate_req {
+struct bhd_security_initiate_req {
     uint16_t conn_handle;
 };
 
@@ -156,7 +156,7 @@ struct bhd_req {
         struct bhd_set_rand_addr_req set_rand_addr;
         struct bhd_scan_req scan;
         struct bhd_set_preferred_mtu_req set_preferred_mtu;
-        struct bhd_enc_initiate_req enc_initiate;
+        struct bhd_security_initiate_req security_initiate;
         struct bhd_conn_find_req conn_find;
     };
 };
@@ -229,7 +229,7 @@ struct bhd_set_preferred_mtu_rsp {
     int status;
 };
 
-struct bhd_enc_initiate_rsp {
+struct bhd_security_initiate_rsp {
     int status;
 };
 
@@ -273,7 +273,7 @@ struct bhd_rsp {
         struct bhd_scan_rsp scan;
         struct bhd_scan_cancel_rsp scan_cancel;
         struct bhd_set_preferred_mtu_rsp set_preferred_mtu;
-        struct bhd_enc_initiate_rsp enc_initiate;
+        struct bhd_security_initiate_rsp security_initiate;
         struct bhd_conn_find_rsp conn_find;
     };
 };

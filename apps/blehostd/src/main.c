@@ -334,11 +334,13 @@ blehostd_process_req(struct os_mbuf *om)
 
     send_rsp = bhd_req_dec(json, &rsp);
     if (send_rsp) {
+        BHD_LOG(DEBUG, "<<4>> rsp seq=%d\n", rsp.hdr.seq);
         bhd_rsp_send(&rsp);
     }
 
 done:
     os_mbuf_free_chain(om);
+    free(json);
 }
 
 static void
