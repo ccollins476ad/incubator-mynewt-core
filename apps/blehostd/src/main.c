@@ -350,11 +350,7 @@ blehostd_process_req(struct os_mbuf *om)
 
     BLEHOSTD_STR_VALIDATE(om);
 
-    json = malloc(OS_MBUF_PKTLEN(om) + 1);
-    if (json == NULL) {
-        BHD_LOG(CRITICAL, "OOM\n");
-        goto done;
-    }
+    json = malloc_success(OS_MBUF_PKTLEN(om) + 1);
 
     BHD_LOG(DEBUG, "Received %d bytes:\n", OS_MBUF_PKTLEN(om));
     rc = os_mbuf_copydata(om, 0, OS_MBUF_PKTLEN(om), json);
