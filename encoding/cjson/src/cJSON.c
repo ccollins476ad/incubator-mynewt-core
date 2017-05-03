@@ -230,8 +230,8 @@ static const char *parse_number(cJSON *item, const char *num)
     }
 
     BHD_LOG(DEBUG, "\n");
-    BHD_LOG(DEBUG, "n=%f scale=%f subscale=%d signsubscale=%d\n", n, scale,
-            subscale, signsubscale);
+    BHD_LOG(DEBUG, "sign=%f n=%f scale=%f subscale=%d signsubscale=%d\n", 
+            sign, n, scale, subscale, signsubscale);
 
     /* number = +/- number.fraction * 10^+/- exponent */
     n = sign * n * pow(10.0, (scale + subscale * signsubscale));
@@ -240,6 +240,13 @@ static const char *parse_number(cJSON *item, const char *num)
     item->valueint = (int)n;
     item->type = cJSON_Number;
 
+    BHD_LOG(DEBUG, "subscale * signsubscale=%d\n", subscale * signsubscale);
+    BHD_LOG(DEBUG, "scale + subscale * signsubscale=%f\n",
+            scale + subscale * signsubscale);
+    BHD_LOG(DEBUG, "pow(10.0, scale + subscale * signsubscale)=%f\n",
+            pow(10.0, (scale + subscale * signsubscale)));
+    BHD_LOG(DEBUG, "sign * n * pow(10.0, scale + subscale * signsubscale)=%f\n",
+            sign * n * pow(10.0, (scale + subscale * signsubscale)));
     BHD_LOG(DEBUG, "valuedouble=%f valueint=%d\n",
             item->valuedouble, item->valueint);
 
