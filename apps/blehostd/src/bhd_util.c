@@ -205,10 +205,14 @@ bhd_json_int(const cJSON *parent, const char *name, int *rc)
 
     item = cJSON_GetObjectItem(parent, name);
     if (item == NULL) {
+        BHD_LOG(DEBUG, "bhd_json_int(); can't find item \"%s\"\n", name);
         *rc = SYS_ENOENT;
         return -1;
     }
     if (item->type != cJSON_Number) {
+        BHD_LOG(DEBUG,
+                "bhd_json_int(); item \"%s\" wrong type (exp:%d got:%d)\n",
+                name, cJSON_Number, item->type);
         *rc = SYS_ERANGE;
         return -1;
     }
@@ -243,6 +247,21 @@ bhd_json_bool(const cJSON *parent, const char *name, int *rc)
     }
 }
 
+static const char *
+bhd_json_item_str(const cJSON *parent)
+{
+    static char buf[1024];
+
+    snprintf(buf, sizeof buf,
+             "{next=%p prev=%p child=%p type=%d valuestring=%p valueint=%d "
+             "valuedouble=%f string=%s}",
+             parent->next, parent->prev, parent->child, parent->type,
+             parent->valuestring, parent->valueint, parent->valuedouble,
+             parent->string);
+
+    return buf;
+}
+
 long long int
 bhd_json_int_bounds(const cJSON *parent, const char *name,
                     long long int minval, long long int maxval, int *rc)
@@ -251,14 +270,23 @@ bhd_json_int_bounds(const cJSON *parent, const char *name,
 
     val = bhd_json_int(parent, name, rc);
     if (*rc != 0) {
-        return val;
+        goto err;
     }
 
     if (val < minval || val > maxval) {
+        BHD_LOG(DEBUG,
+                "bhd_json_int_bounds(); item \"%s\" (%lld) out of bounds: "
+                "[%lld, %lld]\n",
+                name, val, minval, maxval);
         *rc = SYS_ERANGE;
-        return val;
+        goto err;
     }
 
+    return val;
+
+err:
+    BHD_LOG(DEBUG, "bhd_json_int_bounds(); rc=%d name=%s parent=%s\n",
+            *rc, name, bhd_json_item_str(parent));
     return val;
 }
 
