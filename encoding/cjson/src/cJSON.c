@@ -32,6 +32,9 @@
 #include <ctype.h>
 #include "cjson/cJSON.h"
 
+#include "log/log.h"
+#include "../../../apps/blehostd/src/blehostd.h"
+
 /* Determine the number of bits that an integer has using the preprocessor */
 #if INT_MAX == 32767
     /* 16 bits */
@@ -48,6 +51,8 @@
 
 /* define our own boolean type */
 typedef int cjbool;
+#undef true
+#undef false
 #define true ((cjbool)1)
 #define false ((cjbool)0)
 
@@ -162,15 +167,19 @@ static const char *parse_number(cJSON *item, const char *num)
     int subscale = 0;
     int signsubscale = 1;
 
+    BHD_LOG(DEBUG, "parse_number: ");
+
     /* Has sign? */
     if (*num == '-')
     {
         sign = -1;
+        BHD_LOG(DEBUG, "%c", *num);
         num++;
     }
     /* is zero */
     if (*num == '0')
     {
+        BHD_LOG(DEBUG, "%c", *num);
         num++;
     }
     /* Number? */
@@ -178,6 +187,7 @@ static const char *parse_number(cJSON *item, const char *num)
     {
         do
         {
+            BHD_LOG(DEBUG, "%c", *num);
             n = (n * 10.0) + (*num++ - '0');
         }
         while ((*num >= '0') && (*num<='9'));
@@ -185,9 +195,11 @@ static const char *parse_number(cJSON *item, const char *num)
     /* Fractional part? */
     if ((*num == '.') && (num[1] >= '0') && (num[1] <= '9'))
     {
+        BHD_LOG(DEBUG, "%c", *num);
         num++;
         do
         {
+            BHD_LOG(DEBUG, "%c", *num);
             n = (n  *10.0) + (*num++ - '0');
             scale--;
         } while ((*num >= '0') && (*num <= '9'));
@@ -195,23 +207,31 @@ static const char *parse_number(cJSON *item, const char *num)
     /* Exponent? */
     if ((*num == 'e') || (*num == 'E'))
     {
+        BHD_LOG(DEBUG, "%c", *num);
         num++;
         /* With sign? */
         if (*num == '+')
         {
+            BHD_LOG(DEBUG, "%c", *num);
             num++;
         }
         else if (*num == '-')
         {
             signsubscale = -1;
+            BHD_LOG(DEBUG, "%c", *num);
             num++;
         }
         /* Number? */
         while ((*num>='0') && (*num<='9'))
-        {
+        { 
+            BHD_LOG(DEBUG, "%c", *num);
             subscale = (subscale * 10) + (*num++ - '0');
         }
     }
+
+    BHD_LOG(DEBUG, "\n");
+    BHD_LOG(DEBUG, "n=%f scale=%f subscale=%d signsubscale=%d\n", n, scale,
+            subscale, signsubscale);
 
     /* number = +/- number.fraction * 10^+/- exponent */
     n = sign * n * pow(10.0, (scale + subscale * signsubscale));
@@ -219,6 +239,9 @@ static const char *parse_number(cJSON *item, const char *num)
     item->valuedouble = n;
     item->valueint = (int)n;
     item->type = cJSON_Number;
+
+    BHD_LOG(DEBUG, "valuedouble=%f valueint=%d\n",
+            item->valuedouble, item->valueint);
 
     return num;
 }
