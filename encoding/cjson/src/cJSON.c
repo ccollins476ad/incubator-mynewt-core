@@ -234,7 +234,10 @@ static const char *parse_number(cJSON *item, const char *num)
             sign, n, scale, subscale, signsubscale);
 
     /* number = +/- number.fraction * 10^+/- exponent */
+    /* XXX: Discard fractional part of number. */
+#if 0
     n = sign * n * pow(10.0, (scale + subscale * signsubscale));
+#endif
 
     item->valuedouble = n;
     item->valueint = (int)n;
