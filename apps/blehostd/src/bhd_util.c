@@ -9,6 +9,8 @@
 #include "nimble/hci_common.h"
 #include "host/ble_hs.h"
 
+#include "os/os_malloc.h"
+
 static const struct bhd_kv_str_int bhd_op_map[] = {
     { "request",        BHD_MSG_OP_REQ },
     { "response",       BHD_MSG_OP_RSP },

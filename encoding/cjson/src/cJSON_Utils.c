@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include "cjson/cJSON_Utils.h"
 
+#include "os/os_malloc.h"
+
 static char* cJSONUtils_strdup(const char* str)
 {
     size_t len = 0;

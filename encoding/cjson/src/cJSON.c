@@ -32,6 +32,8 @@
 #include <ctype.h>
 #include "cjson/cJSON.h"
 
+#include "os/os_malloc.h"
+
 #include "log/log.h"
 #include "../../../apps/blehostd/src/blehostd.h"
 

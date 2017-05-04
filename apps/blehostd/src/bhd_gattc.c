@@ -9,6 +9,8 @@
 #include "nimble/ble.h"
 #include "host/ble_hs.h"
 
+#include "os/os_malloc.h"
+
 struct bhd_gattc_disc_chr_arg {
     bhd_seq_t seq;
     uint16_t svc_start_handle;

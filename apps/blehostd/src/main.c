@@ -21,6 +21,8 @@
 #include "host/ble_hs.h"
 #include "defs/error.h"
 
+#include "os/os_malloc.h"
+
 #define BLEHOSTD_STACK_SIZE     (OS_STACK_ALIGN(512))
 #define BLEHOSTD_TASK_PRIO      3
 
@@ -408,6 +410,7 @@ blehostd_process_req(struct os_mbuf *om)
     }
 
     json[OS_MBUF_PKTLEN(om)] = '\0';
+    BHD_LOG(DEBUG, "OS_MBUF_PKTLEN(om)=:%d\n", OS_MBUF_PKTLEN(om));
     BHD_LOG(DEBUG, "Received JSON request:\n%s\n", json);
     BLEHOSTD_CMD_VALIDATE(json);
 

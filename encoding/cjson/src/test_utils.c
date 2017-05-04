@@ -3,6 +3,8 @@
 #include <string.h>
 #include "cjson/cJSON_Utils.h"
 
+#include "os/os_malloc.h"
+
 int main(void)
 {
     /* Some variables */

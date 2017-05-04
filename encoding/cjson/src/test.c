@@ -25,6 +25,8 @@
 #include <string.h>
 #include "cjson/cJSON.h"
 
+#include "os/os_malloc.h"
+
 /* Parse text to JSON, then render back to text, and print! */
 static void doit(char *text)
 {
