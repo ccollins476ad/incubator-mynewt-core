@@ -17,6 +17,8 @@
  * under the License.
  */
 
+#include <time.h>
+
 #include "syscfg/syscfg.h"
 #include "sysinit/sysinit.h"
 #include "sysflash/sysflash.h"
@@ -64,12 +66,6 @@ static struct os_task task2;
 static struct log my_log;
 
 static volatile int g_task2_loops;
-
-/* Global test semaphore */
-static struct os_sem g_test_sem;
-
-/* For LED toggling */
-static int g_led_pin;
 
 STATS_SECT_START(gpio_stats)
 STATS_SECT_ENTRY(toggles)
@@ -146,61 +142,38 @@ test_conf_export(void (*func)(char *name, char *val), enum conf_export_tgt tgt)
     return 0;
 }
 
+static uint64_t loops1;
+static uint64_t loops2;
+
 static void
 task1_handler(void *arg)
 {
-    struct os_task *t;
-    int prev_pin_state, curr_pin_state;
-    struct image_version ver;
-
-    /* Set the led pin for the E407 devboard */
-    g_led_pin = LED_BLINK_PIN;
-    hal_gpio_init_out(g_led_pin, 1);
-
-    if (imgr_my_version(&ver) == 0) {
-        console_printf("\nSlinky %u.%u.%u.%u\n",
-          ver.iv_major, ver.iv_minor, ver.iv_revision,
-          (unsigned int)ver.iv_build_num);
-    } else {
-        console_printf("\nSlinky\n");
-    }
+    //os_sr_t sr;
+    time_t tt;
 
     while (1) {
-        t = os_sched_get_current_task();
-        assert(t->t_func == task1_handler);
+        //OS_ENTER_CRITICAL(sr);
+        ctime(&tt);
+        //OS_EXIT_CRITICAL(sr);
+        os_time_delay(3);
 
-        ++g_task1_loops;
-
-        /* Wait one second */
-        os_time_delay(OS_TICKS_PER_SEC);
-
-        /* Toggle the LED */
-        prev_pin_state = hal_gpio_read(g_led_pin);
-        curr_pin_state = hal_gpio_toggle(g_led_pin);
-        LOG_INFO(&my_log, LOG_MODULE_DEFAULT, "GPIO toggle from %u to %u",
-            prev_pin_state, curr_pin_state);
-        STATS_INC(g_stats_gpio_toggle, toggles);
-
-        /* Release semaphore to task 2 */
-        os_sem_release(&g_test_sem);
+        loops1++;
     }
 }
 
 static void
 task2_handler(void *arg)
 {
-    struct os_task *t;
+    //os_sr_t sr;
+    time_t tt;
 
     while (1) {
-        /* just for debug; task 2 should be the running task */
-        t = os_sched_get_current_task();
-        assert(t->t_func == task2_handler);
+        //OS_ENTER_CRITICAL(sr);
+        ctime(&tt);
+        //OS_EXIT_CRITICAL(sr);
+        os_time_delay(2);
 
-        /* Increment # of times we went through task loop */
-        ++g_task2_loops;
-
-        /* Wait for semaphore from ISR */
-        os_sem_pend(&g_test_sem, OS_TIMEOUT_NEVER);
+        loops2++;
     }
 }
 
@@ -216,9 +189,6 @@ static void
 init_tasks(void)
 {
     os_stack_t *pstack;
-
-    /* Initialize global test semaphore */
-    os_sem_init(&g_test_sem, 0);
 
     pstack = malloc(sizeof(os_stack_t)*TASK1_STACK_SIZE);
     assert(pstack);

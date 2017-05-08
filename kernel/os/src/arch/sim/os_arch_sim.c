@@ -55,7 +55,7 @@ extern void os_arch_frame_init(struct stack_frame *sf);
 #define OS_USEC_PER_TICK    (1000000 / OS_TICKS_PER_SEC)
 
 static pid_t mypid;
-static sigset_t allsigs, nosigs;
+static sigset_t allsigs, nosigs, sigset_alrm, sigset_urg;
 static void timer_handler(int sig);
 
 static bool suspended;      /* process is blocked in sigsuspend() */
@@ -167,14 +167,14 @@ os_arch_save_sr(void)
     int error;
     sigset_t omask;
 
-    error = sigprocmask(SIG_BLOCK, &allsigs, &omask);
+    error = sigprocmask(SIG_BLOCK, &sigset_urg, &omask);
     assert(error == 0);
 
     /*
      * If any one of the signals in 'allsigs' is present in 'omask' then
      * we are already inside a critical section.
      */
-    return (sigismember(&omask, SIGALRM));
+    return (sigismember(&omask, SIGURG));
 }
 
 void
@@ -190,7 +190,7 @@ os_arch_restore_sr(os_sr_t osr)
         return;
     }
 
-    error = sigprocmask(SIG_UNBLOCK, &allsigs, NULL);
+    error = sigprocmask(SIG_UNBLOCK, &sigset_urg, NULL);
     assert(error == 0);
 }
 
@@ -207,7 +207,7 @@ os_arch_in_critical(void)
      * If any one of the signals in 'allsigs' is present in 'omask' then
      * we are already inside a critical section.
      */
-    return (sigismember(&omask, SIGALRM));
+    return (sigismember(&omask, SIGURG));
 }
 
 static struct {
@@ -219,6 +219,32 @@ static struct {
 };
 
 #define NUMSIGS     (sizeof(signals)/sizeof(signals[0]))
+
+static void
+unblock_timer(void)
+{
+    sigset_t sigs;
+    int rc;
+
+    sigemptyset(&sigs);
+    sigaddset(&sigs, SIGALRM);
+
+    rc = sigprocmask(SIG_UNBLOCK, &sigs, NULL);
+    assert(rc == 0);
+}
+
+static void
+block_timer(void)
+{
+    sigset_t sigs;
+    int rc;
+
+    sigemptyset(&sigs);
+    sigaddset(&sigs, SIGALRM);
+
+    rc = sigprocmask(SIG_BLOCK, &sigs, NULL);
+    assert(rc == 0);
+}
 
 void
 os_tick_idle(os_time_t ticks)
@@ -243,8 +269,14 @@ os_tick_idle(os_time_t ticks)
     }
 
     suspended = true;
+
+    unblock_timer();
+
     sigemptyset(&suspsigs);
     sigsuspend(&nosigs);        /* Wait for a signal to wake us up */
+
+    block_timer();
+
     suspended = false;
 
     /*
@@ -281,12 +313,29 @@ signals_init(void)
 {
     int i, error;
     struct sigaction sa;
+    stack_t sigstk;
 
+    sigstk.ss_sp = malloc(SIGSTKSZ);
+    assert(sigstk.ss_sp != NULL);
+    sigstk.ss_size = SIGSTKSZ;
+    sigstk.ss_flags = 0;
+    if (sigaltstack(&sigstk,0) < 0) {
+        perror("sigaltstack");
+        assert(0);
+    }
+
+    sigemptyset(&allsigs);
     sigemptyset(&nosigs);
+    sigemptyset(&sigset_alrm);
+    sigemptyset(&sigset_urg);
+
     sigemptyset(&allsigs);
     for (i = 0; i < NUMSIGS; i++) {
         sigaddset(&allsigs, signals[i].num);
     }
+
+    sigaddset(&sigset_alrm, SIGALRM);
+    sigaddset(&sigset_urg, SIGURG);
 
     for (i = 0; i < NUMSIGS; i++) {
         memset(&sa, 0, sizeof sa);
@@ -302,7 +351,7 @@ signals_init(void)
      * a critical section (for e.g. see os_arch_in_critical()). Make sure
      * that SIGALRM is indeed present in 'allsigs'.
      */
-    assert(sigismember(&allsigs, SIGALRM));
+    assert(sigismember(&allsigs, SIGURG));
 }
 
 static void
@@ -374,6 +423,8 @@ start_timer(void)
 {
     struct itimerval it;
     int rc;
+
+    block_timer();
 
     memset(&it, 0, sizeof(it));
     it.it_value.tv_sec = 0;
