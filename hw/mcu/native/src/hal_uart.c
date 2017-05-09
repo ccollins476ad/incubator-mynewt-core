@@ -313,7 +313,7 @@ uart_open_dev(int port, int32_t baudrate, uint8_t databits,
     filename = native_uart_dev_strs[port];
     assert(filename != NULL);
 
-    fd = open(filename, O_RDWR);
+    fd = open(filename, O_RDWR | O_NONBLOCK);
     if (fd < 0) {
         return -1;
     }
