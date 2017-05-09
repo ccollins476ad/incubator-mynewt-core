@@ -166,6 +166,7 @@ os_arch_save_sr(void)
 {
     int error;
     sigset_t omask;
+    os_sr_t ret;
 
     error = sigprocmask(SIG_BLOCK, &allsigs, &omask);
     assert(error == 0);
@@ -174,7 +175,11 @@ os_arch_save_sr(void)
      * If any one of the signals in 'allsigs' is present in 'omask' then
      * we are already inside a critical section.
      */
-    return (sigismember(&omask, SIGALRM));
+    ret = sigismember(&omask, SIGALRM);
+    if (ret == 0) {
+        write(1, "ENTER", 6);
+    }
+    return ret;
 }
 
 void
@@ -192,6 +197,7 @@ os_arch_restore_sr(os_sr_t osr)
 
     error = sigprocmask(SIG_UNBLOCK, &allsigs, NULL);
     assert(error == 0);
+    write(1, "EXIT", 5);
 }
 
 int
