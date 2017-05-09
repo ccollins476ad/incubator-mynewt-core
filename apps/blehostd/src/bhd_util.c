@@ -255,10 +255,10 @@ bhd_json_item_str(const cJSON *parent)
     static char buf[1024];
 
     snprintf(buf, sizeof buf,
-             "{next=%p prev=%p child=%p type=%d valuestring=%p valueint=%d "
-             "valuedouble=%f string=%s}",
+             "{next=%p prev=%p child=%p type=%d valuestring=%p valueint=%lld "
+             "string=%s}",
              parent->next, parent->prev, parent->child, parent->type,
-             parent->valuestring, parent->valueint, parent->valuedouble,
+             parent->valuestring, (long long)parent->valueint,
              parent->string);
 
     return buf;
@@ -570,8 +570,8 @@ bhd_json_add_int(cJSON *parent, const char *name, int64_t val)
     cJSON *item;
 
     item = cJSON_CreateNumber(val);
-    BHD_LOG(DEBUG, "bhd_json_add_int(); item=%p item->valueint=%d type=%d\n",
-            item, item->valueint, item->type);
+    BHD_LOG(DEBUG, "bhd_json_add_int(); item=%p item->valueint=%lld type=%d\n",
+            item, (long long)item->valueint, item->type);
 
     cJSON_AddItemToObject(parent, name, item);
 }
