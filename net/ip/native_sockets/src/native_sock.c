@@ -277,6 +277,7 @@ native_sock_create(struct mn_socket **sp, uint8_t domain,
     struct native_sock_state *nss = &native_sock_state;
     struct native_sock *ns;
     int idx;
+    int rc;
 
     switch (domain) {
     case MN_PF_INET:
@@ -313,6 +314,10 @@ native_sock_create(struct mn_socket **sp, uint8_t domain,
     }
     os_sem_init(&ns->ns_sem, 0);
     idx = socket(domain, type, proto);
+
+    rc = fcntl(idx, F_SETFL, fcntl(idx, F_GETFL, 0) | O_NONBLOCK);
+    assert(rc == 0);
+
     ns->ns_fd = idx;
     ns->ns_pf = domain;
     ns->ns_type = type;
