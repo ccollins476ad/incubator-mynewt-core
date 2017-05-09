@@ -8,6 +8,7 @@
 #include "defs/error.h"
 #include "nimble/ble.h"
 #include "host/ble_hs.h"
+#include "syscalls/syscalls.h"
 
 static const struct ble_gap_conn_desc bhd_gap_null_desc = {
     .conn_handle = BLE_HS_CONN_HANDLE_NONE,

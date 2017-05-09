@@ -1,7 +1,10 @@
 #include <ifaddrs.h>
 #include <inttypes.h>
 #include <poll.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -210,6 +213,77 @@ syscalls_if_nametoindex(const char *ifname)
 
     OS_ENTER_CRITICAL(sr);
     val = if_nametoindex(ifname);
+    OS_EXIT_CRITICAL(sr);
+
+    return val;
+}
+
+void *
+syscalls_malloc(size_t size)
+{
+    os_sr_t sr;
+    void *val;
+
+    OS_ENTER_CRITICAL(sr);
+    val = malloc(size);
+    OS_EXIT_CRITICAL(sr);
+
+    return val;
+}
+
+int
+syscalls_fputs(const char *restrict s, FILE *restrict stream)
+{
+    os_sr_t sr;
+    int val;
+
+    OS_ENTER_CRITICAL(sr);
+    val = fputs(s, stream);
+    OS_EXIT_CRITICAL(sr);
+
+    return val;
+}
+
+int
+syscalls_dprintf(int fd, const char *restrict format, ...)
+{
+    va_list ap;
+    os_sr_t sr;
+    int val;
+
+    va_start(ap, format);
+
+    OS_ENTER_CRITICAL(sr);
+    val = vdprintf(fd, format, ap);
+    OS_EXIT_CRITICAL(sr);
+
+    va_end(ap);
+
+    return val;
+}
+
+ssize_t
+syscalls_read(int fildes, void *buf, size_t nbyte)
+{
+    os_sr_t sr;
+    ssize_t val;
+
+    OS_ENTER_CRITICAL(sr);
+    val = read(fildes, buf, nbyte);
+    OS_EXIT_CRITICAL(sr);
+
+    return val;
+}
+
+int
+syscalls_setitimer(int which, const struct itimerval *restrict value,
+                   struct itimerval *restrict ovalue)
+{
+    os_sr_t sr;
+    int val;
+
+    OS_ENTER_CRITICAL(sr);
+    val = setitimer(which, value, ovalue);
     OS_EXIT_CRITICAL(sr);
 
     return val;

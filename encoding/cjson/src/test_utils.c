@@ -3,7 +3,7 @@
 #include <string.h>
 #include "cjson/cJSON_Utils.h"
 
-#include "os/os_malloc.h"
+#include "syscalls/syscalls.h"
 
 int main(void)
 {

@@ -24,6 +24,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include "syscalls/syscalls.h"
 #include "mn_socket/mn_socket.h"
 #include "native_sock_priv.h"
 

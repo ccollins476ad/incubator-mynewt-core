@@ -8,8 +8,7 @@
 #include "defs/error.h"
 #include "nimble/ble.h"
 #include "host/ble_hs.h"
-
-#include "os/os_malloc.h"
+#include "syscalls/syscalls.h"
 
 struct bhd_gattc_disc_chr_arg {
     bhd_seq_t seq;

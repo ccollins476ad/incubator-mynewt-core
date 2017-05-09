@@ -31,6 +31,7 @@
 #include <sysinit/sysinit.h>
 #include <os/os.h>
 #include <os/os_mbuf.h>
+#include "syscalls/syscalls.h"
 #include "mn_socket/mn_socket.h"
 #include "mn_socket/mn_socket_ops.h"
 #include "native_sockets/native_sock.h"

@@ -14,7 +14,7 @@
 #include "host/ble_hs.h"
 #include "cjson/cJSON.h"
 
-#include "os/os_malloc.h"
+#include "syscalls/syscalls.h"
 
 typedef int bhd_req_run_fn(cJSON *parent, struct bhd_req *req,
                               struct bhd_rsp *rsp);

@@ -20,8 +20,7 @@
 #include "mn_socket/mn_socket.h"
 #include "host/ble_hs.h"
 #include "defs/error.h"
-
-#include "os/os_malloc.h"
+#include "syscalls/syscalls.h"
 
 #define BLEHOSTD_STACK_SIZE     (OS_STACK_ALIGN(512))
 #define BLEHOSTD_TASK_PRIO      3
@@ -483,10 +482,6 @@ main(int argc, char **argv)
         blehostd_dev_filename = argv[1];
         blehostd_socket_filename = argv[2];
 
-        BHD_LOG(INFO,
-                "*** Starting blehostd %s %s\n",
-                blehostd_dev_filename, blehostd_socket_filename);
-
 #ifdef ARCH_sim
         mcu_sim_parse_args(1, argv);
 #endif
@@ -513,6 +508,10 @@ main(int argc, char **argv)
 #endif
 
     sysinit();
+
+    BHD_LOG(INFO,
+            "*** Starting blehostd %s %s\n",
+            blehostd_dev_filename, blehostd_socket_filename);
 
     cjson_hooks.malloc_fn = malloc_success;
     cjson_hooks.free_fn = free;

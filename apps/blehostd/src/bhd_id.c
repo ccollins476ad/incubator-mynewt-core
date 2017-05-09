@@ -1,6 +1,7 @@
 #include "bhd_proto.h"
 #include "bhd_id.h"
 #include "host/ble_hs.h"
+#include "syscalls/syscalls.h"
 
 void
 bhd_id_gen_rand_addr(const struct bhd_req *req, struct bhd_rsp *rsp)

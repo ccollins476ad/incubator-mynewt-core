@@ -2,6 +2,7 @@
 #include <string.h>
 #include "defs/error.h"
 #include "parse.h"
+#include "syscalls/syscalls.h"
 
 static int
 parse_arg_byte_stream_delim(char *sval, char *delims, int max_len,
