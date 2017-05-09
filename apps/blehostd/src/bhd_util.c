@@ -254,10 +254,10 @@ bhd_json_item_str(const cJSON *parent)
     static char buf[1024];
 
     snprintf(buf, sizeof buf,
-             "{next=%p prev=%p child=%p type=%d valuestring=%p valueint=%d "
-             "valuedouble=%f string=%s}",
+             "{next=%p prev=%p child=%p type=%d valuestring=%p valueint=%lld "
+             "string=%s}",
              parent->next, parent->prev, parent->child, parent->type,
-             parent->valuestring, parent->valueint, parent->valuedouble,
+             parent->valuestring, (long long)parent->valueint,
              parent->string);
 
     return buf;
