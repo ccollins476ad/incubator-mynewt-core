@@ -1562,7 +1562,7 @@ done:
     ble_hs_unlock();
 
     if (rc != 0) {
-        STATS_INC(ble_gap_stats, adv_set_data_fail);
+        STATS_INC(ble_gap_stats, adv_stop_fail);
     }
 
     return rc;
@@ -1755,8 +1755,8 @@ ble_gap_adv_validate(uint8_t own_addr_type, const ble_addr_t *peer_addr,
  *                                      o BLE_OWN_ADDR_RPA_PUBLIC_DEFAULT
  *                                      o BLE_OWN_ADDR_RPA_RANDOM_DEFAULT
  * @param direct_addr           The peer's address for directed advertising.
- *                                  This parameter shall be non-NULL if directed
- *                                  advertising is being used.
+ *                                  This parameter shall be non-NULL if
+ *                                  directed advertising is being used.
  * @param duration_ms           The duration of the advertisement procedure.
  *                                  On expiration, the procedure ends and a
  *                                  BLE_GAP_EVENT_ADV_COMPLETE event is
@@ -1862,7 +1862,7 @@ done:
 int
 ble_gap_adv_set_data(const uint8_t *data, int data_len)
 {
-    uint8_t buf[BLE_HCI_CMD_HDR_LEN + BLE_HCI_SET_SCAN_RSP_DATA_LEN];
+    uint8_t buf[BLE_HCI_CMD_HDR_LEN + BLE_HCI_SET_ADV_DATA_LEN];
     int rc;
 
     STATS_INC(ble_gap_stats, adv_set_data);
