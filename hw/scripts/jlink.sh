@@ -28,6 +28,10 @@ jlink_load () {
     GDB_CMD_FILE=.gdb_cmds
     GDB_OUT_FILE=.gdb_out
 
+    if [ -z $JLINK_SPEED ]; then
+        JLINK_SPEED=4000
+    fi
+
     windows_detect
     if [ $WINDOWS -eq 1 ]; then
 	JLINK_GDB_SERVER=JLinkGDBServerCL
@@ -53,7 +57,7 @@ jlink_load () {
     # downloading somewhere in the flash. So need to figure out how to tell it
     # not to do that, or report failure if gdb fails to write this file
     #
-    echo "shell sh -c \"trap '' 2; $JLINK_GDB_SERVER $EXTRA_JTAG_CMD -device $JLINK_DEV -speed 4000 -if SWD -port 3333 -singlerun &\" " > $GDB_CMD_FILE
+    echo "shell sh -c \"trap '' 2; $JLINK_GDB_SERVER $EXTRA_JTAG_CMD -device $JLINK_DEV -speed $JLINK_SPEED -if SWD -port 3333 -singlerun &\" " > $GDB_CMD_FILE
     echo "target remote localhost:3333" >> $GDB_CMD_FILE
     echo "mon reset" >> $GDB_CMD_FILE
     echo "restore $FILE_NAME binary $FLASH_OFFSET" >> $GDB_CMD_FILE
@@ -110,6 +114,10 @@ jlink_debug() {
 	JLINK_GDB_SERVER=JLinkGDBServerCL
     fi
 
+    if [ -z "$JLINK_SPEED" ]; then
+        JLINK_SPEED=4000
+    fi
+
     if [ -z "$NO_GDB" ]; then
         GDB_CMD_FILE=.gdb_cmds
 
@@ -135,7 +143,7 @@ jlink_debug() {
             # Block Ctrl-C from getting passed to jlink server.
             #
             set -m
-            $JLINK_GDB_SERVER $EXTRA_JTAG_CMD -device $JLINK_DEV -speed 4000 -if SWD -port 3333 -singlerun > /dev/null &
+            $JLINK_GDB_SERVER $EXTRA_JTAG_CMD -device $JLINK_DEV -speed $JLINK_SPEED -if SWD -port 3333 -singlerun > /dev/null &
             set +m
         fi
 
@@ -155,7 +163,7 @@ jlink_debug() {
             rm $GDB_CMD_FILE
 	fi
     else
-        $JLINK_GDB_SERVER $EXTRA_JTAG_CMD -device $JLINK_DEV -speed 4000 -if SWD -port 3333 -singlerun
+        $JLINK_GDB_SERVER $EXTRA_JTAG_CMD -device $JLINK_DEV -speed $JLINK_SPEED -if SWD -port 3333 -singlerun
     fi
     return 0
 }
