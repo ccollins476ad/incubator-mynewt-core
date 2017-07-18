@@ -30,10 +30,6 @@ extern "C" {
 
 #define OS_TICKS_PER_SEC    (1000)
 
-struct hal_flash;
-extern const struct hal_flash apollo_flash_dev;
-
-
 #ifdef __cplusplus
 }
 #endif

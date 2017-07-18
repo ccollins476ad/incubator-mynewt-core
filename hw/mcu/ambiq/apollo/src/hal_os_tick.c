@@ -45,11 +45,4 @@ os_tick_init(uint32_t os_ticks_per_sec, int prio)
     SysTick->CTRL = 0x0007;
 
     NVIC_SetPriority(SysTick_IRQn, prio);
-#if 0
-    /*
-     * Keep clocking debug even when CPU is sleeping, stopped or in standby.
-     */
-    DBGMCU->CR |= (DBGMCU_CR_DBG_SLEEP | DBGMCU_CR_DBG_STOP |
-      DBGMCU_CR_DBG_STANDBY);
-#endif
 }

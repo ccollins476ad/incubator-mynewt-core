@@ -22,8 +22,23 @@
 
 #include <hal/hal_bsp.h>
 #include <bsp/bsp.h>
-#include <mcu/system_apollo1.h>
-#include <mcu/cortex_m4.h>
+#include <mcu/hal_apollo.h>
+
+#if MYNEWT_VAL(UART_0)
+#include "uart/uart.h"
+#include "uart_hal/uart_hal.h"
+#endif
+
+
+#if MYNEWT_VAL(UART_0)
+static struct uart_dev os_bsp_uart0;
+static const struct apollo_uart_cfg os_bsp_uart0_cfg = {
+    .suc_pin_tx = MYNEWT_VAL(UART_0_PIN_TX),
+    .suc_pin_rx = MYNEWT_VAL(UART_0_PIN_RX),
+    .suc_pin_rts = MYNEWT_VAL(UART_0_PIN_RTS),
+    .suc_pin_cts = MYNEWT_VAL(UART_0_PIN_CTS),
+};
+#endif
 
 const struct hal_flash *
 hal_bsp_flash_dev(uint8_t id)
@@ -38,6 +53,16 @@ hal_bsp_flash_dev(uint8_t id)
 void
 hal_bsp_init(void)
 {
+    int rc;
+
+    (void) rc;
+
+#if MYNEWT_VAL(UART_0)
+    rc = os_dev_create((struct os_dev *) &os_bsp_uart0, "uart0",
+            OS_DEV_INIT_PRIMARY, 0, uart_hal_init, (void *) &os_bsp_uart0_cfg);
+    assert(rc == 0);
+#endif
+
 }
 
 int

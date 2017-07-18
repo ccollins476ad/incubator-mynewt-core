@@ -80,14 +80,16 @@ apollo_flash_write(const struct hal_flash *dev, uint32_t address,
 
     __HAL_DISABLE_INTERRUPTS(sr);
 
-    rc = am_hal_flash_program_main(AM_HAL_FLASH_PROGRAM_KEY, (uint32_t *) src, (uint32_t *) address, words);
+    rc = am_hal_flash_program_main(AM_HAL_FLASH_PROGRAM_KEY, (uint32_t *) src,
+            (uint32_t *) address, words);
     if (rc != 0) {
         goto err;
     }
     if (remainder > 0) {
         val = *((uint32_t *) address + words);
         memcpy((uint8_t * ) &val, (uint32_t *) src + words, remainder);
-        rc = am_hal_flash_program_main(AM_HAL_FLASH_PROGRAM_KEY, &val, (uint32_t *) address + words, 1);
+        rc = am_hal_flash_program_main(AM_HAL_FLASH_PROGRAM_KEY, &val,
+                (uint32_t *) address + words, 1);
         if (rc != 0) {
             goto err;
         }

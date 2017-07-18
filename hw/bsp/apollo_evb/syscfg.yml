@@ -19,6 +19,27 @@
 
 # Package: hw/bsp/apollo_evb
 
+syscfg.defs:
+    BSP_APOLLO:
+        description: 'Set to indicate that BSP has APOLLO processor'
+        value: 1
+    UART_0:
+        description: 'Whether to enable UART0'
+        value: 1
+    UART_0_PIN_TX:
+        description: 'TX pin for UART0'
+        value: 35
+    UART_0_PIN_RX:
+        description: 'RX pin for UART0'
+        value: 36
+    UART_0_PIN_RTS:
+        description: 'RTS pin for UART0'
+        value: 0
+    UART_0_PIN_CTS:
+        description: 'CTS pin for UART0'
+        value: 0
+
+
 syscfg.vals:
     CONFIG_FCB_FLASH_AREA: FLASH_AREA_NFFS
     REBOOT_LOG_FLASH_AREA: FLASH_AREA_REBOOT_LOG

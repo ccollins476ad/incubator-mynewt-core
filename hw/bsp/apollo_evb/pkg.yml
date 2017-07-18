@@ -33,3 +33,6 @@ pkg.cflags.HARDFLOAT:
 pkg.deps:
     - hw/mcu/ambiq/apollo
     - libc/baselibc
+
+pkg.deps.UART_0:
+    - hw/drivers/uart/uart_hal

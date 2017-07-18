@@ -17,33 +17,28 @@
  * under the License.
  */
 
-#include <assert.h>
-#include <stddef.h>
-#include <inttypes.h>
-#include <mcu/cortex_m4.h>
+#ifndef __HAL_APOLLO_H_
+#define __HAL_APOLLO_H__
 
-/**
- * Boots the image described by the supplied image header.
- *
- * @param hdr                   The header for the image to boot.
- */
-void
-hal_system_start(void *img_start)
-{
-    typedef void jump_fn(void);
+#include "syscfg/syscfg.h"
 
-    uint32_t base0entry;
-    uint32_t jump_addr;
-    jump_fn *fn;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-    /* First word contains initial MSP value. */
-    __set_MSP(*(uint32_t *)img_start);
+struct hal_flash;
+extern const struct hal_flash apollo_flash_dev;
 
-    /* Second word contains address of entry point (Reset_Handler). */
-    base0entry = *(uint32_t *)(img_start + 4);
-    jump_addr = base0entry;
-    fn = (jump_fn *)jump_addr;
+struct apollo_uart_cfg {
+    uint8_t suc_pin_tx;
+    uint8_t suc_pin_rx;
+    uint8_t suc_pin_rts;
+    uint8_t suc_pin_cts;
+};
 
-    /* Jump to image. */
-    fn();
+
+#ifdef __cplusplus
 }
+#endif
+
+#endif /* __HAL_APOLLO_H__ */

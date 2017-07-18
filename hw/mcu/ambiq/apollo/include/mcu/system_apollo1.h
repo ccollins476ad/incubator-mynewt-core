@@ -42,11 +42,14 @@
 #ifndef SYSTEM_APOLLO1_H
 #define SYSTEM_APOLLO1_H
 
+#include <stdint.h>
+
+#include "apollo1.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <stdint.h>
 
 extern uint32_t SystemCoreClock;     // System Clock Frequency (Core Clock)
 
@@ -71,6 +74,7 @@ extern void SystemCoreClockUpdate (void);
             __enable_irq();                             \
         }                                               \
     } while(0);
+
 
 #ifdef __cplusplus
 }
