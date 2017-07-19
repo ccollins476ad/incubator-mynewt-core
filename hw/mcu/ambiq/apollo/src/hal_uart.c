@@ -46,13 +46,41 @@ struct hal_uart {
     uint8_t u_rx_stall:1;
     uint8_t u_tx_started:1;
     uint8_t u_rx_buf;
-    uint8_t u_tx_buf[8];
+    uint8_t u_tx_buf[1];
     hal_uart_rx_char u_rx_func;
     hal_uart_tx_char u_tx_func;
     hal_uart_tx_done u_tx_done;
     void *u_func_arg;
 };
 static struct hal_uart uart;
+
+static inline void
+__uart_enable_tx_interrupt(void)
+{
+    AM_REGn(UART, 0, IER) |= (AM_REG_UART_IER_TXIM_M);
+}
+
+static inline void
+__uart_disable_tx_interrupt(void)
+{
+    AM_REGn(UART, 0, IER) &= ~(AM_REG_UART_IER_TXIM_M);
+}
+
+
+static inline void
+__uart_enable_rx_interrupt(void)
+{
+    AM_REGn(UART, 0, IER) |= (AM_REG_UART_IER_RTIM_M |
+            AM_REG_UART_IER_RXIM_M);
+}
+
+static inline void
+__uart_disable_rx_interrupt(void)
+{
+    AM_REGn(UART, 0, IER) &= ~(AM_REG_UART_IER_RTIM_M |
+            AM_REG_UART_IER_RXIM_M);
+}
+
 
 int
 hal_uart_init_cbs(int port, hal_uart_tx_char tx_func, hal_uart_tx_done tx_done,
@@ -75,44 +103,36 @@ hal_uart_init_cbs(int port, hal_uart_tx_char tx_func, hal_uart_tx_done tx_done,
     return 0;
 }
 
-static int
-hal_uart_tx_fill_buf(struct hal_uart *u)
-{
-    int data;
-    int i;
-
-    for (i = 0; i < sizeof(u->u_tx_buf); i++) {
-        data = u->u_tx_func(u->u_func_arg);
-        if (data < 0) {
-            break;
-        }
-        u->u_tx_buf[i] = data;
-    }
-    return i;
-}
-
 void
 hal_uart_start_tx(int port)
 {
     struct hal_uart *u;
-    int i;
     int sr;
-    int rc;
+    int data;
 
     if (port != 0) {
         return;
     }
     u = &uart;
+
     __HAL_DISABLE_INTERRUPTS(sr);
     if (u->u_tx_started == 0) {
-        rc = hal_uart_tx_fill_buf(u);
-        if (rc > 0) {
-            i = 0;
-            while (i < rc && !AM_BFRn(UART, 0, FR, TXFF)) {
-                AM_REGn(UART, 0, DR) = u->u_tx_buf[i++];
+        while (1) {
+            if (AM_BFRn(UART, 0, FR, TXFF)) {
+                u->u_tx_started = 1;
+                __uart_enable_tx_interrupt();
+                break;
             }
-            am_hal_uart_int_enable(port, AM_HAL_UART_INT_TX);
-            u->u_tx_started = 1;
+
+            data = u->u_tx_func(u->u_func_arg);
+            if (data < 0) {
+                if (u->u_tx_done) {
+                    u->u_tx_done(u->u_func_arg);
+                }
+                break;
+            }
+
+            AM_REGn(UART, 0, DR) = (char) data;
         }
     }
     __HAL_ENABLE_INTERRUPTS(sr);
@@ -134,7 +154,7 @@ hal_uart_start_rx(int port)
         rc = u->u_rx_func(u->u_func_arg, u->u_rx_buf);
         if (rc == 0) {
             u->u_rx_stall = 0;
-            am_hal_uart_int_enable(port, AM_HAL_UART_INT_RX);
+            __uart_enable_rx_interrupt();
         }
 
         __HAL_ENABLE_INTERRUPTS(sr);
@@ -155,7 +175,8 @@ hal_uart_blocking_tx(int port, uint8_t data)
         return;
     }
 
-    am_hal_uart_char_transmit_polled(port, (char) data);
+    while (AM_BFRn(UART, 0, FR, TXFF));
+    AM_REGn(UART, 0, DR) = (char) data;
 }
 
 static void
@@ -163,36 +184,40 @@ uart_irq_handler(void)
 {
     struct hal_uart *u;
     uint32_t status;
+    int data;
     int rc;
-    int i;
 
     os_trace_enter_isr();
 
     u = &uart;
 
-    status = am_hal_uart_int_status_get(0, false);
-    am_hal_uart_int_clear(0, status);
+    status = AM_REGn(UART, 0, IES);
+    AM_REGn(UART, 0, IEC) &= ~status;
 
-    if (status & AM_HAL_UART_INT_TX) {
-        am_hal_uart_int_disable(0, AM_HAL_UART_INT_TX);
-        rc = hal_uart_tx_fill_buf(u);
-        if (rc > 0) {
-            i = 0;
-            while (i < rc && !AM_BFRn(UART, 0, FR, TXFF)) {
-                AM_REGn(UART, 0, DR) = u->u_tx_buf[i++];
+    if (status & (AM_REG_UART_IES_TXRIS_M)) {
+        if (u->u_tx_started) {
+            while (1) {
+                if (AM_BFRn(UART, 0, FR, TXFF)) {
+                    break;
+                }
+
+                data = u->u_tx_func(u->u_func_arg);
+                if (data < 0) {
+                    if (u->u_tx_done) {
+                        u->u_tx_done(u->u_func_arg);
+                    }
+                    __uart_disable_tx_interrupt();
+                    u->u_tx_started = 0;
+                    break;
+                }
+
+                AM_REGn(UART, 0, DR) = (char) data;
             }
-            am_hal_uart_int_enable(0, AM_HAL_UART_INT_TX);
-        } else {
-            if (u->u_tx_done) {
-                u->u_tx_done(u->u_func_arg);
-            }
-            u->u_tx_started = 0;
         }
     }
 
-    if (status & AM_HAL_UART_INT_RX) {
+    if (status & (AM_REG_UART_IES_RXRIS_M | AM_REG_UART_IES_RTRIS_M)) {
         /* Service receive buffer */
-        am_hal_uart_int_disable(0, AM_HAL_UART_INT_RX);
         while (!AM_BFRn(UART, 0, FR, RXFE)) {
             u->u_rx_buf = AM_REGn(UART, 0, DR);
             rc = u->u_rx_func(u->u_func_arg, u->u_rx_buf);
@@ -201,7 +226,6 @@ uart_irq_handler(void)
                 goto done;
             }
         }
-        am_hal_uart_int_enable(0, AM_HAL_UART_INT_RX);
     }
 
 done:
@@ -280,7 +304,6 @@ hal_uart_init(int port, void *arg)
 
 done:
     NVIC_SetVector(UART_IRQn, (uint32_t)uart_irq_handler);
-
     return (0);
 err:
     return (rc);
@@ -324,7 +347,9 @@ hal_uart_config(int port, int32_t baudrate, uint8_t databits, uint8_t stopbits,
             uart_cfg.bTwoStopBits = true;
             break;
         case 1:
+        case 0:
             uart_cfg.bTwoStopBits = false;
+            break;
         default:
             return (-1);
     }
@@ -352,7 +377,6 @@ hal_uart_config(int port, int32_t baudrate, uint8_t databits, uint8_t stopbits,
     uart_cfg.ui32BaudRate = baudrate;
 
     am_hal_uart_pwrctrl_enable(port);
-
     am_hal_uart_clock_enable(port);
 
     /* Disable the UART before configuring it */
@@ -361,9 +385,13 @@ hal_uart_config(int port, int32_t baudrate, uint8_t databits, uint8_t stopbits,
     am_hal_uart_config(port, &uart_cfg);
 
     am_hal_uart_fifo_config(port,
-            AM_HAL_UART_TX_FIFO_3_4 | AM_HAL_UART_RX_FIFO_3_4);
+              AM_HAL_UART_TX_FIFO_1_8 | AM_HAL_UART_RX_FIFO_1_8);
+
+    NVIC_EnableIRQ(UART_IRQn);
 
     am_hal_uart_enable(port);
+
+    __uart_enable_rx_interrupt();
 
     u->u_rx_stall = 0;
     u->u_tx_started = 0;

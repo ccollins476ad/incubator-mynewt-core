@@ -38,6 +38,13 @@ hal_system_reset(void)
     }
 }
 
+enum hal_reset_reason
+hal_reset_cause(void)
+{
+    enum hal_reset_reason reason = 0;
+    return (reason);
+}
+
 int
 hal_debugger_connected(void)
 {
