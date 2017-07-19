@@ -17,21 +17,21 @@
  * under the License.
  */
 
-#define HEAPSIZE (1024)
 
-static char __Heap[HEAPSIZE];
+extern char __HeapBase;
+extern char __HeapLimit;
 
 void *
 _sbrk(int incr)
 {
-    static char *brk = __Heap;
+    static char *brk = &__HeapBase;
 
     void *prev_brk;
 
     if (incr < 0) {
         /* Returning memory to the heap. */
         incr = -incr;
-        if (brk - incr < __Heap) {
+        if (brk - incr < &__HeapBase) {
             prev_brk = (void *)-1;
         } else {
             prev_brk = brk;
@@ -39,7 +39,7 @@ _sbrk(int incr)
         }
     } else {
         /* Allocating memory from the heap. */
-        if ((__Heap + HEAPSIZE) - brk >= incr) {
+        if (&__HeapLimit - brk >= incr) {
             prev_brk = brk;
             brk += incr;
         } else {
