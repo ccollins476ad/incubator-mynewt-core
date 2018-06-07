@@ -25,6 +25,18 @@
 #include <console/console.h>
 #include "log/log.h"
 
+#if MYNEWT_VAL(LOG_CONSOLE_GLOBAL)
+
+static struct log log_console;
+
+struct log *
+log_console_get(void)
+{
+    return &log_console;
+}
+
+#endif
+
 static int
 log_console_append(struct log *log, void *buf, int len)
 {
@@ -75,5 +87,22 @@ const struct log_handler log_console_handler = {
     .log_walk = log_console_walk,
     .log_flush = log_console_flush,
 };
+
+void
+log_console_init(void)
+{
+    int rc;
+
+    /* Ensure this function only gets called by sysinit. */
+    SYSINIT_ASSERT_ACTIVE();
+
+    (void)rc;
+
+#if MYNEWT_VAL(LOG_CONSOLE_GLOBAL)
+    rc = log_register("console", &log_console, &log_console_handler, NULL,
+                      MYNEWT_VAL(LOG_LEVEL));
+    SYSINIT_PANIC_ASSERT(rc == 0);
+#endif
+}
 
 #endif

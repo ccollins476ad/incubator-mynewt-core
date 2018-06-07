@@ -45,6 +45,13 @@ syscfg.defs:
         description: 'Support logging to console.'
         value: 1
 
+    LOG_CONSOLE_GLOBAL:
+        description: >
+            Define a global console log, retrievable via `log_console_get()`.
+        value: 1
+        restrictions:
+            - LOG_CONSOLE
+
     LOG_CLI:
         description: 'Expose "log" command in shell.'
         value: 0
