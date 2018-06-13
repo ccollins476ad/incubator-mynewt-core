@@ -22,39 +22,42 @@
 #include "log/log.h"
 
 static int
-log_cbmem_append(struct log *log, void *buf, int len)
+log_cbmem_append_start(struct log *log, const struct log_entry_hdr *hdr,
+                       int body_len)
 {
     struct cbmem *cbmem;
     int rc;
 
-    cbmem = (struct cbmem *) log->l_arg;
+    cbmem = log->l_arg;
 
-    rc = cbmem_append(cbmem, buf, len);
+    cbmem_lock_acquire(cbmem);
+
+    rc = cbmem_append_start(cbmem, body_len);
     if (rc != 0) {
-        goto err;
+        return rc;
     }
 
-    return (0);
-err:
-    return (rc);
+    return 0;
 }
 
 static int
-log_cbmem_append_mbuf(struct log *log, struct os_mbuf *om)
+log_cbmem_append_chunk(struct log *log, const void *data, int len)
 {
     struct cbmem *cbmem;
-    int rc;
 
-    cbmem = (struct cbmem *) log->l_arg;
+    cbmem = log->l_arg;
 
-    rc = cbmem_append_mbuf(cbmem, om);
-    if (rc != 0) {
-        goto err;
-    }
+    return cbmem_append_chunk(cbmem, data, len);
+}
 
-    return (0);
-err:
-    return (rc);
+static int
+log_cbmem_append_finish(struct log *log)
+{
+    struct cbmem *cbmem;
+
+    cbmem = log->l_arg;
+
+    return cbmem_append_finish(cbmem);
 }
 
 static int
@@ -160,8 +163,9 @@ const struct log_handler log_cbmem_handler = {
     .log_type = LOG_TYPE_MEMORY,
     .log_read = log_cbmem_read,
     .log_read_mbuf = log_cbmem_read_mbuf,
-    .log_append = log_cbmem_append,
-    .log_append_mbuf = log_cbmem_append_mbuf,
+    .log_append_start = log_cbmem_append_start,
+    .log_append_chunk = log_cbmem_append_chunk,
+    .log_append_finish = log_cbmem_append_finish,
     .log_walk = log_cbmem_walk,
     .log_flush = log_cbmem_flush,
 };

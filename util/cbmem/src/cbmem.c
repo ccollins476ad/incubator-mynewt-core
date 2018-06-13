@@ -73,19 +73,15 @@ err:
     return (rc);
 }
 
-
-static int
-cbmem_append_internal(struct cbmem *cbmem, void *data, uint16_t len,
-                      copy_data_func_t *copy_func)
+int
+cbmem_append_start(struct cbmem *cbmem, uint16_t len)
 {
     struct cbmem_entry_hdr *dst;
     uint8_t *start;
     uint8_t *end;
-    int rc;
 
-    rc = cbmem_lock_acquire(cbmem);
-    if (rc != 0) {
-        goto err;
+    if (len > cbmem->c_buf_end - cbmem->c_buf - sizeof *dst) {
+        return SYS_ENOMEM;
     }
 
     if (cbmem->c_entry_end) {
@@ -124,59 +120,71 @@ cbmem_append_internal(struct cbmem *cbmem, void *data, uint16_t len,
         cbmem->c_entry_start = (struct cbmem_entry_hdr *) start;
     }
 
-    /* Copy the entry into the log
-     */
     dst->ceh_len = len;
-    copy_func((uint8_t *) dst + sizeof(*dst), data, len);
 
-    cbmem->c_entry_end = dst;
-    if (!cbmem->c_entry_start) {
-        cbmem->c_entry_start = dst;
-    }
+    cbmem->c_entry_partial = dst;
+    cbmem->c_entry_partial_len = 0;
 
-    rc = cbmem_lock_release(cbmem);
-    if (rc != 0) {
-        goto err;
-    }
-
-    return (0);
-err:
-    return (-1);
+    return 0;
 }
 
-static void
-copy_data_from_flat(void *dst, void *data, uint16_t len)
+int
+cbmem_append_chunk(struct cbmem *cbmem, const void *data, uint16_t len)
 {
+    uint8_t *dst;
+
+    if (cbmem->c_entry_partial == NULL) {
+        return SYS_ENOENT;
+    }
+
+    if (cbmem->c_entry_partial_len + len > cbmem->c_entry_partial->ceh_len) {
+        return SYS_EINVAL;
+    }
+
+    dst = (uint8_t *)cbmem->c_entry_partial +
+          sizeof cbmem->c_entry_partial +
+          cbmem->c_entry_partial_len;
+
     memcpy(dst, data, len);
+
+    cbmem->c_entry_partial_len += len;
+
+    return 0;
 }
 
-static void
-copy_data_from_mbuf(void *dst, void *data, uint16_t len)
+int
+cbmem_append_finish(struct cbmem *cbmem)
 {
-    struct os_mbuf *om = data;
+    if (cbmem->c_entry_partial == NULL) {
+        return SYS_EALREADY;
+    }
 
-    os_mbuf_copydata(om, 0, len, dst);
+    cbmem->c_entry_end = cbmem->c_entry_partial;
+    if (!cbmem->c_entry_start) {
+        cbmem->c_entry_start = cbmem->c_entry_partial;
+    }
+
+    cbmem->c_entry_partial = NULL;
+
+    return 0;
 }
 
 int
 cbmem_append(struct cbmem *cbmem, void *data, uint16_t len)
 {
-    return cbmem_append_internal(cbmem, data, len, copy_data_from_flat);
-}
+    int rc;
 
-int
-cbmem_append_mbuf(struct cbmem *cbmem, struct os_mbuf *om)
-{
-    struct os_mbuf *om_tmp;
-    uint16_t len = 0;
+    cbmem_lock_acquire(cbmem);
 
-    om_tmp = om;
-    while (om_tmp) {
-        len += om_tmp->om_len;
-        om_tmp = SLIST_NEXT(om_tmp, om_next);
+    rc = cbmem_append_start(cbmem, len);
+    if (rc == 0) {
+        cbmem_append_chunk(cbmem, data, len);
+        cbmem_append_finish(cbmem);
     }
 
-    return cbmem_append_internal(cbmem, om, len, copy_data_from_mbuf);
+    cbmem_lock_release(cbmem);
+    
+    return rc;
 }
 
 void

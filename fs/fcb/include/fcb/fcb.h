@@ -84,6 +84,7 @@ int fcb_init(struct fcb *fcb);
 struct fcb_log {
     struct fcb fl_fcb;
     uint8_t fl_entries;
+    struct fcb_entry fl_cur_append;
 };
 
 /**
@@ -138,6 +139,16 @@ fcb_offset_last_n(struct fcb *fcb, uint8_t entries,
  * Clears FCB passed to it
  */
 int fcb_clear(struct fcb *fcb);
+
+
+static inline int
+fcb_len_in_flash(const struct fcb *fcb, uint16_t len)
+{
+    if (fcb->f_align <= 1) {
+        return len;
+    }
+    return (len + (fcb->f_align - 1)) & ~(fcb->f_align - 1);
+}
 
 #ifdef __cplusplus
 }

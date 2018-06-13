@@ -26,23 +26,31 @@
 #include "log/log.h"
 
 static int
-log_console_append(struct log *log, void *buf, int len)
+log_console_append_start(struct log *log, const struct log_entry_hdr *hdr,
+                         int body_len)
 {
-    struct log_entry_hdr *hdr;
-
-    if (!console_is_init()) {
-        return (0);
-    }
-
-    if (!console_is_midline) {
-        hdr = (struct log_entry_hdr *) buf;
+    if (console_is_init() && !console_is_midline) {
         console_printf("[ts=%llussb, mod=%u level=%u] ",
-                hdr->ue_ts, hdr->ue_module, hdr->ue_level);
+                hdr->ue_ts, hdr->ue_module, log_entry_get_level(hdr));
     }
 
-    console_write((char *) buf + LOG_ENTRY_HDR_SIZE, len - LOG_ENTRY_HDR_SIZE);
+    return 0;
+}
+
+static int
+log_console_append_chunk(struct log *log, const void *buf, int len)
+{
+    if (console_is_init()) {
+        console_write(buf, len);
+    }
 
     return (0);
+}
+
+static int
+log_console_append_finish(struct log *log)
+{
+    return 0;
 }
 
 static int
@@ -71,7 +79,9 @@ log_console_flush(struct log *log)
 const struct log_handler log_console_handler = {
     .log_type = LOG_TYPE_STREAM,
     .log_read = log_console_read,
-    .log_append = log_console_append,
+    .log_append_start = log_console_append_start,
+    .log_append_chunk = log_console_append_chunk,
+    .log_append_finish = log_console_append_finish,
     .log_walk = log_console_walk,
     .log_flush = log_console_flush,
 };

@@ -189,7 +189,8 @@ struct log_read_hdr_arg {
 };
 
 static int
-log_read_hdr_walk(struct log *log, struct log_offset *log_offset, void *dptr,
+log_read_hdr_walk(struct log *log, struct log_offset *log_offset,
+                  const struct log_entry_hdr *hdr, const void *body,
                   uint16_t len)
 {
     struct log_read_hdr_arg *arg;
@@ -197,7 +198,7 @@ log_read_hdr_walk(struct log *log, struct log_offset *log_offset, void *dptr,
 
     arg = log_offset->lo_arg;
 
-    rc = log_read(log, dptr, arg->hdr, 0, sizeof *arg->hdr);
+    rc = log_read(log, body, arg->hdr, 0, sizeof *arg->hdr);
     if (rc >= sizeof *arg->hdr) {
         arg->read_success = 1;
     }
@@ -283,19 +284,86 @@ log_register(char *name, struct log *log, const struct log_handler *lh,
 }
 
 static int
-log_append_prepare(struct log *log, uint8_t module, uint8_t level, uint8_t etype,
-                   struct log_entry_hdr *ue)
+log_entry_set_level(struct log_entry_hdr *ue, uint8_t level)
+{
+#if MYNEWT_VAL(LOG_VERSION) > 2
+    if (level > 0x0f) {
+        return SYS_EINVAL;
+    }
+    ue->ue_flags_level = (ue->ue_flags_level & 0xf0) | level;
+#else
+    ue->ue_level = level;
+#endif
+
+    return 0;
+}
+
+#if MYNEWT_VAL(LOG_VERSION) > 2
+#if 0
+static uint8_t
+log_entry_get_flags(const struct log_entry_hdr *ue)
+{
+    return ue->ue_flags_level >> 4;
+}
+#endif
+
+static int
+log_entry_set_flags(struct log_entry_hdr *ue, uint8_t flags)
+{
+    if (flags > 0x0f) {
+        return SYS_EINVAL;
+    }
+
+    ue->ue_flags_level = (ue->ue_flags_level & 0x0f) | flags << 4;
+    return 0;
+}
+#endif
+
+static int
+log_fill_hdr(struct log_entry_hdr *ue, uint32_t idx, uint8_t module, uint8_t level, uint8_t etype, uint8_t flags)
+{
+    struct os_timeval tv;
+    int rc;
+
+    /* Try to get UTC Time */
+    rc = os_gettimeofday(&tv, NULL);
+    if (rc || tv.tv_sec < UTC01_01_2016) {
+        ue->ue_ts = os_get_uptime_usec();
+    } else {
+        ue->ue_ts = tv.tv_sec * 1000000 + tv.tv_usec;
+    }
+
+    ue->ue_index = idx;
+    ue->ue_module = module;
+    rc = log_entry_set_level(ue, level);
+    if (rc != 0) {
+        return rc;
+    }
+#if MYNEWT_VAL(LOG_VERSION) > 2
+    ue->ue_etype = etype;
+    rc = log_entry_set_flags(ue, flags);
+    if (rc != 0) {
+        return rc;
+    }
+#else
+    assert(etype == LOG_ETYPE_STRING);
+#endif
+
+    return 0;
+}
+
+static int
+log_append_prepare(struct log *log, uint8_t module, uint8_t level,
+                   uint8_t etype, uint8_t flags, struct log_entry_hdr *ue)
 {
     int rc;
     int sr;
-    struct os_timeval tv;
     uint32_t idx;
 
     rc = 0;
 
     if (log->l_name == NULL || log->l_log == NULL) {
-        rc = -1;
-        goto err;
+        return SYS_EINVAL;
     }
 
     if (log->l_log->log_type == LOG_TYPE_STORAGE) {
@@ -308,93 +376,131 @@ log_append_prepare(struct log *log, uint8_t module, uint8_t level, uint8_t etype
      * configured to accept, then just drop it.
      */
     if (level < log->l_level) {
-        rc = -1;
-        goto err;
+        return 0;
     }
 
     OS_ENTER_CRITICAL(sr);
     idx = g_log_info.li_next_index++;
     OS_EXIT_CRITICAL(sr);
 
-    /* Try to get UTC Time */
-    rc = os_gettimeofday(&tv, NULL);
-    if (rc || tv.tv_sec < UTC01_01_2016) {
-        ue->ue_ts = os_get_uptime_usec();
-    } else {
-        ue->ue_ts = tv.tv_sec * 1000000 + tv.tv_usec;
+    rc = log_fill_hdr(ue, idx, module, level, etype, flags);
+    if (rc != 0) {
+        return rc;
     }
 
-    ue->ue_level = level;
-    ue->ue_module = module;
-    ue->ue_index = idx;
-#if MYNEWT_VAL(LOG_VERSION) > 2
-    ue->ue_etype = etype;
-#else
-    assert(etype == LOG_ETYPE_STRING);
-#endif
-
-err:
-    return (rc);
+    return 0;
 }
 
 int
 log_append_typed(struct log *log, uint8_t module, uint8_t level, uint8_t etype,
                  void *data, uint16_t len)
 {
+    struct log_entry_hdr *hdr;
     int rc;
 
-    rc = log_append_prepare(log, module, level, etype,
-                            (struct log_entry_hdr *)data);
+    hdr = data;
+
+    rc = log_append_prepare(log, module, level, etype, 0, hdr);
     if (rc != 0) {
-        goto err;
+        return rc;
     }
 
-    rc = log->l_log->log_append(log, data, len + LOG_ENTRY_HDR_SIZE);
+    rc = log->l_log->log_append_start(log, hdr, len);
     if (rc != 0) {
-        goto err;
+        return rc;
     }
 
-    return (0);
-err:
-    return (rc);
+    rc = log->l_log->log_append_chunk(log, hdr + 1, len);
+    log->l_log->log_append_finish(log);
+
+    return rc;
+}
+
+int
+log_append_body(struct log *log, uint8_t module, uint8_t level, uint8_t etype,
+                void *data, uint16_t len)
+{
+    struct log_entry_hdr ue;
+    int rc;
+
+    rc = log_append_prepare(log, module, level, etype, LOG_ENTRY_HDR_F_PADDED,
+                            &ue);
+    if (rc != 0) {
+        return rc;
+    }
+
+    rc = log->l_log->log_append_start(log, &ue, len);
+    if (rc != 0) {
+        return rc;
+    }
+
+    rc = log->l_log->log_append_chunk(log, data, len);
+    log->l_log->log_append_finish(log);
+
+    return rc;
+}
+
+static int
+log_padded_mbuf_len(const struct log *log, const struct os_mbuf *om)
+{
+    int len;
+
+    len = 0;
+    while (SLIST_NEXT(om, om_next) != NULL) {
+        if (log->l_log->log_padded_len != NULL) {
+            len += log->l_log->log_padded_len(log, om->om_len);
+        } else {
+            len += om->om_len;
+        }
+
+        om = SLIST_NEXT(om, om_next);
+    }
+
+    len += om->om_len;
+
+    return len;
 }
 
 int
 log_append_mbuf_typed(struct log *log, uint8_t module, uint8_t level,
                       uint8_t etype, struct os_mbuf *om)
 {
+    const struct log_entry_hdr *hdr;
+    const struct os_mbuf *cur;
+    int totlen;
     int rc;
-
-    if (!log->l_log->log_append_mbuf) {
-        rc = -1;
-        goto err;
-    }
 
     om = os_mbuf_pullup(om, sizeof(struct log_entry_hdr));
     if (!om) {
-        rc = -1;
-        goto err;
+        rc = SYS_EINVAL;
+        goto done;
     }
 
-    rc = log_append_prepare(log, module, level, etype,
+    rc = log_append_prepare(log, module, level, etype, 0,
                             (struct log_entry_hdr *)om->om_data);
     if (rc != 0) {
-        goto err;
+        goto done;
     }
 
-    rc = log->l_log->log_append_mbuf(log, om);
+    totlen = log_padded_mbuf_len(log, om);
+    hdr = (void *)om->om_data;
+    rc = log->l_log->log_append_start(log, hdr, totlen);
     if (rc != 0) {
-        goto err;
+        goto done;
     }
 
+    os_mbuf_adj(om, sizeof *hdr);
+
+    for (cur = om; cur != NULL; cur = SLIST_NEXT(cur, om_next)) {
+        rc = log->l_log->log_append_chunk(log, cur->om_data, cur->om_len);
+        if (rc != 0) {
+            goto done;
+        }
+    }
+
+done:
     os_mbuf_free_chain(om);
-
-    return (0);
-err:
-    if (om) {
-        os_mbuf_free_chain(om);
-    }
-    return (rc);
+    return rc;
 }
 
 void
@@ -437,7 +543,7 @@ err:
  * @return                      The number of bytes read; 0 on failure.
  */
 int
-log_read(struct log *log, void *dptr, void *buf, uint16_t off,
+log_read(struct log *log, const void *dptr, void *buf, uint16_t off,
         uint16_t len)
 {
     int rc;

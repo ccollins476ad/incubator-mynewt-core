@@ -30,113 +30,107 @@
 static struct flash_area sector;
 
 static int log_fcb_rtr_erase(struct log *log, void *arg);
+static int log_fcb_append_chunk(struct log *log, const void *buf, int len);
 
 static int
-log_fcb_start_append(struct log *log, int len, struct fcb_entry *loc)
+log_fcb_padded_len(const struct log *log, int len)
+{
+    const struct fcb_log *fcb_log;
+    const struct fcb *fcb;
+
+    fcb_log = log->l_arg;
+    fcb = &fcb_log->fl_fcb;
+
+    return fcb_len_in_flash(fcb, len);
+}
+
+static int
+log_fcb_append_start(struct log *log, const struct log_entry_hdr *hdr,
+                     int body_len)
 {
     struct fcb *fcb;
     struct fcb_log *fcb_log;
+    int hdr_len;
     int rc = 0;
 
     fcb_log = (struct fcb_log *)log->l_arg;
     fcb = &fcb_log->fl_fcb;
 
+    if (fcb_log->fl_cur_append.fe_area != NULL) {
+        return SYS_EALREADY;
+    }
+
+    hdr_len = log_fcb_padded_len(log, sizeof *hdr);
+
     while (1) {
-        rc = fcb_append(fcb, len, loc);
+        rc = fcb_append(fcb, hdr_len + body_len, &fcb_log->fl_cur_append);
         if (rc == 0) {
             break;
         }
 
         if (rc != FCB_ERR_NOSPACE) {
-            goto err;
+            return SYS_EIO;
         }
 
         if (fcb_log->fl_entries) {
             rc = log_fcb_rtr_erase(log, fcb_log);
             if (rc) {
-                goto err;
+                return SYS_EIO;
             }
             continue;
         }
 
         rc = fcb_rotate(fcb);
         if (rc) {
-            goto err;
+            return SYS_EIO;
         }
     }
 
-err:
-    return (rc);
+    rc = log_fcb_append_chunk(log, hdr, sizeof *hdr);
+    if (rc != 0) {
+        return rc;
+    }
+
+    return 0;
 }
 
 static int
-log_fcb_append(struct log *log, void *buf, int len)
+log_fcb_append_chunk(struct log *log, const void *buf, int len)
 {
-    struct fcb *fcb;
-    struct fcb_entry loc;
     struct fcb_log *fcb_log;
     int rc;
 
-    fcb_log = (struct fcb_log *)log->l_arg;
-    fcb = &fcb_log->fl_fcb;
+    fcb_log = log->l_arg;
 
-    rc = log_fcb_start_append(log, len, &loc);
-    if (rc) {
-        goto err;
+    if (fcb_log->fl_cur_append.fe_area == NULL) {
+        return SYS_ENOENT;
     }
 
-    rc = flash_area_write(loc.fe_area, loc.fe_data_off, buf, len);
-    if (rc) {
-        goto err;
+    rc = flash_area_write(fcb_log->fl_cur_append.fe_area,
+                          fcb_log->fl_cur_append.fe_data_off,
+                          buf, len);
+    if (rc != 0) {
+        return SYS_EIO;
     }
 
-    rc = fcb_append_finish(fcb, &loc);
-
-err:
-    return (rc);
+    fcb_log->fl_cur_append.fe_data_off += log_fcb_padded_len(log, len);
+    return 0;
 }
 
 static int
-log_fcb_append_mbuf(struct log *log, struct os_mbuf *om)
+log_fcb_append_finish(struct log *log)
 {
-    struct fcb *fcb;
-    struct fcb_entry loc;
     struct fcb_log *fcb_log;
-    struct os_mbuf *om_tmp;
-    int len;
+    struct fcb *fcb;
     int rc;
 
-    fcb_log = (struct fcb_log *)log->l_arg;
+    fcb_log = log->l_arg;
     fcb = &fcb_log->fl_fcb;
 
-    len = 0;
+    rc = fcb_append_finish(fcb, &fcb_log->fl_cur_append);
+    fcb_log->fl_cur_append.fe_area = NULL;
 
-    om_tmp = om;
-    while (om_tmp) {
-        len += om_tmp->om_len;
-        om_tmp = SLIST_NEXT(om_tmp, om_next);
-    }
-
-    rc = log_fcb_start_append(log, len, &loc);
-    if (rc) {
-        goto err;
-    }
-
-    while (om) {
-        rc = flash_area_write(loc.fe_area, loc.fe_data_off, om->om_data,
-                              om->om_len);
-        if (rc) {
-            goto err;
-        }
-
-        loc.fe_data_off += om->om_len;
-        om = SLIST_NEXT(om, om_next);
-    }
-
-    rc = fcb_append_finish(fcb, &loc);
-
-err:
-    return (rc);
+    return rc;
 }
 
 static int
@@ -267,8 +261,13 @@ log_fcb_copy_entry(struct log *log, struct fcb_entry *entry,
     fcb_tmp = &((struct fcb_log *)log->l_arg)->fl_fcb;
 
     log->l_arg = dst_fcb;
-    rc = log_fcb_append(log, data, dlen);
+    rc = log_fcb_append_start(log, &ueh, dlen);
+    if (rc == 0) {
+        rc = log_fcb_append_chunk(log, data, dlen);
+        log_fcb_append_finish(log);
+    }
     log->l_arg = fcb_tmp;
+
     if (rc) {
         goto err;
     }
@@ -376,8 +375,10 @@ const struct log_handler log_fcb_handler = {
     .log_type = LOG_TYPE_STORAGE,
     .log_read = log_fcb_read,
     .log_read_mbuf = log_fcb_read_mbuf,
-    .log_append = log_fcb_append,
-    .log_append_mbuf = log_fcb_append_mbuf,
+    .log_padded_len = log_fcb_padded_len,
+    .log_append_start = log_fcb_append_start,
+    .log_append_chunk = log_fcb_append_chunk,
+    .log_append_finish = log_fcb_append_finish,
     .log_walk = log_fcb_walk,
     .log_flush = log_fcb_flush,
 };

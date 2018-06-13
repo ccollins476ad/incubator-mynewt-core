@@ -62,14 +62,19 @@ struct log_offset {
 };
 
 typedef int (*log_walk_func_t)(struct log *, struct log_offset *log_offset,
-        void *offset, uint16_t len);
+        const struct log_entry_hdr *hdr, const void *body, uint16_t len);
 
-typedef int (*lh_read_func_t)(struct log *, void *dptr, void *buf,
+typedef int (*lh_read_func_t)(struct log *, const void *dptr, void *buf,
         uint16_t offset, uint16_t len);
 typedef int (*lh_read_mbuf_func_t)(struct log *, void *dptr, struct os_mbuf *om,
                                    uint16_t offset, uint16_t len);
-typedef int (*lh_append_func_t)(struct log *, void *buf, int len);
-typedef int (*lh_append_mbuf_func_t)(struct log *, struct os_mbuf *om);
+typedef int (*lh_append_start_func_t)(struct log *log,
+                                      const struct log_entry_hdr *hdr,
+                                      int body_len);
+typedef int (*lh_append_chunk_func_t)(struct log *log, const void *buf,
+                                      int len);
+typedef int (*lh_append_finish_func_t)(struct log *log);
+typedef int (*lh_padded_len_func_t)(const struct log *, int len);
 typedef int (*lh_walk_func_t)(struct log *,
         log_walk_func_t walk_func, struct log_offset *log_offset);
 typedef int (*lh_flush_func_t)(struct log *);
@@ -83,13 +88,17 @@ struct log_handler {
     int log_type;
     lh_read_func_t log_read;
     lh_read_mbuf_func_t log_read_mbuf;
-    lh_append_func_t log_append;
-    lh_append_mbuf_func_t log_append_mbuf;
+    lh_padded_len_func_t log_padded_len;
+    lh_append_start_func_t log_append_start;
+    lh_append_chunk_func_t log_append_chunk;
+    lh_append_finish_func_t log_append_finish;
     lh_walk_func_t log_walk;
     lh_flush_func_t log_flush;
     /* Functions called only internally (no API for apps) */
     lh_registered_func_t log_registered;
 };
+
+#define LOG_ENTRY_HDR_F_PADDED  0x01
 
 #if MYNEWT_VAL(LOG_VERSION) == 2
 struct log_entry_hdr {
@@ -103,7 +112,7 @@ struct log_entry_hdr {
     int64_t ue_ts;
     uint32_t ue_index;
     uint8_t ue_module;
-    uint8_t ue_level;
+    uint8_t ue_flags_level;
     uint8_t ue_etype;
 }__attribute__((__packed__));
 #else
@@ -255,6 +264,8 @@ int log_register(char *name, struct log *log, const struct log_handler *,
 int log_append_typed(struct log *, uint8_t, uint8_t, uint8_t, void *, uint16_t);
 int log_append_mbuf_typed(struct log *, uint8_t, uint8_t, uint8_t,
                           struct os_mbuf *);
+int log_append_body(struct log *log, uint8_t module, uint8_t level,
+                    uint8_t etype, void *data, uint16_t len);
 
 static inline int
 log_append(struct log *log, uint8_t module, uint8_t level, void *data,
@@ -270,9 +281,19 @@ log_append_mbuf(struct log *log, uint8_t module, uint8_t level,
     return log_append_mbuf_typed(log, module, level, LOG_ETYPE_STRING, om);
 }
 
+static inline uint8_t
+log_entry_get_level(const struct log_entry_hdr *ue)
+{
+#if MYNEWT_VAL(LOG_VERSION) > 2
+    return ue->ue_flags_level & 0x0f;
+#else
+    return ue->ue_level;
+#endif
+}
+
 #define LOG_PRINTF_MAX_ENTRY_LEN (128)
 void log_printf(struct log *log, uint16_t, uint16_t, char *, ...);
-int log_read(struct log *log, void *dptr, void *buf, uint16_t off,
+int log_read(struct log *log, const void *dptr, void *buf, uint16_t off,
         uint16_t len);
 int log_read_mbuf(struct log *log, void *dptr, struct os_mbuf *om, uint16_t off,
                   uint16_t len);

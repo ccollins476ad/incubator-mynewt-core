@@ -38,15 +38,6 @@ struct fcb_disk_area {
 int fcb_put_len(uint8_t *buf, uint16_t len);
 int fcb_get_len(uint8_t *buf, uint16_t *len);
 
-static inline int
-fcb_len_in_flash(struct fcb *fcb, uint16_t len)
-{
-    if (fcb->f_align <= 1) {
-        return len;
-    }
-    return (len + (fcb->f_align - 1)) & ~(fcb->f_align - 1);
-}
-
 int fcb_getnext_in_area(struct fcb *fcb, struct fcb_entry *loc);
 struct flash_area *fcb_getnext_area(struct fcb *fcb, struct flash_area *fap);
 int fcb_getnext_nolock(struct fcb *fcb, struct fcb_entry *loc);
