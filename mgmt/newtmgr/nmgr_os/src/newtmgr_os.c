@@ -82,7 +82,7 @@ static struct mgmt_group nmgr_def_group = {
 static int
 nmgr_def_echo(struct mgmt_cbuf *cb)
 {
-    char echo_buf[128] = {'\0'};
+    char echo_buf[512] = {'\0'};
     CborError g_err = CborNoError;
 
     struct cbor_attr_t attrs[2] = {
