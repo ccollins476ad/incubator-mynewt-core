@@ -45,4 +45,8 @@ TEST_CASE(os_mutex_test_case_1)
                       MYNEWT_VAL(OS_MAIN_TASK_PRIO) + 2);
     runtest_init_task(mutex_task3_handler,
                       MYNEWT_VAL(OS_MAIN_TASK_PRIO) + 3);
+
+    rt_task_wait(10000);
+    //os_time_delay(10000);
+    //TEST_ASSERT_FATAL(0);
 }

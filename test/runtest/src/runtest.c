@@ -28,6 +28,10 @@
 #include "runtest/runtest.h"
 #include "runtest_priv.h"
 
+#define RUNTEST_TASK_STATE_UNUSED   0
+#define RUNTEST_TASK_STATE_ACTIVE   1
+#define RUNTEST_TASK_STATE_DONE     2
+
 #if MYNEWT_VAL(RUNTEST_CLI)
 #include "shell/shell.h"
 struct shell_cmd runtest_cmd_struct;
@@ -56,17 +60,7 @@ static struct os_event run_test_event = {
     .ev_cb = runtest_evt_fn,
 };
 
-struct runtest_task {
-    struct os_task task;
-    char name[sizeof "taskX"];
-    OS_TASK_STACK_DEFINE_NOSTATIC(stack, MYNEWT_VAL(RUNTEST_STACK_SIZE));
-};
-
-static struct runtest_task runtest_tasks[MYNEWT_VAL(RUNTEST_NUM_TASKS)];
-
 #define RUNTEST_BUILD_ID 
-
-static int runtest_next_task_idx;
 
 /**
  * Retrieves the event queue used by the runtest package.
@@ -105,50 +99,6 @@ int
 runtest_total_fails_get(void)
 {
     return runtest_total_fails;
-}
-
-struct os_task *
-runtest_init_task(os_task_func_t task_handler, uint8_t prio)
-{
-    struct os_task *task;
-    os_stack_t *stack;
-    char *name;
-    int rc;
-
-    if (runtest_next_task_idx >= MYNEWT_VAL(RUNTEST_NUM_TASKS)) {
-        TEST_ASSERT_FATAL(0, "No more test tasks");
-        return NULL;
-    }
-
-    task = &runtest_tasks[runtest_next_task_idx].task;
-    stack = runtest_tasks[runtest_next_task_idx].stack;
-    name = runtest_tasks[runtest_next_task_idx].name;
-
-    strcpy(name, "task");
-    name[4] = '0' + runtest_next_task_idx;
-    name[5] = '\0';
-
-    rc = os_task_init(task, name, task_handler, NULL,
-                      prio, OS_WAIT_FOREVER, stack,
-                      MYNEWT_VAL(RUNTEST_STACK_SIZE));
-    TEST_ASSERT_FATAL(rc == 0);
-
-    runtest_next_task_idx++;
-
-    return task;
-}
-
-static void
-runtest_reset(void)
-{
-    int rc;
-
-    while (runtest_next_task_idx > 0) {
-        runtest_next_task_idx--;
-
-        rc = os_task_remove(&runtest_tasks[runtest_next_task_idx].task);
-        assert(rc == OS_OK);
-    }
 }
 
 static void
@@ -217,14 +167,14 @@ runtest_log_result(const char *msg, bool passed)
 static void
 runtest_pass(char *msg, void *arg)
 {
-    runtest_reset();
+    rt_task_reset();
     runtest_log_result(msg, true);
 }
 
 static void
 runtest_fail(char *msg, void *arg)
 {
-    runtest_reset();
+    rt_task_reset();
     runtest_log_result(msg, false);
 }
 
@@ -240,6 +190,13 @@ runtest_find_test(const char *suite_name)
     }
 
     return NULL;
+}
+
+struct os_task *
+runtest_init_task(os_task_func_t task_handler, uint8_t prio)
+{
+    /* Backwards compatibility. */
+    return rt_task_new(task_handler, prio);
 }
 
 static void
@@ -332,8 +289,6 @@ runtest_init(void)
     /* Ensure this function only gets called by sysinit. */
     SYSINIT_ASSERT_ACTIVE();
 
-    runtest_next_task_idx = 0;
-
 #if MYNEWT_VAL(RUNTEST_LOG)
     rc = cbmem_init(&runtest_cbmem, runtest_cbmem_buf,
                     MYNEWT_VAL(RUNTEST_LOG_SIZE));
@@ -362,4 +317,6 @@ runtest_init(void)
 
     /* Use the main event queue by default. */
     runtest_evq_set(os_eventq_dflt_get());
+
+    rt_task_init();
 }

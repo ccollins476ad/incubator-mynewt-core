@@ -82,6 +82,12 @@ int runtest_run(const char *test_name, const char *token);
  */
 int runtest_total_fails_get(void);
 
+struct os_task *rt_task_new(os_task_func_t task_handler, uint8_t prio);
+void rt_task_wait(os_time_t max_ticks);
+void rt_task_reset(void);
+void rt_task_init(void);
+
+
 #ifdef __cplusplus
 }
 #endif
