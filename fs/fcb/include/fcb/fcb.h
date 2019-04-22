@@ -19,6 +19,8 @@
 #ifndef __SYS_FCB_H_
 #define __SYS_FCB_H_
 
+struct log;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,6 +37,7 @@ extern "C" {
 #include "flash_map/flash_map.h"
 
 #define FCB_MAX_LEN	(CHAR_MAX | CHAR_MAX << 7) /* Max length of element */
+#define FCB_LOG_BMARK_IDX_NONE  UINT32_MAX
 
 /**
  * Entry location is pointer to area (within fcb->f_sectors), and offset
@@ -95,9 +98,6 @@ struct fcb_log_bset {
     /** The maximum number of bookmarks. */
     int fls_cap;
 
-    /** The number of currently usable bookmarks. */
-    int fls_size;
-
     /** The index where the next bookmark will get written. */
     int fls_next;
 };
@@ -107,6 +107,8 @@ struct fcb_log_bset {
  */
 struct fcb_log {
     struct fcb fl_fcb;
+
+    /* Minimum number of entries to preserve on rotation. */
     uint8_t fl_entries;
 
 #if MYNEWT_VAL(LOG_STORAGE_WATERMARK)
@@ -138,6 +140,8 @@ int fcb_append_finish(struct fcb *, struct fcb_entry *append_loc);
 typedef int (*fcb_walk_cb)(struct fcb_entry *loc, void *arg);
 int fcb_walk(struct fcb *, struct flash_area *, fcb_walk_cb cb, void *cb_arg);
 int fcb_getnext(struct fcb *, struct fcb_entry *loc);
+
+int fcb_elem_info(struct fcb *, struct fcb_entry *);
 
 /**
  * Erases the data from oldest sector.
@@ -235,6 +239,12 @@ fcb_log_closest_bmark(const struct fcb_log *fcb_log, uint32_t index);
  */
 void fcb_log_add_bmark(struct fcb_log *fcb_log, const struct fcb_entry *entry,
                        uint32_t index);
+
+int fcb_log_verify_bmark(struct log *log,
+                         const struct fcb_log_bmark *bmark);
+
+void fcb_log_clear_bmarks_for_rotate(struct fcb_log *fcb_log);
+
 #endif
 
 #ifdef __cplusplus

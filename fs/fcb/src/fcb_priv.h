@@ -51,7 +51,6 @@ int fcb_getnext_in_area(struct fcb *fcb, struct fcb_entry *loc);
 struct flash_area *fcb_getnext_area(struct fcb *fcb, struct flash_area *fap);
 int fcb_getnext_nolock(struct fcb *fcb, struct fcb_entry *loc);
 
-int fcb_elem_info(struct fcb *, struct fcb_entry *);
 int fcb_elem_crc8(struct fcb *, struct fcb_entry *loc, uint8_t *crc8p);
 
 int fcb_sector_hdr_init(struct fcb *, struct flash_area *fap, uint16_t id);

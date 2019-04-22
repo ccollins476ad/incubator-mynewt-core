@@ -100,7 +100,15 @@ log_fcb_find_gte(struct log *log, struct log_offset *log_offset,
 #if MYNEWT_VAL(LOG_FCB_BOOKMARKS)
     bmark = fcb_log_closest_bmark(fcb_log, log_offset->lo_index);
     if (bmark != NULL) {
-        *out_entry = bmark->flb_entry;
+        rc = fcb_log_verify_bmark(log, bmark);
+        if (rc != 0) {
+            /* Bookmark doesn't point to a valid entry.  Invalidate all
+             * bookmarks and start the walk from the beginning of the log.
+             */
+            fcb_log_clear_bmarks(fcb_log);
+        } else {
+            *out_entry = bmark->flb_entry;
+        }
     }
 #endif
 
@@ -163,7 +171,7 @@ log_fcb_start_append(struct log *log, int len, struct fcb_entry *loc)
 
 #if MYNEWT_VAL(LOG_FCB_BOOKMARKS)
         /* The FCB needs to be rotated.  Invalidate all bookmarks. */
-        fcb_log_clear_bmarks(fcb_log);
+        //fcb_log_clear_bmarks_for_rotate(fcb_log);
 #endif
 
         rc = fcb_rotate(fcb);
