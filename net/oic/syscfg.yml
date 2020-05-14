@@ -38,6 +38,12 @@ syscfg.defs:
         description: 'Support IPv4'
         value: '0'
 
+    OC_TRANSPORT_IP_TCP:
+        description: >
+            0=suppport CoAP over UDP/IP
+            1=suppport CoAP over TCP/IP
+        value: '0'
+
     OC_TRANSPORT_LORA:
         description: 'Support Lora'
         value: '0'

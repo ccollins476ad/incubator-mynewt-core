@@ -42,8 +42,16 @@ static int oc_connectivity_init_ip4(void);
 void oc_connectivity_shutdown_ip4(void);
 static void oc_event_ip4(struct os_event *ev);
 
+#if MYNEWT_VAL(OC_TRANSPORT_IP_TCP)
+#define OC_FLAGS        OC_TRANSPORT_USE_TCP
+#define OC_SOCK_TYPE    MN_SOCK_STREAM
+#else
+#define OC_FLAGS        0
+#define OC_SOCK_TYPE    MN_SOCK_DGRAM
+#endif
+
 static const struct oc_transport oc_ip4_transport = {
-    .ot_flags = 0,
+    .ot_flags = OC_FLAGS,
     .ot_ep_size = oc_ep_ip4_size,
     .ot_tx_ucast = oc_send_buffer_ip4,
     .ot_tx_mcast = oc_send_buffer_ip4_mcast,
@@ -236,7 +244,7 @@ oc_attempt_rx_ip4_sock(struct mn_socket *rxsock)
     OS_MBUF_PKTHDR(m)->omp_len = OS_MBUF_PKTHDR(n)->omp_len;
     SLIST_NEXT(m, om_next) = n;
 
-    oe_ip = (struct oc_endpoint_ip *)OC_MBUF_ENDPOINT(m);
+    oe_ip = OS_MBUF_USRHDR(m);
 
     oe_ip->ep.oe_type = oc_ip4_transport_id;
     oe_ip->ep.oe_flags = 0;
@@ -312,7 +320,7 @@ oc_connectivity_init_ip4(void)
 
     memset(&itf, 0, sizeof(itf));
 
-    rc = mn_socket(&oc_ucast4, MN_PF_INET, MN_SOCK_DGRAM, 0);
+    rc = mn_socket(&oc_ucast4, MN_PF_INET, OC_SOCK_TYPE, 0);
     if (rc != 0 || !oc_ucast4) {
         OC_LOG_ERROR("Could not create oc unicast v4 socket\n");
         return rc;
@@ -320,7 +328,7 @@ oc_connectivity_init_ip4(void)
     mn_socket_set_cbs(oc_ucast4, oc_ucast4, &oc_sock4_cbs);
 
 #if (MYNEWT_VAL(OC_SERVER) == 1)
-    rc = mn_socket(&oc_mcast4, MN_PF_INET, MN_SOCK_DGRAM, 0);
+    rc = mn_socket(&oc_mcast4, MN_PF_INET, OC_SOCK_TYPE, 0);
     if (rc != 0 || !oc_mcast4) {
         mn_close(oc_ucast4);
         OC_LOG_ERROR("Could not create oc multicast v4 socket\n");
@@ -339,6 +347,8 @@ oc_connectivity_init_ip4(void)
         OC_LOG_ERROR("Could not bind oc unicast v4 socket\n");
         goto oc_connectivity_init_err;
     }
+
+    // XXX: Listen
 
 #if (MYNEWT_VAL(OC_SERVER) == 1)
     /* Set socket option to join multicast group on all valid interfaces */
@@ -373,6 +383,8 @@ oc_connectivity_init_ip4(void)
         OC_LOG_ERROR("Could not bind oc v4 multicast socket\n");
         goto oc_connectivity_init_err;
     }
+
+    // XXX: Listen
 #endif
 
     return 0;
