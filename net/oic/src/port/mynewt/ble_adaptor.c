@@ -45,6 +45,8 @@ oc_get_trans_security_gatt(const struct oc_endpoint *oe_ble);
 static int oc_connectivity_init_gatt(void);
 static void oc_gatt_conn_ev(struct oc_endpoint *oe, int type);
 static void oc_connectivity_shutdown_gatt(void);
+static bool oc_ble_frag_belongs(const struct os_mbuf *pkt, void *arg);
+static void oc_ble_fill_endpoint(struct os_mbuf *om, void *arg);
 
 static const struct oc_transport oc_gatt_transport = {
     .ot_flags = OC_TRANSPORT_USE_TCP,
@@ -113,6 +115,17 @@ STATS_NAME_START(oc_ble_stats)
     STATS_NAME(oc_ble_stats, obytes)
     STATS_NAME(oc_ble_stats, oerr)
 STATS_NAME_END(oc_ble_stats)
+
+struct oc_ble_reassemble_arg {
+    uint16_t conn_handler;
+    uint8_t srv_idx;
+};
+
+static const struct oc_tcp_reassembler oc_ble_r = {
+    .frag_belongs = oc_ble_frag_belongs,
+    .fill_endpoint = oc_ble_fill_endpoint,
+    .endpoint_size = sizeof(struct oc_endpoint_ble),
+};
 
 static STAILQ_HEAD(, os_mbuf_pkthdr) oc_ble_reass_q;
 
@@ -222,17 +235,43 @@ oc_log_ep_gatt(char *ptr, int maxlen, const struct oc_endpoint *oe)
     return ptr;
 }
 
+static bool
+oc_ble_frag_belongs(const struct os_mbuf *pkt, void *arg)
+{
+    struct oc_endpoint_ble *oe_ble;
+    struct oc_ble_reassemble_arg *re_arg;
+
+    oe_ble = OS_MBUF_USRHDR(pkt);
+    re_arg = arg;
+
+    return re_arg->conn_handle == oe_ble->conn_handle &&
+           re_arg->srv_idx == oe_ble->srv_idx;
+}
+
+static void
+oc_ble_fill_endpoint(struct os_mbuf *om, void *arg)
+{
+    struct oc_endpoint_ble *oe_ble;
+    struct oc_ble_reassemble_arg *re_arg;
+
+    oe_ble = OS_MBUF_USRHDR(om);
+    re_arg = arg;
+
+    oe_ble->ep.oe_type = oc_gatt_transport_id;
+    oe_ble->ep.oe_flags = 0;
+    oe_ble->srv_idx = re_arg->srv_idx;
+    oe_ble->conn_handle = re_arg->conn_handle;
+}
+
 int
 oc_ble_reass(struct os_mbuf *om1, uint16_t conn_handle, uint8_t srv_idx)
 {
+    struct oc_ble_reassemble_arg re_arg;
     struct os_mbuf_pkthdr *pkt1;
-    struct oc_endpoint_ble *oe_ble;
     struct os_mbuf *om2;
-    struct os_mbuf_pkthdr *pkt2;
     uint8_t hdr[6]; /* sizeof(coap_tcp_hdr32) */
 
     pkt1 = OS_MBUF_PKTHDR(om1);
-    assert(pkt1);
 
     STATS_INC(oc_ble_stats, iseg);
     STATS_INCN(oc_ble_stats, ibytes, pkt1->omp_len);
@@ -240,58 +279,21 @@ oc_ble_reass(struct os_mbuf *om1, uint16_t conn_handle, uint8_t srv_idx)
     OC_LOG_DEBUG("oc_gatt rx seg %u-%x-%u\n", conn_handle,
                  (unsigned)pkt1, pkt1->omp_len);
 
-    STAILQ_FOREACH(pkt2, &oc_ble_reass_q, omp_next) {
-        om2 = OS_MBUF_PKTHDR_TO_MBUF(pkt2);
-        oe_ble = (struct oc_endpoint_ble *)OC_MBUF_ENDPOINT(om2);
-        if (conn_handle == oe_ble->conn_handle && srv_idx == oe_ble->srv_idx) {
-            /*
-             * Data from same connection. Append.
-             */
-            os_mbuf_concat(om2, om1);
-            os_mbuf_copydata(om2, 0, sizeof(hdr), hdr);
+    re_arg.conn_handle = conn_handle;
+    re_arg.srv_idx = srv_idx;
 
-            if (coap_tcp_msg_size(hdr, sizeof(hdr)) <= pkt2->omp_len) {
-                STAILQ_REMOVE(&oc_ble_reass_q, pkt2, os_mbuf_pkthdr, omp_next);
-                STATS_INC(oc_ble_stats, iframe);
-                oc_recv_message(om2);
-            }
-            pkt1 = NULL;
-            break;
+    rc = oc_tcp_reass(&oc_ble_r, om1, &re_arg, &om2);
+    if (rc != 0) {
+        if (rc == SYS_ENOMEM) {
+            OC_LOG_ERROR("oc_gatt_rx: Could not allocate mbuf\n");
         }
+        STATS_INC(oc_ble_stats, ierr);
+        return rc;
     }
-    if (pkt1) {
-        /*
-         * New frame, need to add oc_endpoint_ble in the front.
-         * Check if there is enough space available. If not, allocate a
-         * new pkthdr.
-         */
-        if (OS_MBUF_USRHDR_LEN(om1) < sizeof(struct oc_endpoint_ble)) {
-            om2 = os_msys_get_pkthdr(0, sizeof(struct oc_endpoint_ble));
-            if (!om2) {
-                OC_LOG_ERROR("oc_gatt_rx: Could not allocate mbuf\n");
-                STATS_INC(oc_ble_stats, ierr);
-                return -1;
-            }
-            OS_MBUF_PKTHDR(om2)->omp_len = pkt1->omp_len;
-            SLIST_NEXT(om2, om_next) = om1;
-        } else {
-            om2 = om1;
-        }
-        oe_ble = (struct oc_endpoint_ble *)OC_MBUF_ENDPOINT(om2);
-        oe_ble->ep.oe_type = oc_gatt_transport_id;
-        oe_ble->ep.oe_flags = 0;
-        oe_ble->srv_idx = srv_idx;
-        oe_ble->conn_handle = conn_handle;
-        pkt2 = OS_MBUF_PKTHDR(om2);
 
-        os_mbuf_copydata(om2, 0, sizeof(hdr), hdr);
-        if (coap_tcp_msg_size(hdr, sizeof(hdr)) > pkt2->omp_len) {
-            STAILQ_INSERT_TAIL(&oc_ble_reass_q, pkt2, omp_next);
-        } else {
-            STATS_INC(oc_ble_stats, iframe);
-            oc_recv_message(om2);
-        }
-    }
+    STATS_INC(oc_ble_stats, iframe);
+    oc_recv_message(om2);
+
     return 0;
 }
 
