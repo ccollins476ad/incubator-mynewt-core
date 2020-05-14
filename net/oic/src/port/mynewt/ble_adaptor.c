@@ -46,8 +46,8 @@ oc_get_trans_security_gatt(const struct oc_endpoint *oe_ble);
 static int oc_connectivity_init_gatt(void);
 static void oc_gatt_conn_ev(struct oc_endpoint *oe, int type);
 static void oc_connectivity_shutdown_gatt(void);
-static bool oc_ble_frag_belongs(const struct os_mbuf *pkt, void *arg);
-static void oc_ble_fill_endpoint(struct os_mbuf *om, void *arg);
+static bool oc_ble_ep_match(const struct os_mbuf *pkt, void *arg);
+static void oc_ble_fill_endpoint(void *ep, void *arg);
 
 static const struct oc_transport oc_gatt_transport = {
     .ot_flags = OC_TRANSPORT_USE_TCP,
@@ -124,7 +124,7 @@ struct oc_ble_reassemble_arg {
 
 static struct oc_tcp_reassembler oc_ble_r = {
     .pkt_q = STAILQ_HEAD_INITIALIZER(oc_ble_r.pkt_q),
-    .frag_belongs = oc_ble_frag_belongs,
+    .frag_belongs = oc_ble_ep_match,
     .fill_endpoint = oc_ble_fill_endpoint,
     .endpoint_size = sizeof(struct oc_endpoint_ble),
 };
@@ -140,6 +140,8 @@ static struct {
     uint16_t req;
     uint16_t rsp;
 } oc_ble_srv_handles[OC_BLE_SRV_CNT];
+
+#define OC_BLE_SRV_NONE     UINT8_MAX
 
 static int oc_gatt_chr_access(uint16_t conn_handle, uint16_t attr_handle,
                    struct ble_gatt_access_ctxt *ctxt, void *arg);
@@ -238,25 +240,34 @@ oc_log_ep_gatt(char *ptr, int maxlen, const struct oc_endpoint *oe)
 }
 
 static bool
-oc_ble_frag_belongs(const struct os_mbuf *pkt, void *arg)
+oc_ble_ep_match(const void *ep, void *arg)
 {
     struct oc_ble_reassemble_arg *re_arg;
     struct oc_endpoint_ble *oe_ble;
 
-    oe_ble = OS_MBUF_USRHDR(pkt);
+    oe_ble = ep;
     re_arg = arg;
 
-    return re_arg->conn_handle == oe_ble->conn_handle &&
-           re_arg->srv_idx == oe_ble->srv_idx;
+    if (re_arg->conn_handle != oe_ble->conn_handle) {
+        return false;
+    }
+
+    if (re_arg->srv_idx != OC_BLE_SRV_NONE &&
+        re_arg->srv_idx != oe_ble_srv_idx) {
+
+        return false;
+    }
+
+    return true;
 }
 
 static void
-oc_ble_fill_endpoint(struct os_mbuf *om, void *arg)
+oc_ble_fill_endpoint(void *ep, void *arg)
 {
-    struct oc_endpoint_ble *oe_ble;
     struct oc_ble_reassemble_arg *re_arg;
+    struct oc_endpoint_ble *oe_ble;
 
-    oe_ble = OS_MBUF_USRHDR(om);
+    oe_ble = ep;
     re_arg = arg;
 
     oe_ble->ep.oe_type = oc_gatt_transport_id;

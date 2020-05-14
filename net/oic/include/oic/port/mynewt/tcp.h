@@ -28,20 +28,49 @@
 extern "C" {
 #endif
 
-typedef bool oc_tcp_frag_belongs_fn(const struct os_mbuf *frag,
-                                    void *arg);
+/**
+ * Indicates whether an incoming fragment belongs to the partially received
+ * packet identified by `arg`.
+ */
+typedef bool oc_tcp_ep_match(const void *ep, void *arg);
 
-typedef void oc_tcp_fill_endpoint(struct os_mbuf *om, void *arg);
+/**
+ * Fills the given endpoint data structure.
+ */
+typedef void oc_tcp_ep_fill(void *ep, void *arg);
 
+/**
+ * Used for reassembling CoAP-over-TCP packets.  A transport should only have
+ * one reassembler.
+ *
+ * The user must initialize ALL members.  After initialization, the user should
+ * not directly access any members.
+ */
 struct oc_tcp_reassembler {
-    STAILQ_HEAD(, os_mbuf_pkthdr) pkt_q;
-    oc_tcp_frag_belongs_fn *frag_belongs;
-    oc_tcp_fill_endpoint *fill_endpoint;
+    STAILQ_HEAD(, os_mbuf_pkthdr) pkt_q; /* Use STAILQ_HEAD_INITIALIZER() */
+    oc_tcp_ep_match *ep_match;
+    oc_tcp_ep_fill *ep_fill;
     int endpoint_size;
 };
 
-int oc_tcp_reass(struct oc_tcp_reassembler *reassembler, struct os_mbuf *om1,
-                 void *arg, struct os_mbuf **out_pkt);
+/**
+ * Partially reassembles a CoAP-over-TCP packet from an incoming fragment.  If
+ * the fragment completes a packet, the reassembled packet is communicated back
+ * to the user via the `out_pkt` parameter.  Otherwise, the partial packet is
+ * recorded in the reassembler object.
+ *
+ * @param r                     The reassembler associated with this transport.
+ * @param frag                  The incoming fragment.
+ * @param arg                   The generic argument to pass to the
+ *                                  reassembler's callbacks.
+ * @param out_pkt               If the fragment completes a packet, the
+ *                                  completed packet is stored here.
+ *
+ * @return                      0 if the fragment was successfully processed;
+ *                              SYS_ENOMEM on mbuf allocation failure.
+ */
+int oc_tcp_reass(struct oc_tcp_reassembler *r, struct os_mbuf *frag, void *arg,
+                 struct os_mbuf **out_pkt);
 
 #ifdef __cplusplus
 }
