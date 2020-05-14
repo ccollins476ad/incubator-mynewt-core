@@ -46,8 +46,8 @@ oc_get_trans_security_gatt(const struct oc_endpoint *oe_ble);
 static int oc_connectivity_init_gatt(void);
 static void oc_gatt_conn_ev(struct oc_endpoint *oe, int type);
 static void oc_connectivity_shutdown_gatt(void);
-static bool oc_ble_ep_match(const struct os_mbuf *pkt, void *arg);
-static void oc_ble_fill_endpoint(void *ep, void *arg);
+static bool oc_ble_ep_match(const void *ep, void *arg);
+static void oc_ble_ep_fill(void *ep, void *arg);
 
 static const struct oc_transport oc_gatt_transport = {
     .ot_flags = OC_TRANSPORT_USE_TCP,
@@ -124,8 +124,8 @@ struct oc_ble_reassemble_arg {
 
 static struct oc_tcp_reassembler oc_ble_r = {
     .pkt_q = STAILQ_HEAD_INITIALIZER(oc_ble_r.pkt_q),
-    .frag_belongs = oc_ble_ep_match,
-    .fill_endpoint = oc_ble_fill_endpoint,
+    .ep_match = oc_ble_ep_match,
+    .ep_fill = oc_ble_ep_fill,
     .endpoint_size = sizeof(struct oc_endpoint_ble),
 };
 
@@ -243,7 +243,7 @@ static bool
 oc_ble_ep_match(const void *ep, void *arg)
 {
     struct oc_ble_reassemble_arg *re_arg;
-    struct oc_endpoint_ble *oe_ble;
+    const struct oc_endpoint_ble *oe_ble;
 
     oe_ble = ep;
     re_arg = arg;
@@ -253,7 +253,7 @@ oc_ble_ep_match(const void *ep, void *arg)
     }
 
     if (re_arg->srv_idx != OC_BLE_SRV_NONE &&
-        re_arg->srv_idx != oe_ble_srv_idx) {
+        re_arg->srv_idx != oe_ble->srv_idx) {
 
         return false;
     }
@@ -262,7 +262,7 @@ oc_ble_ep_match(const void *ep, void *arg)
 }
 
 static void
-oc_ble_fill_endpoint(void *ep, void *arg)
+oc_ble_ep_fill(void *ep, void *arg)
 {
     struct oc_ble_reassemble_arg *re_arg;
     struct oc_endpoint_ble *oe_ble;
