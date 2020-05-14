@@ -29,15 +29,16 @@ extern "C" {
 #endif
 
 /**
- * Indicates whether an incoming fragment belongs to the partially received
- * packet identified by `arg`.
+ * Indicates whether a transport-specific endpoint matches the provided
+ * description.
  */
-typedef bool oc_tcp_ep_match(const void *ep, void *arg);
+typedef bool oc_tcp_ep_match(const void *ep, void *ep_desc);
 
 /**
- * Fills the given endpoint data structure.
+ * Fills the given endpoint data structure according to the provided
+ * description.
  */
-typedef void oc_tcp_ep_fill(void *ep, void *arg);
+typedef void oc_tcp_ep_fill(void *ep, void *ep_desc);
 
 /**
  * Used for reassembling CoAP-over-TCP packets.  A transport should only have
@@ -61,7 +62,8 @@ struct oc_tcp_reassembler {
  *
  * @param r                     The reassembler associated with this transport.
  * @param frag                  The incoming fragment.
- * @param arg                   The generic argument to pass to the
+ * @param ep_desc               Describes the endpoint of the incoming
+ *                                  fragment.  This gets passed to the
  *                                  reassembler's callbacks.
  * @param out_pkt               If the fragment completes a packet, the
  *                                  completed packet is stored here.
@@ -69,8 +71,10 @@ struct oc_tcp_reassembler {
  * @return                      0 if the fragment was successfully processed;
  *                              SYS_ENOMEM on mbuf allocation failure.
  */
-int oc_tcp_reass(struct oc_tcp_reassembler *r, struct os_mbuf *frag, void *arg,
-                 struct os_mbuf **out_pkt);
+int oc_tcp_reass(struct oc_tcp_reassembler *r, struct os_mbuf *frag,
+                 void *ep_desc, struct os_mbuf **out_pkt);
+
+void oc_tcp_conn_del(struct oc_tcp_reassembler *r, void *ep_desc);
 
 #ifdef __cplusplus
 }

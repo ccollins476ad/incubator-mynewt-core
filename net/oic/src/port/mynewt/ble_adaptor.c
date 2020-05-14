@@ -117,7 +117,7 @@ STATS_NAME_START(oc_ble_stats)
     STATS_NAME(oc_ble_stats, oerr)
 STATS_NAME_END(oc_ble_stats)
 
-struct oc_ble_reassemble_arg {
+struct oc_ble_ep_desc {
     uint16_t conn_handle;
     uint8_t srv_idx;
 };
@@ -242,18 +242,18 @@ oc_log_ep_gatt(char *ptr, int maxlen, const struct oc_endpoint *oe)
 static bool
 oc_ble_ep_match(const void *ep, void *arg)
 {
-    struct oc_ble_reassemble_arg *re_arg;
+    struct oc_ble_ep_desc *ep_desc;
     const struct oc_endpoint_ble *oe_ble;
 
     oe_ble = ep;
-    re_arg = arg;
+    ep_desc = arg;
 
-    if (re_arg->conn_handle != oe_ble->conn_handle) {
+    if (ep_desc->conn_handle != oe_ble->conn_handle) {
         return false;
     }
 
-    if (re_arg->srv_idx != OC_BLE_SRV_NONE &&
-        re_arg->srv_idx != oe_ble->srv_idx) {
+    if (ep_desc->srv_idx != OC_BLE_SRV_NONE &&
+        ep_desc->srv_idx != oe_ble->srv_idx) {
 
         return false;
     }
@@ -264,22 +264,22 @@ oc_ble_ep_match(const void *ep, void *arg)
 static void
 oc_ble_ep_fill(void *ep, void *arg)
 {
-    struct oc_ble_reassemble_arg *re_arg;
+    struct oc_ble_ep_desc *ep_desc;
     struct oc_endpoint_ble *oe_ble;
 
     oe_ble = ep;
-    re_arg = arg;
+    ep_desc = arg;
 
     oe_ble->ep.oe_type = oc_gatt_transport_id;
     oe_ble->ep.oe_flags = 0;
-    oe_ble->srv_idx = re_arg->srv_idx;
-    oe_ble->conn_handle = re_arg->conn_handle;
+    oe_ble->srv_idx = ep_desc->srv_idx;
+    oe_ble->conn_handle = ep_desc->conn_handle;
 }
 
 static int
 oc_ble_reass(struct os_mbuf *om1, uint16_t conn_handle, uint8_t srv_idx)
 {
-    struct oc_ble_reassemble_arg re_arg;
+    struct oc_ble_ep_desc ep_desc;
     struct os_mbuf_pkthdr *pkt1;
     struct os_mbuf *om2;
     int rc;
@@ -292,10 +292,10 @@ oc_ble_reass(struct os_mbuf *om1, uint16_t conn_handle, uint8_t srv_idx)
     OC_LOG_DEBUG("oc_gatt rx seg %u-%x-%u\n", conn_handle,
                  (unsigned)pkt1, pkt1->omp_len);
 
-    re_arg.conn_handle = conn_handle;
-    re_arg.srv_idx = srv_idx;
+    ep_desc.conn_handle = conn_handle;
+    ep_desc.srv_idx = srv_idx;
 
-    rc = oc_tcp_reass(&oc_ble_r, om1, &re_arg, &om2);
+    rc = oc_tcp_reass(&oc_ble_r, om1, &ep_desc, &om2);
     if (rc != 0) {
         if (rc == SYS_ENOMEM) {
             OC_LOG_ERROR("oc_gatt_rx: Could not allocate mbuf\n");
@@ -385,32 +385,12 @@ oc_ble_coap_conn_new(uint16_t conn_handle)
 void
 oc_ble_coap_conn_del(uint16_t conn_handle)
 {
-    struct os_mbuf_pkthdr *pkt;
-    struct os_mbuf *m;
-    struct oc_endpoint_ble *oe_ble;
-    struct oc_conn_ev *oce;
+    struct oc_ble_ep_desc ep_desc = {
+        .conn_handle = conn_handle,
+        .srv_idx = OC_BLE_SRV_NONE,
+    };
 
-    STAILQ_FOREACH(pkt, &oc_ble_reass_q, omp_next) {
-        m = OS_MBUF_PKTHDR_TO_MBUF(pkt);
-        oe_ble = (struct oc_endpoint_ble *)OC_MBUF_ENDPOINT(m);
-        if (oe_ble->conn_handle == conn_handle) {
-            STAILQ_REMOVE(&oc_ble_reass_q, pkt, os_mbuf_pkthdr, omp_next);
-            os_mbuf_free_chain(m);
-            break;
-        }
-    }
-
-    /*
-     * Notify listeners that this connection is gone.
-     */
-    oce = oc_conn_ev_alloc();
-    assert(oce);
-    memset(&oce->oce_oe, 0, sizeof(oce->oce_oe));
-    oe_ble = (struct oc_endpoint_ble *)&oce->oce_oe;
-    oe_ble->ep.oe_type = oc_gatt_transport_id;
-    oe_ble->ep.oe_flags = 0;
-    oe_ble->conn_handle = conn_handle;
-    oc_conn_removed(oce);
+    oc_tcp_conn_del(&oc_ble_r, &ep_desc);
 }
 
 /*

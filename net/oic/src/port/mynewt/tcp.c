@@ -3,7 +3,7 @@
 #include "oic/messaging/coap/coap.h"
 
 int
-oc_tcp_reass(struct oc_tcp_reassembler *r, struct os_mbuf *om1, void *arg,
+oc_tcp_reass(struct oc_tcp_reassembler *r, struct os_mbuf *om1, void *ep_desc,
              struct os_mbuf **out_pkt)
 {
     struct os_mbuf_pkthdr *pkt1;
@@ -19,7 +19,7 @@ oc_tcp_reass(struct oc_tcp_reassembler *r, struct os_mbuf *om1, void *arg,
     /* Find the packet that this fragment belongs to, if any. */
     STAILQ_FOREACH(pkt2, &r->pkt_q, omp_next) {
         om2 = OS_MBUF_PKTHDR_TO_MBUF(pkt2);
-        if (r->ep_match(OS_MBUF_USRHDR(om2), arg)) {
+        if (r->ep_match(OS_MBUF_USRHDR(om2), ep_desc)) {
             /* Data from same connection.  Append. */
             os_mbuf_concat(om2, om1);
             os_mbuf_copydata(om2, 0, sizeof(hdr), hdr);
@@ -48,7 +48,7 @@ oc_tcp_reass(struct oc_tcp_reassembler *r, struct os_mbuf *om1, void *arg,
         om2 = om1;
     }
 
-    r->ep_fill(OS_MBUF_USRHDR(om2), arg);
+    r->ep_fill(OS_MBUF_USRHDR(om2), ep_desc);
     pkt2 = OS_MBUF_PKTHDR(om2);
 
     os_mbuf_copydata(om2, 0, sizeof(hdr), hdr);
@@ -60,35 +60,28 @@ oc_tcp_reass(struct oc_tcp_reassembler *r, struct os_mbuf *om1, void *arg,
     return 0;
 }
 
-#if 0
 void
-oc_tcp_conn_del(uint16_t conn_handle)
+oc_tcp_conn_del(struct oc_tcp_reassembler *r, void *ep_desc)
 {
     struct os_mbuf_pkthdr *pkt;
     struct os_mbuf *m;
-    struct oc_endpoint_ble *oe_ble;
     struct oc_conn_ev *oce;
 
-    STAILQ_FOREACH(pkt, &oc_ble_reass_q, omp_next) {
+    STAILQ_FOREACH(pkt, &r->pkt_q, omp_next) {
         m = OS_MBUF_PKTHDR_TO_MBUF(pkt);
-        oe_ble = (struct oc_endpoint_ble *)OC_MBUF_ENDPOINT(m);
-        if (oe_ble->conn_handle == conn_handle) {
-            STAILQ_REMOVE(&oc_ble_reass_q, pkt, os_mbuf_pkthdr, omp_next);
+        if (r->ep_match(OS_MBUF_USRHDR(m), ep_desc)) {
+            STAILQ_REMOVE(&r->pkt_q, pkt, os_mbuf_pkthdr, omp_next);
             os_mbuf_free_chain(m);
             break;
         }
     }
 
-    /*
-     * Notify listeners that this connection is gone.
-     */
+    /* Notify listeners that this connection is gone. */
+
     oce = oc_conn_ev_alloc();
     assert(oce);
+
     memset(&oce->oce_oe, 0, sizeof(oce->oce_oe));
-    oe_ble = (struct oc_endpoint_ble *)&oce->oce_oe;
-    oe_ble->ep.oe_type = oc_gatt_transport_id;
-    oe_ble->ep.oe_flags = 0;
-    oe_ble->conn_handle = conn_handle;
+    r->ep_fill(&oce->oce_oe, ep_desc);
     oc_conn_removed(oce);
 }
-#endif
