@@ -36,6 +36,7 @@ uint8_t oc_tcp4_transport_id = -1;
 #include "oic/port/mynewt/transport.h"
 #include "oic/port/mynewt/ip.h"
 #include "oic/port/mynewt/tcp.h"
+#include "oic/port/mynewt/tcp4.h"
 
 #ifdef OC_SECURITY
 #error This implementation does not yet support security
@@ -98,7 +99,20 @@ static struct oc_tcp_reassembler oc_tcp4_r = {
     .endpoint_size = sizeof(struct oc_endpoint_ip),
 };
 
-static struct mn_socket *oc_tcp4_conns[MYNEWT_VAL(OC_TCP4_MAX_CONNS)];
+struct oc_tcp4_conn {
+    struct mn_socket *sock;
+    oc_tcp4_err_fn *err_cb;
+    void *err_arg;
+    SLIST_ENTRY(oc_tcp4_conn) next;
+};
+
+struct os_mempool oc_tcp4_conn_pool;
+static os_membuf_t oc_tcp4_conn_buf[
+    OS_MEMPOOL_SIZE(MYNEWT_VAL(OC_TCP4_MAX_CONNS),
+                    sizeof (struct oc_tcp4_conn))
+];
+
+static SLIST_HEAD(, oc_tcp4_conn) oc_tcp4_conn_list;
 
 /* sockets to use for coap unicast and multicast */
 static struct mn_socket *oc_ucast4;
@@ -231,23 +245,19 @@ static void
 oc_event_tcp4(struct os_event *ev)
 {
     struct mn_sockaddr_in from;
-    struct mn_socket *sock;
+    struct oc_tcp4_conn *conn;
     struct os_mbuf *frag;
     int rc;
-    int i;
 
-    for (i = 0; i < MYNEWT_VAL(OC_TCP4_MAX_CONNS); i++) {
-        sock = oc_tcp4_conns[i];
-        if (sock != NULL) {
-            while (1) {
-                rc = mn_recvfrom(sock, &frag, (struct mn_sockaddr *) &from);
-                if (rc != 0) {
-                    break;
-                }
-                assert(OS_MBUF_IS_PKTHDR(frag));
-
-                oc_attempt_rx_tcp4(sock, frag, &from);
+    SLIST_FOREACH(conn, &oc_tcp4_conn_list, next) {
+        while (1) {
+            rc = mn_recvfrom(conn->sock, &frag, (struct mn_sockaddr *) &from);
+            if (rc != 0) {
+                break;
             }
+            assert(OS_MBUF_IS_PKTHDR(frag));
+
+            oc_attempt_rx_tcp4(conn->sock, frag, &from);
         }
     }
 }
@@ -295,29 +305,44 @@ return 0;
 int
 oc_tcp4_add_conn(struct mn_socket *sock)
 {
-    int i;
+    struct oc_tcp4_conn *conn;
 
-    for (i = 0; i < MYNEWT_VAL(OC_TCP4_MAX_CONNS); i++) {
-        if (oc_tcp4_conns[i] == NULL) { 
-            mn_socket_set_cbs(sock, sock, &oc_tcp4_cbs);
-            oc_tcp4_conns[i] = sock;
-            return 0;
-        }
+    conn = os_memblock_get(&oc_tcp4_conn_pool);
+    if (conn == NULL) {
+        return SYS_ENOMEM;
     }
 
-    return SYS_ENOMEM;
+    *conn = (struct oc_tcp4_conn) {
+        .sock = sock,
+        .err_cb = NULL,
+        .err_arg = NULL,
+    };
+    mn_socket_set_cbs(conn->sock, conn->sock, &oc_tcp4_cbs);
+
+    SLIST_INSERT_HEAD(&oc_tcp4_conn_list, conn, next);
+
+    return 0;
 }
 
 int
 oc_tcp4_del_conn(struct mn_socket *sock)
 {
-    int i;
+    struct oc_tcp4_conn *conn;
+    struct oc_tcp4_conn *prev;
 
-    for (i = 0; i < MYNEWT_VAL(OC_TCP4_MAX_CONNS); i++) {
-        if (oc_tcp4_conns[i] == sock) { 
-            oc_tcp4_conns[i] = NULL;
+    prev = NULL;
+    SLIST_FOREACH(conn, &oc_tcp4_conn_list, next) {
+        if (conn->sock == sock) {
+            if (prev == NULL) {
+                SLIST_REMOVE_HEAD(&oc_tcp4_conn_list, next);
+            } else {
+                SLIST_NEXT(prev, next) = SLIST_NEXT(conn, next);
+            }
+
             return 0;
         }
+
+        prev = conn;
     }
 
     return SYS_ENOENT;
@@ -329,6 +354,15 @@ void
 oc_register_tcp4(void)
 {
 #if (MYNEWT_VAL(OC_TRANSPORT_IP) == 1) && (MYNEWT_VAL(OC_TRANSPORT_IPV4) == 1)
+    int rc;
+
+    SLIST_INIT(&oc_tcp4_conn_list);
+
+    rc = os_mempool_init(&oc_tcp4_conn_pool, MYNEWT_VAL(OC_TCP4_MAX_CONNS),
+                         sizeof (struct oc_tcp4_conn), oc_tcp4_conn_buf,
+                         "oc_tcp4_conn_pool");
+    SYSINIT_PANIC_ASSERT(rc == 0);
+
     oc_tcp4_transport_id = oc_transport_register(&oc_tcp4_transport);
 #endif
 }
