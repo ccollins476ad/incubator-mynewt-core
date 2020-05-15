@@ -25,7 +25,7 @@
 
 uint8_t oc_tcp4_transport_id = -1;
 
-#if (MYNEWT_VAL(OC_TRANSPORT_IP) == 1) && (MYNEWT_VAL(OC_TRANSPORT_IPV4) == 1)
+#if MYNEWT_VAL(OC_TRANSPORT_TCP4)
 #include <log/log.h>
 #include <mn_socket/mn_socket.h>
 #include <stats/stats.h>
@@ -99,7 +99,7 @@ static struct oc_stream_reassembler oc_tcp4_r = {
     .pkt_q = STAILQ_HEAD_INITIALIZER(oc_tcp4_r.pkt_q),
     .ep_match = oc_tcp4_ep_match,
     .ep_fill = oc_tcp4_ep_fill,
-    .endpoint_size = sizeof(struct oc_endpoint_ip),
+    .endpoint_size = sizeof(struct oc_endpoint_tcp),
 };
 
 struct oc_tcp4_conn {
@@ -128,37 +128,38 @@ static struct mn_socket *oc_ucast4;
 static char *
 oc_log_ep_tcp4(char *ptr, int maxlen, const struct oc_endpoint *oe)
 {
-    const struct oc_endpoint_ip *oe_ip = (const struct oc_endpoint_ip *)oe;
+    const struct oc_endpoint_tcp *ep_tcp = (const struct oc_endpoint_tcp *)oe;
     int len;
 
-    mn_inet_ntop(MN_PF_INET, oe_ip->v4.address, ptr, maxlen);
+    mn_inet_ntop(MN_PF_INET, ep_tcp->ep_ip.v4.address, ptr, maxlen);
     len = strlen(ptr);
-    snprintf(ptr + len, maxlen - len, "-%u", oe_ip->port);
+    snprintf(ptr + len, maxlen - len, "-%u", ep_tcp->ep_ip.port);
+
     return ptr;
 }
 
 static uint8_t
 oc_ep_tcp4_size(const struct oc_endpoint *oe)
 {
-    return sizeof(struct oc_endpoint_ip);
+    return sizeof(struct oc_endpoint_tcp);
 }
 
 static void
 oc_send_buffer_tcp4(struct os_mbuf *m)
 {
-    struct oc_endpoint_ip *oe_ip;
+    struct oc_endpoint_tcp *ep_tcp;
     int rc;
 
     STATS_INC(oc_tcp4_stats, oucast);
 
-    assert(OS_MBUF_USRHDR_LEN(m) >= sizeof(struct oc_endpoint_ip));
-    oe_ip = OS_MBUF_USRHDR(m);
+    assert(OS_MBUF_USRHDR_LEN(m) >= sizeof(struct oc_endpoint_tcp));
+    ep_tcp = OS_MBUF_USRHDR(m);
 
-    assert(oe_ip->sock != NULL);
+    assert(ep_tcp->sock != NULL);
 
     STATS_INCN(oc_tcp4_stats, obytes, OS_MBUF_PKTLEN(m));
 
-    rc = mn_sendto(oe_ip->sock, m, NULL);
+    rc = mn_sendto(ep_tcp->sock, m, NULL);
     if (rc != 0) {
         OC_LOG_ERROR("Failed to send buffer %u ucast\n",
                      OS_MBUF_PKTHDR(m)->omp_len);
@@ -171,34 +172,33 @@ static bool
 oc_tcp4_ep_match(const void *ep, void *arg)
 {
     struct oc_tcp4_ep_desc *ep_desc;
-    const struct oc_endpoint_ip *oe_ip;
+    const struct oc_endpoint_tcp *ep_tcp;
 
-    oe_ip = ep;
+    ep_tcp = ep;
     ep_desc = arg;
 
-    return ep_desc->sock == oe_ip->sock;
+    return ep_desc->sock == ep_tcp->sock;
 }
 
 static void
 oc_tcp4_ep_fill(void *ep, void *arg)
 {
     struct oc_tcp4_ep_desc *ep_desc;
-    struct oc_endpoint_ip *oe_ip;
+    struct oc_endpoint_tcp *ep_tcp;
 
-    oe_ip = ep;
+    ep_tcp = ep;
     ep_desc = arg;
 
-    oe_ip->ep.oe_type = oc_tcp4_transport_id;
-    oe_ip->ep.oe_flags = 0;
-    oe_ip->sock = ep_desc->sock;
-    oe_ip->v4 = ep_desc->addr;
-    oe_ip->port = ep_desc->port;
+    ep_tcp->ep_ip.ep.oe_type = oc_tcp4_transport_id;
+    ep_tcp->ep_ip.ep.oe_flags = 0;
+    ep_tcp->ep_ip.v4 = ep_desc->addr;
+    ep_tcp->ep_ip.port = ep_desc->port;
+    ep_tcp->sock = ep_desc->sock;
 }
 
-// XXX: Rename
 int
-oc_attempt_rx_tcp4(struct mn_socket *sock, struct os_mbuf *frag,
-                   const struct mn_sockaddr_in *from)
+oc_tcp_rx_frag(struct mn_socket *sock, struct os_mbuf *frag,
+               const struct mn_sockaddr_in *from)
 {
     struct oc_tcp4_ep_desc ep_desc;
     struct os_mbuf *pkt;
@@ -285,7 +285,7 @@ oc_event_tcp4(struct os_event *ev)
             }
             assert(OS_MBUF_IS_PKTHDR(frag));
 
-            oc_attempt_rx_tcp4(conn->sock, frag, &from);
+            oc_tcp_rx_frag(conn->sock, frag, &from);
         }
     }
 }
@@ -293,41 +293,7 @@ oc_event_tcp4(struct os_event *ev)
 int
 oc_connectivity_init_tcp4(void)
 {
-#if 0
-    int rc;
-    struct mn_sockaddr_in sin;
-    struct mn_itf itf;
-
-    memset(&itf, 0, sizeof(itf));
-
-    rc = mn_socket(&oc_ucast4, MN_PF_INET, MN_SOCK_STREAM, 0);
-    if (rc != 0 || !oc_ucast4) {
-        OC_LOG_ERROR("Could not create oc unicast v4 socket\n");
-        return rc;
-    }
-    mn_socket_set_cbs(oc_ucast4, oc_ucast4, &oc_tcp4_cbs);
-
-    sin.msin_len = sizeof(sin);
-    sin.msin_family = MN_AF_INET;
-    sin.msin_port = 0;
-    memset(&sin.msin_addr, 0, sizeof(sin.msin_addr));
-
-    rc = mn_bind(oc_ucast4, (struct mn_sockaddr *)&sin);
-    if (rc != 0) {
-        OC_LOG_ERROR("Could not bind oc unicast v4 socket\n");
-        goto oc_connectivity_init_err;
-    }
-
-    // XXX: Listen
-
     return 0;
-
-oc_connectivity_init_err:
-    oc_connectivity_shutdown_tcp4();
-    return rc;
-#endif
-
-return 0;
 }
 
 static struct oc_tcp4_conn *
@@ -412,7 +378,7 @@ oc_tcp4_del_conn(struct mn_socket *sock)
 void
 oc_register_tcp4(void)
 {
-#if (MYNEWT_VAL(OC_TRANSPORT_IP) == 1) && (MYNEWT_VAL(OC_TRANSPORT_IPV4) == 1)
+#if MYNEWT_VAL(OC_TRANSPORT_TCP4)
     int rc;
 
     SLIST_INIT(&oc_tcp4_conn_list);
