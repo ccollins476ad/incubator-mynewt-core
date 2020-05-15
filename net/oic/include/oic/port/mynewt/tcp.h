@@ -17,6 +17,11 @@
  * under the License.
  */
 
+/**
+ * tcp.h: Utility code for adaptors that implement the CoAP-over-TCP protocol
+ * (Bluetooth, TCP/IP, etc.).
+ */
+
 #ifndef H_MYNEWT_TCP_
 #define H_MYNEWT_TCP_
 
