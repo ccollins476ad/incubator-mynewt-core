@@ -22,9 +22,10 @@
 
 extern uint8_t oc_ip4_transport_id;
 
-typedef void oc_tcp4_err_fn(struct mn_socket *mn, int status);
+typedef void oc_tcp4_err_fn(struct mn_socket *mn, int status, void *arg);
 
-int oc_tcp4_add_conn(struct mn_socket *sock);
+int oc_tcp4_add_conn(struct mn_socket *sock, oc_tcp4_err_fn *on_err,
+                     void *arg);
 
 int oc_tcp4_del_conn(struct mn_socket *sock);
 

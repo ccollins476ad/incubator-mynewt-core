@@ -48,6 +48,9 @@ static char *oc_log_ep_tcp4(char *ptr, int maxlen, const struct oc_endpoint *);
 static int oc_connectivity_init_tcp4(void);
 void oc_connectivity_shutdown_tcp4(void);
 static void oc_event_tcp4(struct os_event *ev);
+static void oc_tcp4_readable(void *cb_arg, int err);
+static void oc_tcp4_writable(void *cb_arg, int err);
+static struct oc_tcp4_conn *oc_tcp4_remove_conn(struct mn_socket *sock);
 static bool oc_tcp4_ep_match(const void *ep, void *arg);
 static void oc_tcp4_ep_fill(void *ep, void *arg);
 
@@ -111,6 +114,11 @@ static os_membuf_t oc_tcp4_conn_buf[
     OS_MEMPOOL_SIZE(MYNEWT_VAL(OC_TCP4_MAX_CONNS),
                     sizeof (struct oc_tcp4_conn))
 ];
+
+union mn_socket_cb oc_tcp4_cbs = {
+    .socket.readable = oc_tcp4_readable,
+    .socket.writable = oc_tcp4_writable,
+};
 
 static SLIST_HEAD(, oc_tcp4_conn) oc_tcp4_conn_list;
 
@@ -220,17 +228,37 @@ oc_attempt_rx_tcp4(struct mn_socket *sock, struct os_mbuf *frag,
     return 0;
 }
 
-static void oc_socks4_readable(void *cb_arg, int err);
-
-union mn_socket_cb oc_tcp4_cbs = {
-    .socket.readable = oc_socks4_readable,
-    .socket.writable = NULL
-};
-
-void
-oc_socks4_readable(void *cb_arg, int err)
+static void
+oc_tcp4_err(struct mn_socket *sock, int err)
 {
-    os_eventq_put(oc_evq_get(), &oc_tcp4_read_event);
+    struct oc_tcp4_conn *conn;
+
+    conn = oc_tcp4_remove_conn(sock);
+    assert(conn != NULL);
+
+    if (conn->err_cb != NULL) {
+        conn->err_cb(conn->sock, err, conn->err_arg);
+    }
+
+    os_memblock_put(&oc_tcp4_conn_pool, conn);
+}
+
+static void
+oc_tcp4_readable(void *cb_arg, int err)
+{
+    if (err != 0) {
+        oc_tcp4_err(cb_arg, err);
+    } else {
+        os_eventq_put(oc_evq_get(), &oc_tcp4_read_event);
+    }
+}
+
+static void
+oc_tcp4_writable(void *cb_arg, int err)
+{
+    if (err != 0) {
+        oc_tcp4_err(cb_arg, err);
+    }
 }
 
 void
@@ -302,8 +330,28 @@ oc_connectivity_init_err:
 return 0;
 }
 
+static struct oc_tcp4_conn *
+oc_tcp4_find_conn(const struct mn_socket *sock, struct oc_tcp4_conn **out_prev)
+{
+    struct oc_tcp4_conn *prev;
+    struct oc_tcp4_conn *conn;
+
+    SLIST_FOREACH(conn, &oc_tcp4_conn_list, next) {
+        if (conn->sock == sock) {
+            if (out_prev != NULL) {
+                *out_prev = prev;
+            }
+            return conn;
+        }
+
+        prev = conn;
+    }
+
+    return NULL;
+}
+
 int
-oc_tcp4_add_conn(struct mn_socket *sock)
+oc_tcp4_add_conn(struct mn_socket *sock, oc_tcp4_err_fn *on_err, void *arg)
 {
     struct oc_tcp4_conn *conn;
 
@@ -314,8 +362,8 @@ oc_tcp4_add_conn(struct mn_socket *sock)
 
     *conn = (struct oc_tcp4_conn) {
         .sock = sock,
-        .err_cb = NULL,
-        .err_arg = NULL,
+        .err_cb = on_err,
+        .err_arg = arg,
     };
     mn_socket_set_cbs(conn->sock, conn->sock, &oc_tcp4_cbs);
 
@@ -324,28 +372,39 @@ oc_tcp4_add_conn(struct mn_socket *sock)
     return 0;
 }
 
-int
-oc_tcp4_del_conn(struct mn_socket *sock)
+static struct oc_tcp4_conn *
+oc_tcp4_remove_conn(struct mn_socket *sock)
 {
     struct oc_tcp4_conn *conn;
     struct oc_tcp4_conn *prev;
 
-    prev = NULL;
-    SLIST_FOREACH(conn, &oc_tcp4_conn_list, next) {
-        if (conn->sock == sock) {
-            if (prev == NULL) {
-                SLIST_REMOVE_HEAD(&oc_tcp4_conn_list, next);
-            } else {
-                SLIST_NEXT(prev, next) = SLIST_NEXT(conn, next);
-            }
-
-            return 0;
-        }
-
-        prev = conn;
+    conn = oc_tcp4_find_conn(sock, &prev);
+    if (conn == NULL) {
+        return NULL;
     }
 
-    return SYS_ENOENT;
+    if (prev == NULL) {
+        SLIST_REMOVE_HEAD(&oc_tcp4_conn_list, next);
+    } else {
+        SLIST_NEXT(prev, next) = SLIST_NEXT(conn, next);
+    }
+
+    return conn;
+}
+
+int
+oc_tcp4_del_conn(struct mn_socket *sock)
+{
+    struct oc_tcp4_conn *conn;
+
+    conn = oc_tcp4_remove_conn(sock);
+    if (conn == NULL) {
+        return SYS_ENOENT;
+    }
+
+    os_memblock_put(&oc_tcp4_conn_pool, conn);
+
+    return 0;
 }
 
 #endif
