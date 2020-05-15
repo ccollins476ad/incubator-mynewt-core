@@ -64,6 +64,7 @@ oc_tcp_reass(struct oc_tcp_reassembler *r, struct os_mbuf *om1, void *ep_desc,
     if (OS_MBUF_USRHDR_LEN(om1) < r->endpoint_size) {
         om2 = os_msys_get_pkthdr(0, r->endpoint_size);
         if (!om2) {
+            os_mbuf_free_chain(om1);
             return SYS_ENOMEM;
         }
         OS_MBUF_PKTHDR(om2)->omp_len = pkt1->omp_len;

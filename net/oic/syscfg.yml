@@ -129,6 +129,15 @@ syscfg.defs:
         description: >
             Sysinit stage for the LoRa OIC transport.
         value: 301
+    OC_SYSINIT_STAGE_TCP4:
+        description: >
+            Sysinit stage for the TCP43 OIC transport.
+        value: 301
+
+    OC_TCP4_MAX_CONNS:
+        description: >
+            Maximum CoAP-aware TCP connections.
+        value: 4
 
     ### Log settings.
 

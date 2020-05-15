@@ -43,6 +43,7 @@ struct oc_endpoint_ip {
         oc_ipv6_addr_t v6;
         oc_ipv4_addr_t v4;
     };
+    struct mn_socket *sock;
 };
 
 extern uint8_t oc_ip6_transport_id;

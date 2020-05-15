@@ -129,8 +129,6 @@ static struct oc_tcp_reassembler oc_ble_r = {
     .endpoint_size = sizeof(struct oc_endpoint_ble),
 };
 
-static STAILQ_HEAD(, os_mbuf_pkthdr) oc_ble_reass_q;
-
 #if (MYNEWT_VAL(OC_SERVER) == 1)
 /*
  * BLE mgmt attribute handles for service
@@ -424,7 +422,6 @@ oc_gatt_conn_ev(struct oc_endpoint *oe, int type)
 static int
 oc_connectivity_init_gatt(void)
 {
-    STAILQ_INIT(&oc_ble_reass_q);
     if (oc_gatt_conn_cb.occ_func == NULL) {
         oc_gatt_conn_cb.occ_func = oc_gatt_conn_ev;
         oc_conn_cb_register(&oc_gatt_conn_cb);
