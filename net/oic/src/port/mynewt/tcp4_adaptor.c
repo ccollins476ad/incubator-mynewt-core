@@ -35,7 +35,7 @@ uint8_t oc_tcp4_transport_id = -1;
 #include "oic/port/mynewt/adaptor.h"
 #include "oic/port/mynewt/transport.h"
 #include "oic/port/mynewt/ip.h"
-#include "oic/port/mynewt/tcp.h"
+#include "oic/port/mynewt/stream.h"
 #include "oic/port/mynewt/tcp4.h"
 
 #ifdef OC_SECURITY
@@ -95,7 +95,7 @@ struct oc_tcp4_ep_desc {
     uint16_t port;
 };
 
-static struct oc_tcp_reassembler oc_tcp4_r = {
+static struct oc_stream_reassembler oc_tcp4_r = {
     .pkt_q = STAILQ_HEAD_INITIALIZER(oc_tcp4_r.pkt_q),
     .ep_match = oc_tcp4_ep_match,
     .ep_fill = oc_tcp4_ep_fill,
@@ -211,7 +211,7 @@ oc_attempt_rx_tcp4(struct mn_socket *sock, struct os_mbuf *frag,
     memcpy(&ep_desc.addr, &from->msin_addr, sizeof ep_desc.addr);
     ep_desc.port = ntohs(from->msin_port);
 
-    rc = oc_tcp_reass(&oc_tcp4_r, frag, &ep_desc, &pkt);
+    rc = oc_stream_reass(&oc_tcp4_r, frag, &ep_desc, &pkt);
     if (rc != 0) {
         if (rc == SYS_ENOMEM) {
             OC_LOG_ERROR("oc_tcp4_rx: Could not allocate mbuf\n");

@@ -18,8 +18,8 @@
  */
 
 /**
- * tcp.h: Utility code for adaptors that implement the CoAP-over-TCP protocol
- * (Bluetooth, TCP/IP, etc.).
+ * stream.h: Utility code for adaptors that implement the CoAP-over-TCP
+ * protocol (Bluetooth, TCP/IP, etc.).
  */
 
 #ifndef H_MYNEWT_TCP_
@@ -37,13 +37,13 @@ extern "C" {
  * Indicates whether a transport-specific endpoint matches the provided
  * description.
  */
-typedef bool oc_tcp_ep_match(const void *ep, void *ep_desc);
+typedef bool oc_stream_ep_match(const void *ep, void *ep_desc);
 
 /**
  * Fills the given endpoint data structure according to the provided
  * description.
  */
-typedef void oc_tcp_ep_fill(void *ep, void *ep_desc);
+typedef void oc_stream_ep_fill(void *ep, void *ep_desc);
 
 /**
  * Used for reassembling CoAP-over-TCP packets.  A transport should only have
@@ -52,10 +52,10 @@ typedef void oc_tcp_ep_fill(void *ep, void *ep_desc);
  * The user must initialize ALL members.  After initialization, the user should
  * not directly access any members.
  */
-struct oc_tcp_reassembler {
+struct oc_stream_reassembler {
     STAILQ_HEAD(, os_mbuf_pkthdr) pkt_q; /* Use STAILQ_HEAD_INITIALIZER() */
-    oc_tcp_ep_match *ep_match;
-    oc_tcp_ep_fill *ep_fill;
+    oc_stream_ep_match *ep_match;
+    oc_stream_ep_fill *ep_fill;
     int endpoint_size;
 };
 
@@ -76,10 +76,10 @@ struct oc_tcp_reassembler {
  * @return                      0 if the fragment was successfully processed;
  *                              SYS_ENOMEM on mbuf allocation failure.
  */
-int oc_tcp_reass(struct oc_tcp_reassembler *r, struct os_mbuf *frag,
-                 void *ep_desc, struct os_mbuf **out_pkt);
+int oc_stream_reass(struct oc_stream_reassembler *r, struct os_mbuf *frag,
+                    void *ep_desc, struct os_mbuf **out_pkt);
 
-void oc_tcp_conn_del(struct oc_tcp_reassembler *r, void *ep_desc);
+void oc_stream_conn_del(struct oc_stream_reassembler *r, void *ep_desc);
 
 #ifdef __cplusplus
 }

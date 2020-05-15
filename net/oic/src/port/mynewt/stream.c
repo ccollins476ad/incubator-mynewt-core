@@ -18,17 +18,17 @@
  */
 
 /**
- * tcp.c: Utility code for adaptors that implement the CoAP-over-TCP protocol
- * (Bluetooth, TCP/IP, etc.).
+ * stream.c: Utility code for adaptors that implement the CoAP-over-TCP
+ * protocol (Bluetooth, TCP/IP, etc.).
  */
 
 #include "os/mynewt.h"
-#include "oic/port/mynewt/tcp.h"
+#include "oic/port/mynewt/stream.h"
 #include "oic/messaging/coap/coap.h"
 
 int
-oc_tcp_reass(struct oc_tcp_reassembler *r, struct os_mbuf *om1, void *ep_desc,
-             struct os_mbuf **out_pkt)
+oc_stream_reass(struct oc_stream_reassembler *r, struct os_mbuf *om1,
+                void *ep_desc, struct os_mbuf **out_pkt)
 {
     struct os_mbuf_pkthdr *pkt1;
     struct os_mbuf_pkthdr *pkt2;
@@ -86,7 +86,7 @@ oc_tcp_reass(struct oc_tcp_reassembler *r, struct os_mbuf *om1, void *ep_desc,
 }
 
 void
-oc_tcp_conn_del(struct oc_tcp_reassembler *r, void *ep_desc)
+oc_stream_conn_del(struct oc_stream_reassembler *r, void *ep_desc)
 {
     struct os_mbuf_pkthdr *pkt;
     struct os_mbuf *m;
