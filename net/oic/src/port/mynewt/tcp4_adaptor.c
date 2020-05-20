@@ -302,18 +302,21 @@ oc_tcp4_find_conn(const struct mn_socket *sock, struct oc_tcp4_conn **out_prev)
     struct oc_tcp4_conn *prev;
     struct oc_tcp4_conn *conn;
 
+    prev = NULL;
+
     SLIST_FOREACH(conn, &oc_tcp4_conn_list, next) {
         if (conn->sock == sock) {
-            if (out_prev != NULL) {
-                *out_prev = prev;
-            }
-            return conn;
+            break;
         }
 
         prev = conn;
     }
 
-    return NULL;
+    if (out_prev != NULL) {
+        *out_prev = prev;
+    }
+
+    return conn;
 }
 
 int
