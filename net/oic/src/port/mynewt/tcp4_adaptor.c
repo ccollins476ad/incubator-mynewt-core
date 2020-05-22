@@ -164,7 +164,6 @@ oc_send_buffer_tcp4(struct os_mbuf *m)
         OC_LOG_ERROR("Failed to send buffer %u ucast\n",
                      OS_MBUF_PKTHDR(m)->omp_len);
         STATS_INC(oc_tcp4_stats, oerr);
-        os_mbuf_free_chain(m);
     }
 }
 
@@ -281,10 +280,14 @@ oc_event_tcp4(struct os_event *ev)
         while (1) {
             rc = mn_recvfrom(conn->sock, &frag, (struct mn_sockaddr *) &from);
             if (rc != 0) {
-                break;
+                if (rc != MN_EAGAIN) {
+                    oc_tcp4_err(conn->sock, rc);
+                }
+                os_eventq_put(oc_evq_get(), &oc_tcp4_read_event);
+                return;
             }
-            assert(OS_MBUF_IS_PKTHDR(frag));
 
+            assert(OS_MBUF_IS_PKTHDR(frag));
             oc_tcp_rx_frag(conn->sock, frag, &from);
         }
     }
