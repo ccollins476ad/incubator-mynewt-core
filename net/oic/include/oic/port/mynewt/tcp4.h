@@ -31,6 +31,8 @@ extern uint8_t oc_tcp4_transport_id;
 
 typedef void oc_tcp4_err_fn(struct mn_socket *mn, int status, void *arg);
 
+int oc_tcp4_ep_create(struct oc_endpoint_tcp *ep, struct mn_socket *sock);
+
 int oc_tcp4_add_conn(struct mn_socket *sock, oc_tcp4_err_fn *on_err,
                      void *arg);
 

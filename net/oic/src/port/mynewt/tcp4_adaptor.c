@@ -196,6 +196,27 @@ oc_tcp4_ep_fill(void *ep, void *arg)
 }
 
 int
+oc_tcp4_ep_create(struct oc_endpoint_tcp *ep, struct mn_socket *sock)
+{
+    struct oc_tcp4_ep_desc desc;
+    struct mn_sockaddr_in msin;
+    int rc;
+
+    rc = mn_getpeername(sock, (struct mn_sockaddr *)&msin);
+    if (rc != 0) {
+        return rc;
+    }
+
+    desc.sock = sock;
+    memcpy(&desc.addr, &msin.msin_addr, sizeof desc.addr);
+    desc.port = ntohs(msin.msin_port);
+
+    oc_tcp4_ep_fill(ep, &desc);
+
+    return 0;
+}
+
+int
 oc_tcp_rx_frag(struct mn_socket *sock, struct os_mbuf *frag,
                const struct mn_sockaddr_in *from)
 {
