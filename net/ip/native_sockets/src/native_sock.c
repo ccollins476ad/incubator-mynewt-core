@@ -464,7 +464,7 @@ native_sock_stream_tx(struct native_sock *ns, int notify)
         n = SLIST_NEXT(m, om_next);
 
         errno = 0;
-        rc = send(ns->ns_fd, m->om_data, m->om_len, MSG_NOSIGNAL);
+        rc = write(ns->ns_fd, m->om_data, m->om_len);
         if (rc == m->om_len) {
             /* Complete write. */
             ns->ns_tx = n;
@@ -857,6 +857,8 @@ native_sock_init(void)
     if (i) {
         return -1;
     }
+
+    signal(SIGPIPE, SIG_IGN);
 
     return 0;
 }
