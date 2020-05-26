@@ -272,7 +272,7 @@ out:
         /* used in server for separate response */
         coap_clear_transaction(transaction);
     }
-#ifdef OC_CLIENT
+#if 0 //def OC_CLIENT
     else if (erbium_status_code == EMPTY_ACK_RESPONSE) {
         coap_init_message(response, COAP_TYPE_ACK, 0, message->mid);
         struct os_mbuf *m_rsp = oc_allocate_mbuf(&endpoint);
